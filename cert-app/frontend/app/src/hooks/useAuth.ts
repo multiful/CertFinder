@@ -13,16 +13,29 @@ export function useAuth() {
 
     // Effect 1: Handle Authentication Session
     useEffect(() => {
-        // Check active sessions and sets the user
-        supabase.auth.getSession().then(({ data: { session } }: any) => {
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
-            setToken(session?.access_token ?? null);
-            setLoading(false);
-        });
+        let cancelled = false;
 
-        // Listen for changes on auth state (refreshSession 시 metadata 갱신 반영)
+        supabase.auth.getSession()
+            .then(({ data: { session } }: any) => {
+                if (cancelled) return;
+                const currentUser = session?.user ?? null;
+                setUser(currentUser);
+                setToken(session?.access_token ?? null);
+                setLoading(false);
+            })
+            .catch((err: any) => {
+                if (cancelled) return;
+                const msg = err?.message ?? '';
+                if (msg.includes('Refresh Token') || msg.includes('refresh_token') || msg.includes('Invalid Refresh Token')) {
+                    supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+                    setUser(null);
+                    setToken(null);
+                }
+                setLoading(false);
+            });
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
+            if (cancelled) return;
             const currentUser = session?.user ?? null;
             setUser(currentUser);
             setToken(session?.access_token ?? null);
@@ -30,6 +43,7 @@ export function useAuth() {
         });
 
         return () => {
+            cancelled = true;
             subscription.unsubscribe();
         };
     }, []); // Run only on mount

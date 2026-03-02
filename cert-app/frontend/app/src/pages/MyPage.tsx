@@ -44,7 +44,7 @@ function getTierMeta(tier: string | null | undefined) {
 }
 
 const MYPAGE_CACHE_KEY = 'certfinder-mypage-cache';
-const MYPAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5분: 탭 전환 후 복귀 시 캐시로 즉시 표시
+const MYPAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5분: 관심/최근본/전공추천 전체 섹션 공통 캐시
 
 // ─── 프론트엔드 XP 계산 (백엔드 미배포 상태에서도 동작하는 폴백) ────────────
 const LOCAL_LEVEL_THRESHOLDS = [0, 5, 15, 35, 70, 120, 190, 290, 430];
@@ -273,6 +273,30 @@ export function MyPage() {
         }
     };
 
+    // 캐시 복원: 관심 자격증·최근 본 자격증·전공 맞춤 추천 전체를 5분 캐시로 즉시 표시
+    const restoreFromCache = (uid: string) => {
+        let cached: { userId?: string; ts?: number; favorites?: any[]; recentCerts?: any[]; profile?: any; acquiredCerts?: any[]; xpSummary?: any; recommendations?: any[] };
+        try {
+            const raw = sessionStorage.getItem(MYPAGE_CACHE_KEY);
+            if (raw) cached = JSON.parse(raw);
+        } catch {
+            return false;
+        }
+        const ok = cached != null
+            && String(cached.userId) === String(uid)
+            && cached.ts != null
+            && (Date.now() - cached.ts) < MYPAGE_CACHE_TTL_MS;
+        if (!ok || !cached) return false;
+        setFavorites(cached.favorites ?? []);
+        setRecentCerts(cached.recentCerts ?? []);
+        setProfile(cached.profile ?? null);
+        setAcquiredCerts(cached.acquiredCerts ?? []);
+        setXpSummary(cached.xpSummary ?? null);
+        setRecommendations(cached.recommendations ?? []);
+        setDataLoading(false);
+        return true;
+    };
+
     useEffect(() => {
         if (authLoading) return;
 
@@ -281,26 +305,9 @@ export function MyPage() {
             return;
         }
 
-        let cached: { userId?: string; ts?: number; favorites?: any[]; recentCerts?: any[]; profile?: any; acquiredCerts?: any[]; xpSummary?: any; recommendations?: any[] };
-        try {
-            const raw = sessionStorage.getItem(MYPAGE_CACHE_KEY);
-            if (raw) cached = JSON.parse(raw);
-        } catch {
-            cached = {};
-        }
-        const isCacheValid = cached != null
-            && String(cached.userId) === String(user.id)
-            && cached.ts != null
-            && (Date.now() - cached.ts) < MYPAGE_CACHE_TTL_MS;
-        if (isCacheValid && cached) {
-            setFavorites(cached.favorites ?? []);
-            setRecentCerts(cached.recentCerts ?? []);
-            setProfile(cached.profile ?? null);
-            setAcquiredCerts(cached.acquiredCerts ?? []);
-            setXpSummary(cached.xpSummary ?? null);
-            setRecommendations(cached.recommendations ?? []);
-            setDataLoading(false);
-            const timer = setTimeout(() => loadData(false), 50);
+        // 관심 자격증·최근 본·전공 맞춤 추천 전체 5분 캐시 복원 후, 필요 시 백그라운드 갱신
+        if (restoreFromCache(user.id)) {
+            const timer = setTimeout(() => loadData(false), 80);
             return () => clearTimeout(timer);
         }
         loadData(true);
