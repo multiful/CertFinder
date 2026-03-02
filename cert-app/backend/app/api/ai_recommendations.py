@@ -369,12 +369,18 @@ async def hybrid_recommendation(
     # --- 4-1) 시멘틱 유사도 정규화 ---------------------------------------------
     # hybrid_rrf_from_certificates_vectors 가 반환한 similarity는 RRF 합산 점수이므로
     # 그대로 두면 값의 스케일이 매우 작게 나와 UI에서 모두 0으로 보일 수 있다.
-    # 전공/관심사 입력을 더 직관적으로 보여주기 위해 0~1 범위로 선형 정규화한다.
+    # 전공/관심사 입력을 더 직관적으로 보여주기 위해 0~1 범위로 정규화 + 감마 보정한다.
     if candidate_map:
         max_semantic = max((c["semantic_similarity"] for c in candidate_map.values()), default=0.0)
         if max_semantic > 0:
             for c in candidate_map.values():
-                c["semantic_similarity"] = float(c["semantic_similarity"]) / max_semantic
+                raw = float(c["semantic_similarity"]) / max_semantic  # 0~1
+                # 작은 값도 눈에 보이도록 sqrt로 감마 보정 (0.25 -> 0.5 등)
+                scaled = raw ** 0.5
+                # 0이 아닌 경우에는 최소 0.15 이상으로 올려서 바가 보이게 함
+                if scaled > 0:
+                    scaled = max(0.15, scaled)
+                c["semantic_similarity"] = min(scaled, 1.0)
 
     # --- 5) RRF (Reciprocal Rank Fusion) 점수 계산 ---------------------------
     # 세 가지 순위 리스트를 RRF로 융합: major_score / semantic_similarity / major_sim
@@ -476,40 +482,12 @@ async def hybrid_recommendation(
     rerank_pool = rrf_sorted[:20] if user_id else rrf_sorted[:effective_limit]
     sorted_results = rerank_pool[:effective_limit]  # 기본값 (폴백용)
 
-    # --- 9) LLM Cross-encoder Re-ranking + 이유 생성 -------------------------
-    # 로그인 사용자 전용: GPT-4o-mini가 RRF top-20을 사용자 맥락에 맞게 재정렬하고
-    # 이유를 동시에 생성한다. 실패 시 기존 RRF 순서 + generate_reasons_batch로 폴백.
+    # --- 9) LLM Re-ranking + 이유 생성 -------------------------
+    # 속도·일관성을 위해 cross-encoder 기반 재정렬은 잠시 비활성화하고,
+    # RRF 순서를 그대로 두고 배치 이유 생성만 수행한다.
     llm_reasons: List[str] = []
-    reranked = False
 
-    if user_id and rerank_pool:
-        rerank_input = [
-            {
-                "qual_id": c["qual_id"],
-                "qual_name": c["qual_name"],
-                "pass_rate": c.get("pass_rate"),
-            }
-            for c in rerank_pool
-        ]
-        rerank_result = await llm_rerank_and_reason(
-            major=major,
-            interest=interest,
-            candidates=rerank_input,
-            top_n=effective_limit,
-            grade_year=grade_year,
-            skill_level=skill_level,
-        )
-        if rerank_result:
-            qual_id_to_c = {c["qual_id"]: c for c in rerank_pool}
-            new_order = [qual_id_to_c[r["qual_id"]] for r in rerank_result if r["qual_id"] in qual_id_to_c]
-            if len(new_order) >= effective_limit:
-                sorted_results = new_order[:effective_limit]
-                llm_reasons = [r["reason"] for r in rerank_result[:effective_limit]]
-                reranked = True
-                logger.info("llm_rerank applied: %d items reranked for major=%r", len(sorted_results), major)
-
-    # LLM re-ranking 실패 시 기존 generate_reasons_batch로 폴백
-    if user_id and not reranked and sorted_results:
+    if user_id and sorted_results:
         llm_input = [{"qual_name": c["qual_name"], "pass_rate": c.get("pass_rate")} for c in sorted_results]
         llm_reasons = await generate_reasons_batch(
             major=major,
