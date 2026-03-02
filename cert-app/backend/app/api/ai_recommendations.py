@@ -402,21 +402,16 @@ async def hybrid_recommendation(
         # 벨 곡선 중심 0.40, 최솟값 0.85 (감점 최대 15%)
         return max(0.85, 1.05 - abs(p - 0.40) * 0.5)
 
-    # --- 7) 최종 스코어 & 필터링 ---------------------------------------------
-    min_semantic = 0.15 if interest_provided else 0.0
+    # --- 7) 최종 스코어 (필터링 제거: 후보를 최대한 살려둔다) ----------------
+    # min_semantic / major_score 기반 하드 필터는 잠시 비활성화하고,
+    # 난이도·합격률 보정만 적용해 하이브리드 점수만 계산한다.
+    min_semantic = 0.0
     final_results: list[dict] = []
 
     for cid, c in candidate_map.items():
-        if interest_provided and c["semantic_similarity"] < min_semantic:
-            continue
-        if c["major_score"] < 3.0 and c["semantic_similarity"] < 0.20:
-            continue
-
         diff = diff_lookup.get(cid)
         difficulty_factor = 1.0
         if diff is not None:
-            if grade_year is not None and grade_year <= 2 and diff > 8.0:
-                continue
             if grade_year is not None and grade_year >= 3 and diff < 3.0:
                 difficulty_factor *= 0.80
             delta = abs(diff - target_difficulty)
