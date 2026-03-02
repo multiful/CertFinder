@@ -275,7 +275,7 @@ export function MyPage() {
 
     // 캐시 복원: 관심 자격증·최근 본 자격증·전공 맞춤 추천 전체를 5분 캐시로 즉시 표시
     const restoreFromCache = (uid: string) => {
-        let cached: { userId?: string; ts?: number; favorites?: any[]; recentCerts?: any[]; profile?: any; acquiredCerts?: any[]; xpSummary?: any; recommendations?: any[] };
+        let cached: { userId?: string; ts?: number; favorites?: any[]; recentCerts?: any[]; profile?: any; acquiredCerts?: any[]; xpSummary?: any; recommendations?: any[] } | null = null;
         try {
             const raw = sessionStorage.getItem(MYPAGE_CACHE_KEY);
             if (raw) cached = JSON.parse(raw);
