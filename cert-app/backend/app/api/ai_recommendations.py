@@ -280,11 +280,10 @@ async def hybrid_recommendation(
             if major_results:
                 logger.info("fuzzy major match for %r: found %d certs (trgm fallback)", major, len(major_results))
 
-        # Multi-Query Expansion (3개 유사 질의) 후 하이브리드 검색 + RRF
-        multi_queries = await multi_query_expand_async(expanded_interest, num_queries=3)
-        if len(multi_queries) < 3:
-            multi_queries = multi_queries + [expanded_interest] * (3 - len(multi_queries))
-        multi_queries = multi_queries[:3]
+        # Multi-Query Expansion (기존: 3개 유사 질의)
+        # 응답 속도와 결과 일관성을 위해, 현재는 확장 질의를 1개만 사용한다.
+        # (expand_query_async 에서 이미 충분히 풍부한 문장을 생성하므로 중복 LLM 호출을 줄인다.)
+        multi_queries = [expanded_interest]
         try:
             query_vectors = await asyncio.gather(*[get_embedding_async(q) for q in multi_queries])
             major_vector = await get_embedding_async(major)
@@ -295,7 +294,7 @@ async def hybrid_recommendation(
                 detail="임베딩 서비스를 일시적으로 사용할 수 없습니다.",
             ) from emb_err
         hybrid_rrf_scores, hybrid_qual_names = _hybrid_rrf_from_certificates_vectors(
-            db, multi_queries, query_vectors, exclude_ids_list, top_per_query=80
+            db, multi_queries, query_vectors, exclude_ids_list, top_per_query=60
         )
         global_results = [
             type("Row", (), {"qual_id": qid, "qual_name": hybrid_qual_names.get(qid, ""), "similarity": sc})()
@@ -447,6 +446,18 @@ async def hybrid_recommendation(
         c["hybrid_score"] = h_score
         c["pass_rate"] = pass_rate_lookup.get(cid)
         final_results.append(c)
+
+    # --- 7-1) Hybrid Score 정규화 ---------------------------------------------
+    # UI에서 정합성(%)을 좀 더 직관적으로 보여주기 위해, 상위 점수를 기준으로 0.5~1.0 구간으로 재스케일링한다.
+    if final_results:
+        max_h = max(c["hybrid_score"] for c in final_results)
+        min_h = min(c["hybrid_score"] for c in final_results)
+        if max_h > 0:
+            span = max_h - min_h if max_h != min_h else max_h
+            for c in final_results:
+                base = (c["hybrid_score"] - min_h) / span if span > 0 else 1.0
+                # 0.5~1.0 사이로 압축하여 상위권과 하위권 차이를 명확히 보이게 함
+                c["hybrid_score"] = 0.5 + 0.5 * base
 
     # --- 8) 1차 정렬 & 결과 수 제한 ------------------------------------------
     effective_limit = min(limit, GUEST_RESULT_LIMIT) if not user_id else limit
