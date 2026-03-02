@@ -389,6 +389,13 @@ async def hybrid_recommendation(
     RRF_K = 60
     n = len(candidate_map)
 
+    # 시멘틱 유사도는 RRF에 들어가기 전에 단순 max-normalization으로 0~1 스케일로 맞춘다.
+    if candidate_map:
+        max_sem_raw = max(c["semantic_similarity"] for c in candidate_map.values())
+        if max_sem_raw > 0:
+            for c in candidate_map.values():
+                c["semantic_similarity"] = float(c["semantic_similarity"]) / max_sem_raw
+
     major_ranked = sorted(candidate_map.keys(), key=lambda c: candidate_map[c]["major_score"], reverse=True)
     semantic_ranked = sorted(candidate_map.keys(), key=lambda c: candidate_map[c]["semantic_similarity"], reverse=True)
     major_sim_ranked = sorted(candidate_map.keys(), key=lambda c: major_sim_lookup.get(c, 0.0), reverse=True)
@@ -396,29 +403,6 @@ async def hybrid_recommendation(
     major_rank_map = {cid: i + 1 for i, cid in enumerate(major_ranked)}
     semantic_rank_map = {cid: i + 1 for i, cid in enumerate(semantic_ranked)}
     major_sim_rank_map = {cid: i + 1 for i, cid in enumerate(major_sim_ranked)}
-
-    # --- 5-1) 시멘틱 유사도 점수 재스케일 (랭크 기반) --------------------------
-    # RRF 내부 유사도 값 대신, 순위 정보를 사용해 0~1 범위로 고르게 분포시키기 위해
-    # semantic_rank_map을 기반으로 선형 스케일링 후 약한 감마 보정을 적용한다.
-    interest_provided = bool(interest and interest.strip())
-    n = len(candidate_map)
-    if n == 1:
-        # 후보가 하나뿐이면 관심사 유사도는 1.0
-        for c in candidate_map.values():
-            c["semantic_similarity"] = 1.0
-    elif n > 1:
-        max_rank = n
-        span = max_rank - 1
-        for cid, c in candidate_map.items():
-            rank = semantic_rank_map.get(cid, max_rank)
-            # 상위 순위일수록 1.0에 가깝고, 하위 순위일수록 0.0에 가깝게 매핑
-            base = 1.0 - (rank - 1) / span
-            # interest가 있을 때는 시멘틱 비중을 더 강조
-            if interest_provided:
-                base = base ** 0.6  # 약한 감마: 상위권과 하위권 차이를 키움
-            else:
-                base = base ** 0.8 * 0.8  # 관심사 없이도 너무 낮지 않게 유지
-            c["semantic_similarity"] = max(0.0, min(base, 1.0))
 
     interest_provided = bool(interest and interest.strip())
     # interest 있으면 semantic 가중치 높임 (2배), 없으면 균등
