@@ -31,6 +31,7 @@ from app.schemas import (
     HybridRecommendationItem,
 )
 from app.crud import favorite_crud, acquired_cert_crud, get_qualification_aggregated_stats_bulk
+from app.redis_client import redis_client
 
 router = APIRouter(prefix="/recommendations/ai", tags=["ai-recommendations"])
 logger = logging.getLogger(__name__)
@@ -102,6 +103,23 @@ async def hybrid_recommendation(
     interest = interest.strip() if interest else None
     if not major:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="major는 비어있을 수 없습니다.")
+
+    # --- 0) Redis 캐시 조회 ----------------------------------------------------
+    # 전공·관심사·사용자 티어(guest/user) 조합으로 캐시 키를 만들어
+    # 동일한 입력에 대해서는 DB/LLM 파이프라인을 재사용해 속도를 높인다.
+    user_tier = "guest" if not user_id else "user"
+    cache_key = redis_client.make_cache_key(
+        "ai:hybrid:v1",
+        major=major,
+        interest=interest,
+        tier=user_tier,
+    )
+    cached = redis_client.get(cache_key)
+    if cached:
+        try:
+            return HybridRecommendationResponse(**cached)
+        except Exception:
+            logger.warning("hybrid_recommendation: failed to parse cache for key %s", cache_key)
 
     # user_id가 UUID 형식이 아닌 경우(예: 구버전 username) 비로그인으로 처리
     if user_id and not _is_valid_uuid(user_id):
@@ -581,10 +599,18 @@ async def hybrid_recommendation(
             )
         )
 
-    return HybridRecommendationResponse(
+    response = HybridRecommendationResponse(
         mode="hybrid",
         major=major,
         interest=interest,
         results=items,
         guest_limited=not bool(user_id),
     )
+
+    # --- 12) Redis 캐시에 최종 결과 저장 ---------------------------------------
+    try:
+        redis_client.set(cache_key, response.model_dump(mode="json"), ttl=3600)
+    except Exception:
+        logger.warning("hybrid_recommendation: failed to write cache for key %s", cache_key)
+
+    return response
