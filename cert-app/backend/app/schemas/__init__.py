@@ -221,6 +221,7 @@ class HybridRecommendationItem(BaseModel):
     major_score: float
     reason: str
     semantic_similarity: float
+    interest_level: Optional[int] = None  # 1~9 스케일의 관심도 레벨 (UI용)
     hybrid_score: float
     pass_rate: Optional[float] = None   # 최신 합격률 (0-100), 없으면 None
     rrf_score: Optional[float] = None   # Reciprocal Rank Fusion 점수

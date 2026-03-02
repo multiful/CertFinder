@@ -417,7 +417,12 @@ export function AiRecommendationPage() {
                                             <div
                                                 className="h-full bg-purple-500 transition-all"
                                                 style={{
-                                                    width: `${20 + 80 * Math.min(Math.max(res.semantic_similarity, 0), 1)}%`,
+                                                    // interest_level 1~9를 20~100% 범위로 선형 매핑 (없으면 최소값)
+                                                    width: `${(() => {
+                                                        const lvl = res.interest_level ?? 1;
+                                                        const clamped = Math.max(1, Math.min(lvl, 9));
+                                                        return 20 + 80 * ((clamped - 1) / 8);
+                                                    })()}%`,
                                                 }}
                                             />
                                         </div>

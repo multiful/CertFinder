@@ -17,6 +17,7 @@ export interface HybridRecommendationResult {
     qual_id: number;
     qual_name: string;
     semantic_similarity: number;
+    interest_level?: number;           // 1~9 관심도 레벨 (UI용)
     major_score: number;
     reason: string | null;
     hybrid_score: number;

@@ -404,6 +404,21 @@ async def hybrid_recommendation(
     semantic_rank_map = {cid: i + 1 for i, cid in enumerate(semantic_ranked)}
     major_sim_rank_map = {cid: i + 1 for i, cid in enumerate(major_sim_ranked)}
 
+    # 관심도 레벨(1~9)은 순위 기반으로 계산해 UI에서 다양한 분포를 갖도록 한다.
+    interest_levels: dict[int, int] = {}
+    n = len(candidate_map)
+    if n == 1:
+        for cid in candidate_map.keys():
+            interest_levels[cid] = 9
+    elif n > 1:
+        span = n - 1
+        for cid in candidate_map.keys():
+            rank = semantic_rank_map.get(cid, n)
+            frac = 1.0 - (rank - 1) / span  # 0~1, 상위일수록 1에 가까움
+            level = 1 + int(round(frac * 8))  # 1~9
+            level = max(1, min(level, 9))
+            interest_levels[cid] = level
+
     interest_provided = bool(interest and interest.strip())
     # interest 있으면 semantic 가중치 높임 (2배), 없으면 균등
     w_sem = 2.0 if interest_provided else 1.0
@@ -472,6 +487,8 @@ async def hybrid_recommendation(
         h_score = base_match * difficulty_factor * pr_factor
         c["hybrid_score"] = h_score
         c["pass_rate"] = pass_rate_lookup.get(cid)
+        # UI용 관심도 레벨(1~9) 저장
+        c["interest_level"] = interest_levels.get(cid)
         final_results.append(c)
 
     # --- 7-1) Hybrid Score 정규화 ---------------------------------------------
