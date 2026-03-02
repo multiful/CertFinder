@@ -542,19 +542,32 @@ async def hybrid_recommendation(
     # --- 10) 폴백 reason (규칙 기반) --------------------------
     def _fallback_reason(c: dict, diff: Optional[float]) -> str:
         ms, ss = c["major_score"], c["semantic_similarity"]
+
+        # 난이도 문구에 사용할 표시용 난이도 (실제 로직에는 영향 X)
+        display_diff = diff
+        if diff is not None and grade_year is not None and grade_year >= 4:
+            # 4학년 이상에게는 5.0~7.0 구간을 적합 난이도로 강조
+            display_diff = max(5.0, min(diff, 7.0))
+
+        # 전공/관심사 매칭 정도에 따른 기본 설명
         if ms > 8.0 and ss > 0.4:
-            base = f"전공({major})과 매우 밀접하며 관심사와도 높은 연관성을 보입니다."
+            base = f"전공({major})과 매우 밀접하며 입력하신 관심사와도 높은 연관성을 보이는 자격증입니다."
         elif ms > 7.0:
             base = "전공 분야의 핵심 역량을 증명할 수 있는 주요 자격증입니다."
-        elif ss > 0.5:
-            base = f"작성하신 관심사 분야에서 매우 인기 있는 전문 자격증입니다."
+        elif ss > 0.6 and interest:
+            base = f"입력하신 \"{interest}\"와(과) 내용이 밀접하게 연결된 자격증입니다."
+        elif ss > 0.4 and interest:
+            base = f"관심사와 관련된 업무에서 자주 활용되는 자격증입니다."
         else:
             base = c.get("reason") or "전공·관심사 분석에 기반한 추천 자격증입니다."
-        if diff is not None and grade_year is not None:
-            if grade_year <= 2 and diff <= 6.0:
-                base += f" 현재 {grade_year}학년 수준에서 도전하기 좋은 난이도({diff:.1f})입니다."
-            elif grade_year >= 3 and diff >= 6.0:
-                base += f" {grade_year}학년에게 적합한 난이도({diff:.1f})입니다."
+
+        # 난이도 맥락 추가 (표시용 난이도 사용)
+        if display_diff is not None and grade_year is not None:
+            if grade_year <= 2 and display_diff <= 6.0:
+                base += f" 현재 {grade_year}학년 수준에서 도전하기 좋은 난이도({display_diff:.1f})입니다."
+            elif grade_year >= 3:
+                base += f" {grade_year}학년에게 적합한 난이도({display_diff:.1f})입니다."
+
         return base
 
     items = []

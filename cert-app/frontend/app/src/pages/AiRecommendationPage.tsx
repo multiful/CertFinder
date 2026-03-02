@@ -398,10 +398,13 @@ export function AiRecommendationPage() {
                                             <Tag className="w-3 h-3 text-blue-500" />
                                             전공 연관성
                                         </span>
-                                        <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                        <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-blue-500 transition-all"
-                                                style={{ width: `${res.major_score * 10}%` }}
+                                                style={{
+                                                    // major_score는 대략 0~10 범위라고 가정하고 0~1로 정규화 후 20~100%로 매핑
+                                                    width: `${20 + 80 * Math.min(Math.max(res.major_score / 10, 0), 1)}%`,
+                                                }}
                                             />
                                         </div>
                                     </div>
