@@ -17,13 +17,7 @@ def _is_valid_uuid(value: Optional[str]) -> bool:
     return bool(value and _UUID_RE.match(value))
 
 from app.api.deps import get_db_session, check_rate_limit, get_current_user, get_optional_user
-from app.utils.ai import (
-    get_embedding_async,
-    generate_reasons_batch,
-    expand_query_async,
-    llm_rerank_and_reason,
-    multi_query_expand_async,
-)
+from app.utils.ai import get_embedding_async
 from app.schemas import (
     SemanticSearchResponse,
     SemanticSearchResultItem,
@@ -126,17 +120,10 @@ async def hybrid_recommendation(
         logger.warning("hybrid_recommendation: non-UUID user_id ignored: %r", user_id)
         user_id = None
 
-    # 관심사가 있을 때만 LLM 기반 쿼리 확장을 사용하고,
-    # 단순 전공 추천(interest 없음)일 때는 LLM 호출을 생략해 속도를 높인다.
+    # 쿼리 확장 LLM 호출은 제거하고, 전공/관심사를 단순 결합한 텍스트를 사용한다.
+    # 이렇게 하면 OpenAI Chat 호출을 없애고 임베딩만 사용해 속도를 크게 개선한다.
     if interest:
-        try:
-            expanded_interest = await expand_query_async(major, interest)
-        except Exception as e:
-            logger.exception("hybrid_recommendation expand_query failed")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="쿼리 확장 서비스를 일시적으로 사용할 수 없습니다.",
-            ) from e
+        expanded_interest = f"{major} {interest}"
     else:
         expanded_interest = major
 
@@ -548,22 +535,11 @@ async def hybrid_recommendation(
     rerank_pool = rrf_sorted[:20] if user_id else rrf_sorted[:effective_limit]
     sorted_results = rerank_pool[:effective_limit]  # 기본값 (폴백용)
 
-    # --- 9) LLM Re-ranking + 이유 생성 -------------------------
-    # 속도·일관성을 위해 cross-encoder 기반 재정렬은 잠시 비활성화하고,
-    # RRF 순서를 그대로 두고 배치 이유 생성만 수행한다.
+    # --- 9) 이유 생성 (LLM 없이 규칙 기반) -------------------------
+    # 속도·비용을 위해 LLM 기반 이유 생성은 제거하고, 규칙 기반 설명만 사용한다.
     llm_reasons: List[str] = []
 
-    if user_id and sorted_results:
-        llm_input = [{"qual_name": c["qual_name"], "pass_rate": c.get("pass_rate")} for c in sorted_results]
-        llm_reasons = await generate_reasons_batch(
-            major=major,
-            interest=interest,
-            candidates=llm_input,
-            grade_year=grade_year,
-            skill_level=skill_level,
-        )
-
-    # --- 10) 폴백 reason (LLM 실패 시 또는 비로그인) --------------------------
+    # --- 10) 폴백 reason (규칙 기반) --------------------------
     def _fallback_reason(c: dict, diff: Optional[float]) -> str:
         ms, ss = c["major_score"], c["semantic_similarity"]
         if ms > 8.0 and ss > 0.4:

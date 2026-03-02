@@ -410,14 +410,11 @@ export function AiRecommendationPage() {
                                             <BrainCircuit className="w-3 h-3 text-purple-500" />
                                             관심도 일치
                                         </span>
-                                        <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                        <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-purple-500 transition-all"
                                                 style={{
-                                                    width: `${Math.max(
-                                                        10,
-                                                        Math.min(res.semantic_similarity, 1) * 100
-                                                    )}%`,
+                                                    width: `${20 + 80 * Math.min(Math.max(res.semantic_similarity, 0), 1)}%`,
                                                 }}
                                             />
                                         </div>
