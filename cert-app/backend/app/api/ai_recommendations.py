@@ -189,7 +189,8 @@ async def hybrid_recommendation(
         queries: List[str],
         query_vectors: List[List[float]],
         exclude_qual_ids: List[int],
-        top_per_query: int = 80,
+        top_per_query: int = 30,
+        use_fulltext: bool = True,
     ) -> tuple[dict[int, float], dict[int, str]]:
         """
         certificates_vectors에서 벡터 검색 + tsvector 풀텍스트 검색을 결합하고
@@ -208,7 +209,7 @@ async def hybrid_recommendation(
                 ORDER BY embedding <=> :vec
                 LIMIT :limit
             """.format(exclude="AND qual_id != ALL(:exclude_ids)" if exclude_qual_ids else ""))
-            params_v = {"vec": str(q_vec), "limit": top_per_query * 2}
+            params_v = {"vec": str(q_vec), "limit": top_per_query}
             if exclude_qual_ids:
                 params_v["exclude_ids"] = exclude_qual_ids
             vec_rows = db.execute(vec_sql, params_v).fetchall()
@@ -221,33 +222,35 @@ async def hybrid_recommendation(
                     qual_names[r.qual_id] = getattr(r, "name", "") or ""
             vec_rank_map = {qid: i + 1 for i, qid in enumerate(vec_rank_list)}
 
-            # 풀텍스트 검색 (content_tsv) — content_tsv 컬럼이 있을 때만
-            try:
-                ft_sql = text("""
-                    SELECT qual_id, name,
-                           ts_rank_cd(content_tsv, plainto_tsquery('simple', :q)) AS rank
-                    FROM certificates_vectors
-                    WHERE content_tsv @@ plainto_tsquery('simple', :q)
-                      {exclude}
-                    ORDER BY rank DESC
-                    LIMIT :limit
-                """.format(exclude="AND qual_id != ALL(:exclude_ids)" if exclude_qual_ids else ""))
-                params_ft = {"q": q_text, "limit": top_per_query * 2}
-                if exclude_qual_ids:
-                    params_ft["exclude_ids"] = exclude_qual_ids
-                ft_rows = db.execute(ft_sql, params_ft).fetchall()
-            except Exception:
-                db.rollback()
-                ft_rows = []
-            seen_t: set[int] = set()
-            text_rank_list: List[int] = []
-            for r in ft_rows:
-                if r.qual_id not in seen_t:
-                    seen_t.add(r.qual_id)
-                    text_rank_list.append(r.qual_id)
-                    if r.qual_id not in qual_names:
-                        qual_names[r.qual_id] = getattr(r, "name", "") or ""
-            text_rank_map = {qid: i + 1 for i, qid in enumerate(text_rank_list)}
+            text_rank_map: dict[int, int] = {}
+            if use_fulltext:
+                # 풀텍스트 검색 (content_tsv) — content_tsv 컬럼이 있을 때만
+                try:
+                    ft_sql = text("""
+                        SELECT qual_id, name,
+                               ts_rank_cd(content_tsv, plainto_tsquery('simple', :q)) AS rank
+                        FROM certificates_vectors
+                        WHERE content_tsv @@ plainto_tsquery('simple', :q)
+                          {exclude}
+                        ORDER BY rank DESC
+                        LIMIT :limit
+                    """.format(exclude="AND qual_id != ALL(:exclude_ids)" if exclude_qual_ids else ""))
+                    params_ft = {"q": q_text, "limit": top_per_query}
+                    if exclude_qual_ids:
+                        params_ft["exclude_ids"] = exclude_qual_ids
+                    ft_rows = db.execute(ft_sql, params_ft).fetchall()
+                except Exception:
+                    db.rollback()
+                    ft_rows = []
+                seen_t: set[int] = set()
+                text_rank_list: List[int] = []
+                for r in ft_rows:
+                    if r.qual_id not in seen_t:
+                        seen_t.add(r.qual_id)
+                        text_rank_list.append(r.qual_id)
+                        if r.qual_id not in qual_names:
+                            qual_names[r.qual_id] = getattr(r, "name", "") or ""
+                text_rank_map = {qid: i + 1 for i, qid in enumerate(text_rank_list)}
 
             # RRF: 1/(K+rank_vector) + 1/(K+rank_text)
             all_qids = set(vec_rank_map) | set(text_rank_map)
@@ -304,11 +307,16 @@ async def hybrid_recommendation(
                 detail="임베딩 서비스를 일시적으로 사용할 수 없습니다.",
             ) from emb_err
         hybrid_rrf_scores, hybrid_qual_names = _hybrid_rrf_from_certificates_vectors(
-            db, multi_queries, query_vectors, exclude_ids_list, top_per_query=60
+            db,
+            multi_queries,
+            query_vectors,
+            exclude_ids_list,
+            top_per_query=30,
+            use_fulltext=interest_provided,
         )
         global_results = [
             type("Row", (), {"qual_id": qid, "qual_name": hybrid_qual_names.get(qid, ""), "similarity": sc})()
-            for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:120]
+            for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:80]
         ]
 
         # 전공명 벡터 유사도: certificates_vectors에서 qual_id별 최고 유사도 사용
@@ -364,12 +372,12 @@ async def hybrid_recommendation(
             }
 
     # 후보 수가 너무 많을 경우(이론상 수백 개) 이후 단계 속도를 위해 상위 일부만 남긴다.
-    if len(candidate_map) > 180:
+    if len(candidate_map) > 120:
         trimmed = sorted(
             candidate_map.values(),
             key=lambda c: (c["major_score"] * 0.6) + (c["semantic_similarity"] * 0.4),
             reverse=True,
-        )[:180]
+        )[:120]
         candidate_map = {c["qual_id"]: c for c in trimmed}
 
     # --- 4) 난이도 + 합격률 통계 일괄 로드 ------------------------------------
@@ -491,16 +499,40 @@ async def hybrid_recommendation(
         c["interest_level"] = interest_levels.get(cid)
         final_results.append(c)
 
-    # --- 7-1) Hybrid Score 정규화 ---------------------------------------------
+    # --- 7-1) Hybrid Score 정규화 + 관심도 레벨 산출 ---------------------------
     # UI에서 정합성(%)을 0~100 범위로 직관적으로 보여주기 위해, 0~1 구간으로 재스케일링한다.
+    # 모든 하이브리드 점수가 동일한 경우에도 순위 기반으로 약간의 분산을 줘서
+    # 게이지가 전부 같은 값으로 보이지 않도록 한다.
     if final_results:
         max_h = max(c["hybrid_score"] for c in final_results)
         min_h = min(c["hybrid_score"] for c in final_results)
-        if max_h > 0:
-            span = max_h - min_h if max_h != min_h else max_h
+        if max_h > 0 and max_h != min_h:
+            span = max_h - min_h
             for c in final_results:
-                base = (c["hybrid_score"] - min_h) / span if span > 0 else 1.0
+                base = (c["hybrid_score"] - min_h) / span
                 c["hybrid_score"] = max(0.0, min(base, 1.0))
+        elif max_h > 0:
+            # max_h == min_h > 0 인 경우: 순위 기반으로 0~1 사이에 균등 분산
+            ranked = sorted(final_results, key=lambda x: x["hybrid_score"], reverse=True)
+            n_rank = len(ranked)
+            for idx, c in enumerate(ranked):
+                if n_rank == 1:
+                    c["hybrid_score"] = 1.0
+                else:
+                    frac = 1.0 - (idx / (n_rank - 1))
+                    c["hybrid_score"] = max(0.0, min(frac, 1.0))
+
+        # 최종 정렬된 하이브리드 점수를 기준으로 관심도 레벨(1~9)을 다시 계산
+        ranked_for_interest = sorted(final_results, key=lambda x: x["hybrid_score"], reverse=True)
+        n_rank = len(ranked_for_interest)
+        if n_rank == 1:
+            ranked_for_interest[0]["interest_level"] = 9
+        elif n_rank > 1:
+            span = n_rank - 1
+            for idx, c in enumerate(ranked_for_interest):
+                frac = 1.0 - (idx / span)
+                level = 1 + int(round(frac * 8))  # 1~9
+                c["interest_level"] = max(1, min(level, 9))
 
     # --- 8) 1차 정렬 & 결과 수 제한 ------------------------------------------
     effective_limit = min(limit, GUEST_RESULT_LIMIT) if not user_id else limit
