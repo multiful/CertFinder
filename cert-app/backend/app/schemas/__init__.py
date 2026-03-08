@@ -235,6 +235,8 @@ class HybridRecommendationResponse(BaseModel):
     interest: Optional[str] = None
     results: List[HybridRecommendationItem]
     guest_limited: bool = False
+    # 현재 RAG(certificates_vectors) vs 고도화 RAG(app.rag hybrid_retrieve) 구분
+    rag_mode: str = "current"  # "current" | "enhanced"
 
 
 # ============== List Response Schemas ==============

@@ -753,6 +753,7 @@ async def hybrid_recommendation(
         interest=interest,
         results=items,
         guest_limited=not bool(user_id),
+        rag_mode="enhanced" if use_enhanced_rag_result else "current",
     )
 
     # 메트릭 로깅: 처리 시간, 후보 수, 점수 분포 등 (개인정보 제외)
