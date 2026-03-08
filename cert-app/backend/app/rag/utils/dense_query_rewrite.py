@@ -19,10 +19,11 @@ class UserProfile(TypedDict, total=False):
     acquired_cert_names: List[str]  # 취득 자격증명 (재질의에 반영, 정확도 향상)
 
 
-# 전공 패턴: "~과", "~학과", "~공학", "~학"
+# 전공 패턴: "~과", "~학과", "~학부", "~공학", "~학"
 MAJOR_PATTERNS = [
     r"(\S+과)\s*(?:인데|이고|인데|에\s*다니)",
     r"(\S+학과)\s*(?:인데|이고|에\s*다니)",
+    r"(\S+학부)\s*(?:인데|이고|에\s*다니|전공)?",
     r"(\S+공학과?)\s*(?:전공|졸업|재학)",
     r"(\S+학과)\s*(?:전공|졸업|재학)",
     r"전공\s*[은는]\s*(\S+)",
@@ -85,6 +86,26 @@ INTEREST_PATTERNS = [
     r"정보처리|IT|개발|데이터|DB|SQL|빅데이터|백엔드|프론트엔드",
     r"간호|의료|회계|금융|전기|전자|기계|건설",
 ]
+
+# 재질의 시 IT 계열 보조 키워드(SQLD, 정보처리 등)를 넣을지 판단용.
+# data/domain_tokens.json 있으면 Supabase 데이터셋 기반, 없으면 기본값 사용.
+def _query_suggests_it_domain(slots: Dict[str, str], original: str) -> bool:
+    """쿼리나 슬롯이 IT/데이터 계열로 보이면 True. BM25_BASELINE_MODE=1이면 항상 True(기존 동작)."""
+    import os
+    if os.environ.get("BM25_BASELINE_MODE") == "1":
+        return True
+    from app.rag.utils.domain_tokens import get_it_tokens, get_non_it_tokens
+    it_tokens = get_it_tokens()
+    non_it_tokens = get_non_it_tokens()
+    combined = " ".join([str(slots.get("전공", "")), str(slots.get("희망직무", "")), str(slots.get("관심분야", "")), original or ""])
+    combined = (combined or "").strip()
+    for t in non_it_tokens:
+        if t in combined:
+            return False
+    for t in it_tokens:
+        if t in combined:
+            return True
+    return False
 
 
 def _extract_slots(query: str) -> Dict[str, str]:
@@ -236,24 +257,26 @@ def _slots_to_structured_text(
         "관심역량: " + interest,
         "추천받고 싶은 자격증 유형: " + want_type,
     ]
-    # "다음 단계" / "미리 준비" 질의: 벡터 매칭을 위해 자격증 키워드 노출
-    if want_type and ("다음" in want_type or "준비" in want_type):
+    # IT/데이터 계열 쿼리일 때만 보조·키워드 라인 추가 (관광·연어 등 비IT 쿼리에서 SQLD 오매칭 방지)
+    suggests_it = _query_suggests_it_domain(slots, original)
+    # "다음 단계" / "미리 준비" 질의: 벡터 매칭을 위해 자격증 키워드 노출 (IT 쿼리만)
+    if suggests_it and want_type and ("다음" in want_type or "준비" in want_type):
         lines.append("관련 자격증: 정보처리기사 SQLD ADsP 컴퓨터활용능력 로드맵")
-    # 추천/직무/자격증 질의 전반: 청크와의 어휘 겹침 확대 (contrastive 전까지)
-    if any(kw in (original or "") for kw in ["추천", "뭐가", "다음", "준비", "직무", "자격증", "따면", "가려면", "가고", "땄는데", "분석가", "있어"]):
+    # 추천/직무/자격증 질의 전반: 청크와의 어휘 겹침 확대 (IT 쿼리만)
+    if suggests_it and any(kw in (original or "") for kw in ["추천", "뭐가", "다음", "준비", "직무", "자격증", "따면", "가려면", "가고", "땄는데", "분석가", "있어"]):
         lines.append("키워드: 정보처리기사 SQLD ADsP 빅데이터분석기사 자격증")
-    # 다른 방식: 짧은 쿼리(5단어 이하) 시 보조 키워드 라인 추가 (키워드 라인 없을 때만)
+    # 짧은 쿼리(5단어 이하) 시 보조 키워드: IT/데이터 의도일 때만 추가
     _orig_tokens = (original or "").strip().split()
     _short_threshold = 5
-    if len(_orig_tokens) <= _short_threshold and not any("키워드" in ln for ln in lines):
+    if suggests_it and len(_orig_tokens) <= _short_threshold and not any("키워드" in ln for ln in lines):
         try:
             from app.rag.config import get_rag_settings
             if get_rag_settings().RAG_DENSE_SHORT_QUERY_BOOST:
                 lines.append("보조 키워드: 정보처리 SQLD ADsP 자격증 취업")
         except Exception:
             pass
-    # 다른 방식 확장: 6~9단어 중간 길이일 때 보조 라인 한 줄 (키워드 라인 없을 때만, 기본 OFF)
-    if 6 <= len(_orig_tokens) <= 9 and not any("키워드" in ln for ln in lines):
+    # 6~9단어 중간 길이 보조 라인 (IT 쿼리만, 기본 OFF)
+    if suggests_it and 6 <= len(_orig_tokens) <= 9 and not any("키워드" in ln for ln in lines):
         try:
             from app.rag.config import get_rag_settings
             if get_rag_settings().RAG_DENSE_MEDIUM_QUERY_BOOST:

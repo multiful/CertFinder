@@ -712,6 +712,7 @@ async def hybrid_recommendation(
         elif ms > 8.0:
             base = "전공 분야의 핵심 역량을 증명할 수 있는 대표적인 자격증입니다."
         elif ss > 0.7 and interest:
+            # interest는 클라이언트에서 받은 값 그대로 사용 (연어/언어 등 표기 확인용)
             base = f"입력하신 \"{interest}\"와(과) 내용이 밀접하게 연결된 실무 중심 자격증입니다."
         elif ss > 0.5 and interest:
             base = f"관심사와 연관된 업무에서 자주 활용되는 자격증입니다."

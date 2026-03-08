@@ -6,9 +6,18 @@ BM25 쿼리 전처리 및 확장.
 - expand: 동의어/약어 확장 (자격증 도메인)
 - 현재 방식: RECOMMENDATION_QUERY_MAP n-gram 매칭 (docs/QUERY_EXPANSION_CURRENT.md)
 - 다른 방식: RAG_BM25_BASELINE_APPEND_ENABLE 시 비 cert-centric 추천 질의에 베이스라인 용어 추가
+- 비IT 도메인 쿼리(관광, 연어 등)일 때는 IT 베이스라인 미추가
 """
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+# 비IT 도메인: data/domain_tokens.json 기반. BM25_BASELINE_MODE=1이면 기존 동작(항상 IT 베이스라인).
+def _get_bm25_non_it_tokens() -> frozenset:
+    import os
+    if os.environ.get("BM25_BASELINE_MODE") == "1":
+        return frozenset()
+    from app.rag.utils.domain_tokens import get_non_it_tokens
+    return get_non_it_tokens()
 
 # 자격증 도메인 동의어/약어 사전
 SYNONYM_DICT = {
@@ -441,16 +450,18 @@ def expand_query_single_string(
                     seen.add(term.lower())
                     extra.append(term)
 
-    # 3) 다른 방식: 비 cert-centric 추천 질의에 베이스라인 용어 무조건 추가 (키 매칭과 별개)
+    # 3) 다른 방식: 비 cert-centric 추천 질의에 베이스라인 용어 추가 (비IT 쿼리면 스킵)
     try:
         from app.rag.config import get_rag_settings
         s = get_rag_settings()
+        has_non_it = any(t in normalized for t in _get_bm25_non_it_tokens())
         if (
             s.RAG_BM25_BASELINE_APPEND_ENABLE
             and for_recommendation
             and query_type not in CERT_CENTRIC_QUERY_TYPES
+            and not has_non_it
         ):
-            # 8개: S@4/Hit@4/MRR 최고점. 11개로 늘리면 R@20↑ but S@4·MRR 소폭 하락.
+            # 8개: S@4/Hit@4/MRR 최고점. 비IT(관광·연어 등) 쿼리에는 IT 용어 미추가.
             _baseline_terms = ["자격증", "정보처리", "SQLD", "ADsP", "IT", "취업", "실무", "로드맵"]
             for term in _baseline_terms:
                 if term and term.lower() not in seen:
@@ -463,6 +474,25 @@ def expand_query_single_string(
                     if term and term.lower() not in seen:
                         seen.add(term.lower())
                         extra.append(term)
+    except Exception:
+        pass
+
+    # 4) 비IT 쿼리: 도메인별 BM25 확장 (BM25_BASELINE_MODE=1이면 스킵)
+    try:
+        import os
+        if os.environ.get("BM25_BASELINE_MODE") != "1":
+            has_non_it = any(t in normalized for t in _get_bm25_non_it_tokens())
+            if has_non_it and for_recommendation:
+                from app.rag.utils.domain_tokens import get_non_it_bm25_expansion
+                expansion_map = get_non_it_bm25_expansion()
+                for key, terms in expansion_map.items():
+                    if key in normalized:
+                        for term in terms:
+                            if term and term.lower() not in seen:
+                                seen.add(term.lower())
+                                extra.append(term)
+                        if len(extra) >= max_extra_terms * 2:
+                            break
     except Exception:
         pass
 
