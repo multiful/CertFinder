@@ -86,3 +86,6 @@ docker-compose.override.yml
 # [Backend] 로컬 문서·마이그레이션 (배포 불필요, GitHub 미푸시)
 cert-app/backend/docs/
 cert-app/backend/migrations/
+
+# [Backend] 로컬/평가용 스크립트 (배포 불필요, GitHub 미푸시)
+cert-app/backend/scripts/
