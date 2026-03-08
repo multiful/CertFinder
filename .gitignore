@@ -38,6 +38,9 @@ ENV/
 *.sqlite3
 **/dataset/
 **/data/
+# Render 배포용: 고도화 RAG BM25 인덱스만 저장소에 포함
+!**/data/rag_index/
+!**/data/rag_index/**
 certs_*.csv
 frontend/public/uploads/
 
