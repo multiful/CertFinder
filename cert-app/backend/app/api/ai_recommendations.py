@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import re
 import time
 from typing import List, Optional
@@ -35,6 +36,9 @@ logger = logging.getLogger(__name__)
 HYBRID_TOP_PER_QUERY = 30            # certificates_vectors에서 질의당 가져올 상위 결과 수
 HYBRID_GLOBAL_RESULTS_LIMIT = 80     # RRF 이후 전역 후보에서 사용할 상위 결과 수
 HYBRID_CANDIDATE_TRIM_LIMIT = 120    # major/semantic 통합 후 유지할 최대 후보 수
+
+# 고도화 RAG(app.rag hybrid_retrieve) ON/OFF. 1/true/yes 이면 ON, 아니면 현재 RAG(certificates_vectors) 사용.
+USE_ENHANCED_RAG = os.environ.get("USE_ENHANCED_RAG", "").strip().lower() in ("1", "true", "yes")
 
 
 @router.get("/semantic-search", response_model=SemanticSearchResponse)
@@ -286,71 +290,125 @@ async def hybrid_recommendation(
         major_results = db.execute(major_sql, {"major": major}).fetchall()
 
         if not major_results:
-            fuzzy_sql = text("""
-                SELECT DISTINCT ON (q.qual_id)
-                       q.qual_id, q.qual_name, q.qual_type, q.main_field,
-                       mq.score AS mapping_score,
-                       mq.weight AS mapping_weight,
-                       mq.reason,
-                       similarity(mq.major, :major) AS fuzzy_sim
-                FROM qualification q
-                JOIN major_qualification_map mq ON q.qual_id = mq.qual_id
-                WHERE similarity(mq.major, :major) > 0.35
-                ORDER BY q.qual_id, mq.score DESC
-                LIMIT 60
+            try:
+                fuzzy_sql = text("""
+                    SELECT DISTINCT ON (q.qual_id)
+                           q.qual_id, q.qual_name, q.qual_type, q.main_field,
+                           mq.score AS mapping_score,
+                           mq.weight AS mapping_weight,
+                           mq.reason,
+                           similarity(mq.major, :major) AS fuzzy_sim
+                    FROM qualification q
+                    JOIN major_qualification_map mq ON q.qual_id = mq.qual_id
+                    WHERE similarity(mq.major, :major) > 0.35
+                    ORDER BY q.qual_id, mq.score DESC
+                    LIMIT 60
+                """)
+                major_results = db.execute(fuzzy_sql, {"major": major}).fetchall()
+                if major_results:
+                    logger.info("fuzzy major match for %r: found %d certs (trgm fallback)", major, len(major_results))
+            except Exception as fuzzy_err:
+                logger.warning("fuzzy major search skipped for %r: %s", major, fuzzy_err)
+                major_results = []
+
+        use_enhanced_rag_result = False
+        global_results = []
+        major_sim_lookup = {}
+
+        if USE_ENHANCED_RAG:
+            try:
+                from app.rag.retrieve.hybrid import hybrid_retrieve
+                rag_list = hybrid_retrieve(
+                    db, expanded_interest,
+                    top_k=HYBRID_GLOBAL_RESULTS_LIMIT,
+                    use_reranker=False,
+                )
+                hybrid_rrf_scores = {}
+                for chunk_id, score in (rag_list or []):
+                    part = (chunk_id or "").split(":")
+                    if len(part) >= 1 and part[0].isdigit():
+                        qid = int(part[0])
+                        if qid in acq_qual_ids:
+                            continue
+                        hybrid_rrf_scores[qid] = hybrid_rrf_scores.get(qid, 0.0) + float(score)
+                hybrid_qual_names = {}
+                if hybrid_rrf_scores:
+                    qual_ids = list(hybrid_rrf_scores.keys())
+                    try:
+                        name_rows = db.execute(
+                            text("SELECT qual_id, qual_name FROM qualification WHERE qual_id = ANY(:ids)"),
+                            {"ids": qual_ids},
+                        ).fetchall()
+                        hybrid_qual_names = {r.qual_id: (r.qual_name or "").strip() for r in name_rows}
+                    except Exception:
+                        pass
+                    for qid in hybrid_rrf_scores:
+                        if qid not in hybrid_qual_names:
+                            hybrid_qual_names[qid] = ""
+                global_results = [
+                    type("Row", (), {"qual_id": qid, "qual_name": hybrid_qual_names.get(qid, ""), "similarity": sc})()
+                    for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:HYBRID_GLOBAL_RESULTS_LIMIT]
+                ]
+                major_vector = await get_embedding_async(major)
+                major_sim_sql = text("""
+                    SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
+                    FROM certificates_vectors
+                    WHERE embedding IS NOT NULL
+                    GROUP BY qual_id
+                """)
+                m_sims = db.execute(major_sim_sql, {"vec": str(major_vector)}).fetchall()
+                major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
+                use_enhanced_rag_result = True
+                logger.debug("hybrid_recommendation: using enhanced RAG, candidates=%d", len(global_results))
+            except Exception as e:
+                logger.warning("enhanced RAG failed, falling back to current RAG: %s", e, exc_info=True)
+
+        if not use_enhanced_rag_result:
+            # 현재 RAG: certificates_vectors 기반 벡터+풀텍스트 RRF
+            # Multi-Query Expansion (기존: 3개 유사 질의)
+            # 응답 속도와 결과 일관성을 위해, 현재는 확장 질의를 1개만 사용한다.
+            multi_queries = [expanded_interest]
+            try:
+                query_vectors = await asyncio.gather(*[get_embedding_async(q) for q in multi_queries])
+                major_vector = await get_embedding_async(major)
+            except Exception as emb_err:
+                logger.exception("hybrid_recommendation embedding failed")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="임베딩 서비스를 일시적으로 사용할 수 없습니다.",
+                ) from emb_err
+            hybrid_rrf_scores, hybrid_qual_names = _hybrid_rrf_from_certificates_vectors(
+                db,
+                multi_queries,
+                query_vectors,
+                exclude_ids_list,
+                top_per_query=HYBRID_TOP_PER_QUERY,
+                use_fulltext=interest_provided,
+            )
+            global_results = [
+                type("Row", (), {"qual_id": qid, "qual_name": hybrid_qual_names.get(qid, ""), "similarity": sc})()
+                for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:HYBRID_GLOBAL_RESULTS_LIMIT]
+            ]
+            logger.debug(
+                "hybrid_recommendation.pool major=%r interest_provided=%r "
+                "top_per_query=%d hybrid_candidates=%d global_results=%d",
+                major,
+                interest_provided,
+                HYBRID_TOP_PER_QUERY,
+                len(hybrid_rrf_scores),
+                len(global_results),
+            )
+            major_sim_sql = text("""
+                SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
+                FROM certificates_vectors
+                WHERE embedding IS NOT NULL
+                GROUP BY qual_id
             """)
-            major_results = db.execute(fuzzy_sql, {"major": major}).fetchall()
-            if major_results:
-                logger.info("fuzzy major match for %r: found %d certs (trgm fallback)", major, len(major_results))
-
-        # Multi-Query Expansion (기존: 3개 유사 질의)
-        # 응답 속도와 결과 일관성을 위해, 현재는 확장 질의를 1개만 사용한다.
-        # (expand_query_async 에서 이미 충분히 풍부한 문장을 생성하므로 중복 LLM 호출을 줄인다.)
-        multi_queries = [expanded_interest]
-        try:
-            query_vectors = await asyncio.gather(*[get_embedding_async(q) for q in multi_queries])
-            major_vector = await get_embedding_async(major)
-        except Exception as emb_err:
-            logger.exception("hybrid_recommendation embedding failed")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="임베딩 서비스를 일시적으로 사용할 수 없습니다.",
-            ) from emb_err
-        hybrid_rrf_scores, hybrid_qual_names = _hybrid_rrf_from_certificates_vectors(
-            db,
-            multi_queries,
-            query_vectors,
-            exclude_ids_list,
-            top_per_query=HYBRID_TOP_PER_QUERY,
-            use_fulltext=interest_provided,
-        )
-        global_results = [
-            type("Row", (), {"qual_id": qid, "qual_name": hybrid_qual_names.get(qid, ""), "similarity": sc})()
-            for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:HYBRID_GLOBAL_RESULTS_LIMIT]
-        ]
-
-        logger.debug(
-            "hybrid_recommendation.pool major=%r interest_provided=%r "
-            "top_per_query=%d hybrid_candidates=%d global_results=%d",
-            major,
-            interest_provided,
-            HYBRID_TOP_PER_QUERY,
-            len(hybrid_rrf_scores),
-            len(global_results),
-        )
-
-        # 전공명 벡터 유사도: certificates_vectors에서 qual_id별 최고 유사도 사용
-        major_sim_sql = text("""
-            SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
-            FROM certificates_vectors
-            WHERE embedding IS NOT NULL
-            GROUP BY qual_id
-        """)
-        try:
-            m_sims = db.execute(major_sim_sql, {"vec": str(major_vector)}).fetchall()
-            major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
-        except Exception:
-            major_sim_lookup = {}
+            try:
+                m_sims = db.execute(major_sim_sql, {"vec": str(major_vector)}).fetchall()
+                major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
+            except Exception:
+                major_sim_lookup = {}
     except Exception as e:
         logger.exception("hybrid_recommendation DB query failed")
         raise HTTPException(
