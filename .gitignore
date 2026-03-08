@@ -37,8 +37,8 @@ ENV/
 # [Database & Storage]
 *.sqlite3
 **/dataset/
-**/data/
-# Render 배포용: 고도화 RAG BM25 인덱스만 저장소에 포함
+# data/ 하위 전부 제외하되, Render 고도화 RAG용 인덱스만 포함
+**/data/*
 !**/data/rag_index/
 !**/data/rag_index/**
 certs_*.csv
