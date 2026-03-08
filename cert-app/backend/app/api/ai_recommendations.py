@@ -521,7 +521,6 @@ async def hybrid_recommendation(
 
     # --- 5) RRF (Reciprocal Rank Fusion) 점수 계산 ---------------------------
     # 세 가지 순위 리스트를 RRF로 융합: major_score / semantic_similarity / major_sim
-    RRF_K = 60
     n = len(candidate_map)
 
     # 시멘틱 유사도는 RRF에 들어가기 전에 단순 max-normalization으로 0~1 스케일로 맞춘다.
@@ -538,21 +537,6 @@ async def hybrid_recommendation(
     major_rank_map = {cid: i + 1 for i, cid in enumerate(major_ranked)}
     semantic_rank_map = {cid: i + 1 for i, cid in enumerate(semantic_ranked)}
     major_sim_rank_map = {cid: i + 1 for i, cid in enumerate(major_sim_ranked)}
-
-    # 관심도 레벨(1~9)은 순위 기반으로 계산해 UI에서 다양한 분포를 갖도록 한다.
-    interest_levels: dict[int, int] = {}
-    n = len(candidate_map)
-    if n == 1:
-        for cid in candidate_map.keys():
-            interest_levels[cid] = 9
-    elif n > 1:
-        span = n - 1
-        for cid in candidate_map.keys():
-            rank = semantic_rank_map.get(cid, n)
-            frac = 1.0 - (rank - 1) / span  # 0~1, 상위일수록 1에 가까움
-            level = 1 + int(round(frac * 8))  # 1~9
-            level = max(1, min(level, 9))
-            interest_levels[cid] = level
 
     # interest 있으면 semantic 가중치 높임 (2배), 없으면 균등
     w_sem = 2.0 if interest_provided else 1.0
@@ -626,8 +610,6 @@ async def hybrid_recommendation(
         h_score = base_match * difficulty_factor * pr_factor
         c["hybrid_score"] = h_score
         c["pass_rate"] = pass_rate_lookup.get(cid)
-        # UI용 관심도 레벨(1~9) 저장
-        c["interest_level"] = interest_levels.get(cid)
         final_results.append(c)
 
     # --- 7-1) Hybrid Score 정규화 + 관심도 레벨 산출 ---------------------------
@@ -695,6 +677,7 @@ async def hybrid_recommendation(
                     "hybrid_score": float(r.mapping_score or 0.0),
                     "pass_rate": None,
                     "rrf_score": None,
+                    "interest_level": None,
                 }
             )
         final_results = fallback
@@ -704,11 +687,7 @@ async def hybrid_recommendation(
     rerank_pool = rrf_sorted[:20] if user_id else rrf_sorted[:effective_limit]
     sorted_results = rerank_pool[:effective_limit]  # 기본값 (폴백용)
 
-    # --- 9) 이유 생성 (LLM 없이 규칙 기반) -------------------------
-    # 속도·비용을 위해 LLM 기반 이유 생성은 제거하고, 규칙 기반 설명만 사용한다.
-    llm_reasons: List[str] = []
-
-    # --- 10) 폴백 reason (규칙 기반) --------------------------
+    # --- 9) 규칙 기반 reason 생성 --------------------------
     def _fallback_reason(c: dict, diff: Optional[float]) -> str:
         ms, ss = c["major_score"], c["semantic_similarity"]
         pr = pass_rate_lookup.get(c["qual_id"]) if "qual_id" in c else None
@@ -752,9 +731,8 @@ async def hybrid_recommendation(
         return base
 
     items = []
-    for i, c in enumerate(sorted_results):
-        use_llm = bool(llm_reasons) and i < len(llm_reasons) and llm_reasons[i]
-        reason = llm_reasons[i] if use_llm else _fallback_reason(c, diff_lookup.get(c["qual_id"]))
+    for c in sorted_results:
+        reason = _fallback_reason(c, diff_lookup.get(c["qual_id"]))
         items.append(
             HybridRecommendationItem(
                 qual_id=c["qual_id"],
@@ -765,7 +743,7 @@ async def hybrid_recommendation(
                 hybrid_score=c["hybrid_score"],
                 pass_rate=c.get("pass_rate"),
                 rrf_score=c.get("rrf_score"),
-                llm_reason=use_llm,
+                llm_reason=False,
             )
         )
 
