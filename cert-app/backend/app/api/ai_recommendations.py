@@ -101,6 +101,7 @@ async def hybrid_recommendation(
     # 입력 정제 — 프론트엔드에서 줄바꿈(\n) 등 공백 문자가 붙어올 수 있음
     major = major.strip()
     interest = interest.strip() if interest else None
+    interest_provided = bool(interest and interest.strip())
     if not major:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="major는 비어있을 수 없습니다.")
 
@@ -454,7 +455,6 @@ async def hybrid_recommendation(
             level = max(1, min(level, 9))
             interest_levels[cid] = level
 
-    interest_provided = bool(interest and interest.strip())
     # interest 있으면 semantic 가중치 높임 (2배), 없으면 균등
     w_sem = 2.0 if interest_provided else 1.0
     w_maj = 1.0
