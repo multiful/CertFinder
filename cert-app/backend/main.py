@@ -1,7 +1,7 @@
 
 """FastAPI main application."""
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
@@ -184,8 +184,20 @@ app.add_middleware(
 # 1. Custom HTTP Middleware (Outermost: process time + 보안 헤더)
 @app.middleware("http")
 async def add_process_time_and_security_headers(request: Request, call_next):
+    # OPTIONS(preflight)는 TrustedHost 검사 전에 여기서 처리. Host가 프록시/스캐너로 인해
+    # 허용 목록에 없을 수 있어 CORS만 적용하고 200 반환.
     if request.method == "OPTIONS":
-        return await call_next(request)
+        origin = (request.headers.get("origin") or "").strip()
+        allow_origin = origin if origin and origin in ALLOWED_ORIGINS else (ALLOWED_ORIGINS[0] if ALLOWED_ORIGINS else "*")
+        return Response(
+            status_code=status.HTTP_200_OK,
+            headers={
+                "Access-Control-Allow-Origin": allow_origin,
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Max-Age": "86400",
+            },
+        )
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
