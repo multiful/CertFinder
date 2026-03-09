@@ -100,3 +100,10 @@ cert-app/backend/scripts/
 
 # [Root] RAG/추천 골든 데이터 (재생성 가능, GitHub 미푸시)
 /cert_*.jsonl
+
+# [Backend] RAG contrastive 로컬 모델·아티팩트 (용량·재생성 가능, GitHub 미푸시)
+cert-app/backend/app/rag/contrastive/model.safetensors
+cert-app/backend/app/rag/contrastive/example/*.npy
+cert-app/backend/app/rag/contrastive/example/*.faiss
+cert-app/backend/app/rag/contrastive/example/cert_metadata.json
+cert-app/backend/app/rag/contrastive/example/manifest.json
