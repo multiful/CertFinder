@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     # RAG: 유사도 임계값 (이하면 결과에서 제외). 0이면 미적용.
     # 선정 근거: docs/RAG_고도화_총정리.md §2-2 참고.
     RAG_MATCH_THRESHOLD: float = 0.4
+    # RAG /search/rag: content 컬럼 조회 여부. False=egress 절감(권장). True=기존 동작(롤백용).
+    RAG_SEARCH_INCLUDE_CONTENT: bool = False
 
     # 에러 트래킹 (비어 있으면 Sentry 비활성)
     SENTRY_DSN: str = ""

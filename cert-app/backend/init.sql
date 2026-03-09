@@ -90,6 +90,8 @@ CREATE INDEX IF NOT EXISTS idx_qual_active ON qualification(is_active);
 CREATE INDEX IF NOT EXISTS idx_qual_managing_body ON qualification(managing_body);
 CREATE INDEX IF NOT EXISTS idx_stats_qual_id ON qualification_stats(qual_id);
 CREATE INDEX IF NOT EXISTS idx_stats_year ON qualification_stats(year);
+-- JOIN/집계·DISTINCT ON 성능: 자격증 목록 정렬(pass_rate/difficulty) 및 bulk stats 조회
+CREATE INDEX IF NOT EXISTS idx_stats_qual_year_round ON qualification_stats(qual_id, year DESC, exam_round DESC);
 CREATE INDEX IF NOT EXISTS idx_major_map_major ON major_qualification_map(major);
 CREATE INDEX IF NOT EXISTS idx_favorites_user ON user_favorites(user_id);
 CREATE INDEX IF NOT EXISTS idx_acquired_certs_user ON user_acquired_certs(user_id);

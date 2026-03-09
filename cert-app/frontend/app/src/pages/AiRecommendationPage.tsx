@@ -13,7 +13,6 @@ import {
     LogIn,
     RefreshCw,
     Database,
-    Target,
     Zap,
     GitMerge,
     Layers,
@@ -23,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getHybridRecommendations, getAvailableMajors, getRagEvalMetrics } from '@/lib/api';
+import { getHybridRecommendations, getAvailableMajors } from '@/lib/api';
 import { useRouter } from '@/lib/router';
 import { useAuth } from '@/hooks/useAuth';
 import type { HybridRecommendationResponse } from '@/types';
@@ -65,62 +64,15 @@ const AI_STATS = [
     },
 ] as const;
 
-/** 골든 8개 기준 RAG 평가: 베이스라인 대비 MRR, Recall@5, Recall@10 및 향상률 */
-function RagEvalMetricsCard() {
-    const [metrics, setMetrics] = useState<{
-        golden_n?: number;
-        baseline?: { 'Recall@5'?: number; 'Recall@10'?: number; MRR?: number };
-        enhanced_reranker?: { 'Recall@5'?: number; 'Recall@10'?: number; MRR?: number };
-        pct_vs_baseline?: { 'Recall@5'?: number | null; 'Recall@10'?: number | null; MRR?: number | null };
-    } | null>(null);
-    useEffect(() => {
-        getRagEvalMetrics()
-            .then(setMetrics)
-            .catch(() => setMetrics(null));
-    }, []);
-    const hasData = metrics?.baseline && metrics?.enhanced_reranker && (metrics.baseline.MRR != null || metrics.enhanced_reranker.MRR != null);
-    if (!metrics || !hasData) {
-        return (
-            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 mt-4">
-                <p className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                    <Target className="w-4 h-4 text-emerald-400" />
-                    RAG 평가 (골든 8개)
-                </p>
-                <p className="text-[11px] text-slate-500 mt-2">평가 데이터를 불러오는 중이거나, 백엔드에서 갱신 후 표시됩니다.</p>
-            </div>
-        );
-    }
-    const base = metrics.baseline ?? {};
-    const enh = metrics.enhanced_reranker ?? {};
-    const pct = metrics.pct_vs_baseline ?? {};
-    const fmt = (v: number | undefined) => (v != null ? (v * 100).toFixed(1) + '%' : '—');
-    const pctStr = (v: number | null | undefined) => (v != null ? (v >= 0 ? `+${v}%` : `${v}%`) : '—');
-    return (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 mt-4 space-y-4">
-            <p className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                <Target className="w-4 h-4 text-emerald-400" />
-                RAG 평가 (골든 {metrics.golden_n ?? 8}개)
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">MRR</p>
-                    <p className="text-lg font-black text-white mt-0.5">베이스라인 {fmt(base.MRR)} → 고도화 {fmt(enh.MRR)}</p>
-                    <p className="text-xs font-semibold text-emerald-400 mt-1">{pctStr(pct.MRR)}</p>
-                </div>
-                <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recall@5</p>
-                    <p className="text-lg font-black text-white mt-0.5">베이스라인 {fmt(base['Recall@5'])} → 고도화 {fmt(enh['Recall@5'])}</p>
-                    <p className="text-xs font-semibold text-emerald-400 mt-1">{pctStr(pct['Recall@5'])}</p>
-                </div>
-                <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recall@10</p>
-                    <p className="text-lg font-black text-white mt-0.5">베이스라인 {fmt(base['Recall@10'])} → 고도화 {fmt(enh['Recall@10'])}</p>
-                    <p className="text-xs font-semibold text-emerald-400 mt-1">{pctStr(pct['Recall@10'])}</p>
-                </div>
-            </div>
-        </div>
-    );
-}
+/** 레거시(벡터 단일) 대비 고도화(Hybrid, BM25+Vector+RRF, 리랭커 없음) 성장 — 배 수만 표시 */
+const RAG_GROWTH_LABELS: { label: string; growth: string }[] = [
+    { label: 'Recall@5', growth: '2.3배 향상' },
+    { label: 'Recall@10', growth: '3배 향상' },
+    { label: 'Recall@20', growth: '1.8배 향상' },
+    { label: 'Hit@20', growth: '2배 향상' },
+    { label: 'Success@4', growth: '2배 향상' },
+    { label: 'MRR@4', growth: '7배 향상' },
+];
 
 export function AiRecommendationPage() {
     const [major, setMajor] = useState('');
@@ -583,10 +535,7 @@ export function AiRecommendationPage() {
                             })}
                         </div>
 
-                        {/* RAG 평가 (골든 8개): 베이스라인 대비 MRR, Recall@5, Recall@10 */}
-                        <RagEvalMetricsCard />
-
-                        {/* 정합성 점수 구성 바 — BM25 + Vector + Contrastive + RRF 파이프라인 반영 */}
+                        {/* 정합성 점수 구성 바 — BM25 + Vector + Contrastive + RRF 파이프라인 반영 + 레거시 대비 성장(배 수) */}
                         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 space-y-4">
                             <div className="flex items-center justify-between flex-wrap gap-2">
                                 <p className="text-sm font-bold text-slate-300 flex items-center gap-2">
@@ -635,6 +584,17 @@ export function AiRecommendationPage() {
                             <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-800">
                                 검색: BM25 + Vector + Contrastive → RRF. 정합성 = (전공 + RRF 가중 평균) × 난이도·합격률 보정
                             </p>
+                            <div className="pt-3 border-t border-slate-800">
+                                <p className="text-[11px] font-bold text-slate-400 mb-2">레거시(벡터 단일) 대비 고도화( Hybrid, BM25+Vector+RRF, 리랭커 없음 )</p>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                                    {RAG_GROWTH_LABELS.map(({ label, growth }) => (
+                                        <span key={label} className="text-[11px] text-slate-300">
+                                            <span className="text-slate-500">{label}</span>
+                                            <span className="ml-1.5 font-semibold text-emerald-400">{growth}</span>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
