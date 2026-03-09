@@ -176,6 +176,15 @@ backend/
   `uv run python scripts/run_dense_ablation.py --golden data/reco_golden_recommendation_18.jsonl [--max-queries N] [--output-csv path]`
 - **3축 비교 (베이스라인 / 현재 / 고도화)**  
   `uv run python scripts/compare_rag_three_way.py`
+- **BM25 / Vector / Contrastive 단일 채널 평가**  
+  `uv run python scripts/eval_three_arms.py --golden data/reco_golden_recommendation_18.jsonl [--max-queries N]`  
+  (각 retriever만 따로 Recall@5, R@10, MRR 비교. contrastive는 `RAG_CONTRASTIVE_INDEX_DIR=data/contrastive_index` 등 유효 경로 필요.)
+- **Contrastive retriever 동작 검증**  
+  `uv run python scripts/verify_contrastive_retriever.py`  
+  (`.env`에 `RAG_CONTRASTIVE_ENABLE=true`, `RAG_CONTRASTIVE_MODEL`, `RAG_CONTRASTIVE_INDEX_DIR` 설정 필요. `sentence-transformers`, `faiss-cpu` 설치 시 contrastive 단독 검색·hybrid 3-way 경로 확인)
+- **베이스라인(2-way) vs 3-way(contrastive) 대조 평가**  
+  `uv run python scripts/eval_contrastive_baseline_vs_3way.py --golden data/reco_golden_recommendation_18.jsonl [--max-queries N]`  
+  (동일 골든으로 `RAG_CONTRASTIVE_ENABLE=false` / `true` 각각 실행 후 enhanced_reranker 메트릭 비교)
 
 상세 운영 기본값·평가 절차: `docs/DENSE_VECTOR_OPERATIONAL_DEFAULTS.md` (해당 문서가 있는 경우).
 

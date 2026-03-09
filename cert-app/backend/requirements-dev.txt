@@ -13,5 +13,6 @@ langchain-core>=0.3.0,<0.4
 ragas==0.4.3
 datasets>=2.14.0
 
-# 로컬 Cross-Encoder 리랭커 사용 시
-# sentence-transformers>=2.2.0
+# 로컬 Cross-Encoder 리랭커 및 Contrastive retriever (768 FAISS) 사용 시
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.0

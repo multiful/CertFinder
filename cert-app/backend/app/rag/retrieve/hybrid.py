@@ -26,6 +26,7 @@ from app.rag.retrieve.personalized_soft_score import (
     compute_personalized_soft_score,
     merge_difficulty_into_metadata,
 )
+from app.rag.retrieve.contrastive_retriever import contrastive_search
 
 logger = logging.getLogger(__name__)
 # RRF_K는 get_rag_settings().RAG_RRF_K 사용 (기본 28). 하위 호환용 상수 유지.
@@ -422,6 +423,14 @@ def hybrid_retrieve(
         except Exception:
             pass
 
+    # Contrastive 768 FAISS arm (별도 retriever, RRF로만 결합)
+    contrastive_results: List[Tuple[str, float]] = []
+    if getattr(settings, "RAG_CONTRASTIVE_ENABLE", False):
+        try:
+            contrastive_results = contrastive_search((query or "").strip(), top_k=top_n)
+        except Exception:
+            logger.debug("contrastive_search failed (disabled or deps missing)", exc_info=True)
+
     # Query Routing + Weighted RRF (쿼리 타입별·도메인별 가중치, 짧은 쿼리 시 Vector 게이팅)
     if use_query_weights or (alpha is None and getattr(settings, "RAG_ENHANCED_ALPHA", None) is None):
         if getattr(settings, "RAG_QUERY_TYPE_WEIGHTS_ENABLE", False):
@@ -459,10 +468,20 @@ def hybrid_retrieve(
         else:
             w_bm25, w_vector = 0.5, 0.5
 
-    # Fusion: 2-way 또는 3-way(HyDE 사용 시). RAG_FUSION_METHOD로 선택
+    # Fusion: 2-way / 3-way(HyDE) / 3-way(BM25+dense1536+contrastive768)
     fusion_method = (getattr(settings, "RAG_FUSION_METHOD", None) or "rrf").strip().lower()
     rrf_k = _rrf_k()
-    if hyde_results and getattr(settings, "RAG_HYDE_ENABLE", False):
+    if getattr(settings, "RAG_CONTRASTIVE_ENABLE", False) and contrastive_results:
+        # 3-way weighted RRF: BM25 + dense1536 + contrastive768 (가중치: RAG_RRF_W_*)
+        w_b = getattr(settings, "RAG_RRF_W_BM25", 1.0)
+        w_v = getattr(settings, "RAG_RRF_W_DENSE1536", 1.0)
+        w_c = getattr(settings, "RAG_RRF_W_CONTRASTIVE768", 1.2)
+        combined = _rrf_merge_n(
+            [bm25_scores, vector_results, contrastive_results],
+            weights=[w_b, w_v, w_c],
+            rrf_k=rrf_k,
+        )
+    elif hyde_results and getattr(settings, "RAG_HYDE_ENABLE", False):
         w_hyde = getattr(settings, "RAG_HYDE_WEIGHT", 0.2)
         total_bv = w_bm25 + w_vector
         if total_bv <= 0:
