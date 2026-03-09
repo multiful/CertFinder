@@ -121,20 +121,24 @@ async def sync_stats(
     _: bool = Depends(verify_job_secret)
 ):
     """Sync statistics data."""
-    # This would typically trigger a background job
-    # For MVP, we'll just return success and log
-    
-    logger.info(f"Stats sync triggered (force={force})")
-    
-    # In production, this would:
-    # 1. Queue a background job
-    # 2. Fetch data from external sources
-    # 3. Upsert to database
-    # 4. Invalidate related cache
-    
+    # 통계(qualification_stats) 갱신 시 관련 Redis 캐시 무효화.
+    # 상세·stats·trends는 집계 데이터를 포함하므로 동기화 후 삭제해 최신 반영.
+    n_stats = redis_client.delete_pattern("certs:stats:*")
+    n_trends = redis_client.delete_pattern("certs:trends:*")
+    n_detail = redis_client.delete_pattern("certs:detail:*")
+    logger.info(
+        "Stats sync: invalidated certs cache certs:stats=%s certs:trends=%s certs:detail=%s",
+        n_stats, n_trends, n_detail,
+    )
+
+    # In production, this would also:
+    # 1. Queue a background job to fetch from external sources
+    # 2. Upsert to qualification_stats
+    # 3. (무효화는 위에서 이미 수행)
+
     return SyncStatsResponse(
         success=True,
-        message="Stats sync queued successfully",
+        message="Stats sync triggered; certs stats/trends/detail cache invalidated.",
         processed=0
     )
 
