@@ -21,7 +21,7 @@ def _is_valid_uuid(value: Optional[str]) -> bool:
     return bool(value and _UUID_RE.match(value))
 
 from app.api.deps import get_db_session, check_rate_limit, get_current_user, get_optional_user
-from app.utils.ai import get_embedding_async
+from app.utils.ai import get_embedding_async, get_embedding
 from app.schemas import (
     SemanticSearchResponse,
     SemanticSearchResultItem,
@@ -43,6 +43,74 @@ HYBRID_CANDIDATE_TRIM_LIMIT = 120    # major/semantic 통합 후 유지할 최�
 # - 기본값: ON (환경변수 미설정 시 True)
 # - 비활성화하고 싶을 때만 USE_ENHANCED_RAG=0 / false 로 설정
 USE_ENHANCED_RAG = os.environ.get("USE_ENHANCED_RAG", "true").strip().lower() in ("1", "true", "yes")
+
+
+def _run_enhanced_rag_sync(
+    major: str,
+    expanded_interest: str,
+    acq_qual_ids: List[int],
+) -> tuple:
+    """
+    동기 고도화 RAG(hybrid_retrieve + 전공 유사도). 이벤트 루프 블로킹 방지를 위해
+    asyncio.to_thread에서 호출. 전용 DB 세션 사용.
+    성공 시 (global_results, major_sim_lookup), 실패 시 (None, None) 반환.
+    """
+    from app.database import SessionLocal
+    from app.rag.retrieve.hybrid import hybrid_retrieve
+
+    db = SessionLocal()
+    try:
+        rag_list = hybrid_retrieve(
+            db,
+            expanded_interest,
+            top_k=HYBRID_GLOBAL_RESULTS_LIMIT,
+            use_reranker=False,
+        )
+        hybrid_rrf_scores = {}
+        for chunk_id, score in (rag_list or []):
+            part = (chunk_id or "").split(":")
+            if len(part) >= 1 and part[0].isdigit():
+                qid = int(part[0])
+                if qid in acq_qual_ids:
+                    continue
+                hybrid_rrf_scores[qid] = hybrid_rrf_scores.get(qid, 0.0) + float(score)
+        hybrid_qual_names = {}
+        if hybrid_rrf_scores:
+            qual_ids = list(hybrid_rrf_scores.keys())
+            try:
+                name_rows = db.execute(
+                    text("SELECT qual_id, qual_name FROM qualification WHERE qual_id = ANY(:ids)"),
+                    {"ids": qual_ids},
+                ).fetchall()
+                hybrid_qual_names = {r.qual_id: (r.qual_name or "").strip() for r in name_rows}
+            except Exception:
+                pass
+        global_results = [
+            type("Row", (), {"qual_id": qid, "qual_name": hybrid_qual_names.get(qid, ""), "similarity": sc})()
+            for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:HYBRID_GLOBAL_RESULTS_LIMIT]
+        ]
+        candidate_ids_for_sim = list(hybrid_rrf_scores.keys()) if hybrid_rrf_scores else []
+        major_sim_lookup = {}
+        if candidate_ids_for_sim:
+            major_vector = get_embedding(major)
+            major_sim_sql = text("""
+                SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
+                FROM certificates_vectors
+                WHERE embedding IS NOT NULL
+                  AND qual_id = ANY(:ids)
+                GROUP BY qual_id
+            """)
+            m_sims = db.execute(
+                major_sim_sql,
+                {"vec": str(major_vector), "ids": candidate_ids_for_sim},
+            ).fetchall()
+            major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
+        return (global_results, major_sim_lookup)
+    except Exception as e:
+        logger.warning("_run_enhanced_rag_sync failed: %s", e, exc_info=True)
+        return (None, None)
+    finally:
+        db.close()
 
 
 @router.get("/semantic-search", response_model=SemanticSearchResponse)
@@ -361,75 +429,39 @@ async def hybrid_recommendation(
         major_sim_lookup = {}
 
         if USE_ENHANCED_RAG:
-            try:
-                # 고도화 RAG: BM25 + Vector(dense1536) + Contrastive(768) → 3-way RRF.
-                # rag_list 반환 점수 = RRF(BM25, Vector, Contrastive) per chunk → qual_id별 합산.
-                from app.rag.retrieve.hybrid import hybrid_retrieve
-                rag_list = hybrid_retrieve(
-                    db, expanded_interest,
-                    top_k=HYBRID_GLOBAL_RESULTS_LIMIT,
-                    use_reranker=False,
-                )
-                hybrid_rrf_scores = {}
-                for chunk_id, score in (rag_list or []):
-                    part = (chunk_id or "").split(":")
-                    if len(part) >= 1 and part[0].isdigit():
-                        qid = int(part[0])
-                        if qid in acq_qual_ids:
-                            continue
-                        hybrid_rrf_scores[qid] = hybrid_rrf_scores.get(qid, 0.0) + float(score)
-                hybrid_qual_names = {}
-                if hybrid_rrf_scores:
-                    qual_ids = list(hybrid_rrf_scores.keys())
-                    try:
-                        name_rows = db.execute(
-                            text("SELECT qual_id, qual_name FROM qualification WHERE qual_id = ANY(:ids)"),
-                            {"ids": qual_ids},
-                        ).fetchall()
-                        hybrid_qual_names = {r.qual_id: (r.qual_name or "").strip() for r in name_rows}
-                    except Exception:
-                        pass
-                    for qid in hybrid_rrf_scores:
-                        if qid not in hybrid_qual_names:
-                            hybrid_qual_names[qid] = ""
-                global_results = [
-                    type("Row", (), {"qual_id": qid, "qual_name": hybrid_qual_names.get(qid, ""), "similarity": sc})()
-                    for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:HYBRID_GLOBAL_RESULTS_LIMIT]
-                ]
-                # major_sim 은 이후 통합 단계에서 major_results/global_results 의 qual_id 에 대해서만 필요하므로
-                # 전체 certificates_vectors 테이블이 아니라 해당 후보 ID들에 한정해 계산한다.
-                major_vector = await get_embedding_async(major)
-                candidate_ids_for_sim: list[int] = list(
-                    {
-                        *(r.qual_id for r in major_results or []),
-                        *(qid for qid in (hybrid_rrf_scores or {}).keys()),
-                    }
-                )
-                major_sim_lookup = {}
-                if candidate_ids_for_sim:
-                    major_sim_sql = text("""
-                        SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
-                        FROM certificates_vectors
-                        WHERE embedding IS NOT NULL
-                          AND qual_id = ANY(:ids)
-                        GROUP BY qual_id
-                    """)
-                    m_sims = db.execute(
-                        major_sim_sql,
-                        {"vec": str(major_vector), "ids": candidate_ids_for_sim},
-                    ).fetchall()
-                    major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
+            # 고도화 RAG는 동기(임베딩·DB·Contrastive)이므로 스레드 풀에서 실행해 이벤트 루프 블로킹 방지
+            global_results_th, major_sim_lookup_th = await asyncio.to_thread(
+                _run_enhanced_rag_sync,
+                major,
+                expanded_interest,
+                list(acq_qual_ids),
+            )
+            if global_results_th is not None:
+                global_results = global_results_th
+                major_sim_lookup = dict(major_sim_lookup_th) if major_sim_lookup_th else {}
+                # major_results 쪽 qual_id에 대한 major_sim은 스레드에서 제외되어 있으므로 보강
+                if major_results:
+                    need_ids = [r.qual_id for r in major_results if r.qual_id not in major_sim_lookup]
+                    if need_ids:
+                        try:
+                            major_vector = await get_embedding_async(major)
+                            m_sims = db.execute(
+                                text("""
+                                    SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
+                                    FROM certificates_vectors
+                                    WHERE embedding IS NOT NULL AND qual_id = ANY(:ids)
+                                    GROUP BY qual_id
+                                """),
+                                {"vec": str(major_vector), "ids": need_ids},
+                            ).fetchall()
+                            for r in m_sims:
+                                major_sim_lookup[r.qual_id] = float(r.major_sim)
+                        except Exception as e:
+                            logger.debug("major_sim fallback for major_results failed: %s", e)
                 use_enhanced_rag_result = True
                 logger.info(
                     "hybrid_recommendation: using enhanced RAG, candidates=%d",
                     len(global_results),
-                )
-            except Exception as e:
-                logger.warning(
-                    "enhanced RAG failed, falling back to current RAG: %s: %s",
-                    type(e).__name__,
-                    e,
-                    exc_info=True,
                 )
 
         if not use_enhanced_rag_result:

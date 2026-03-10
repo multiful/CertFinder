@@ -24,7 +24,7 @@ class RAGSettings(BaseSettings):
 
     # Retrieval: RRF Top30 → Reranker Top4 (Vector 단일 채널 고도화: 후보 확대)
     RAG_TOP_K: int = 4  # 최종 반환/생성에 사용할 청크 수 (reranker 출력)
-    RAG_TOP_N_CANDIDATES: int = 110  # RRF로 뽑을 후보 수. 95→110: MRR +3% 상승, 지연 +5% 수준(평가 스윕 기준). docs/README.md §1
+    RAG_TOP_N_CANDIDATES: int = 125  # RRF 후보 수. 110→125: 2차 스윕에서 MRR +0.003 개선. docs/RAG_고도화_총정리 §2-3d
     RAG_RRF_K: int = 60  # RRF 상수. 60=품질 개선 골든 n=34에서 전 지표 상승으로 적용. 논문(SIGIR'09) 표준
     RAG_FUSION_METHOD: str = "linear"  # "rrf" | "linear". linear=min-max 정규화 후 λ*BM25+(1-λ)*Vector (골든 평가에서 R@20·Hit@20·MRR@4 상승으로 적용)
     RAG_VECTOR_TOP_N_OVERRIDE: Optional[int] = None  # 설정 시 벡터만 이 수만큼 뽑음. 100 실험 시 지표 동일·비용만 증가해 미적용
@@ -69,8 +69,8 @@ class RAGSettings(BaseSettings):
     # - RAG_RERANK_ALLOW_SHORT_KEYWORD: True면 짧은 키워드 쿼리(≤3단어)에도 리랭커 허용
     RAG_RERANK_ALLOWED_QUERY_TYPES: str = "natural,comparison,roadmap,mixed"
     RAG_RERANK_ALLOW_SHORT_KEYWORD: bool = False
-    # §2-9 추천 적합도: 리랭커 입력 형식. reranker_train_from_contrastive.jsonl로 학습했다면 False 권장(학습 시와 동일).
-    RAG_RERANK_INPUT_ADD_CONTEXT: bool = False  # True면 쿼리에 "전공: X, 목적: Y, 질의: ..." 추가. 학습이 단순 질의였다면 False.
+    # §2-9 추천 적합도: 재질의(리랭커 입력). 처음 질의 → 전공·목적·직무·취업용 등 보강 후 리랭커에 전달.
+    RAG_RERANK_INPUT_ADD_CONTEXT: bool = True   # True=재질의 ON. 쿼리에 "전공: X 목적: Y 직무: Z 질의: ..." 추가 후 리랭커 호출.
     RAG_RERANK_INPUT_ADD_QUAL_NAME: bool = False  # True면 passage 앞에 "자격증: {qual_name}. " 추가. 학습이 "[자격증명:...]만"이었다면 False.
     RAG_INDEX_DIR: str = "data/rag_index"  # BM25 인덱스 등 디스크 저장 경로
 

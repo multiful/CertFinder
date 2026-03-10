@@ -23,8 +23,10 @@ from app.config import get_settings
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
-# 타임아웃 설정: RAG/평가에서 to_thread로 호출 시 무한 대기 방지
-_OPENAI_TIMEOUT = getattr(settings, "OPENAI_TIMEOUT", 60.0)
+# 타임아웃 설정
+# - 웹 요청 경로: 짧은 타임아웃(기본 20초)으로 사용자 대기 시간을 제한
+# - 배치/오프라인 작업: settings.OPENAI_TIMEOUT을 통해 별도 조정 가능
+_OPENAI_TIMEOUT = getattr(settings, "OPENAI_TIMEOUT", 20.0)
 client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=_OPENAI_TIMEOUT)
 async_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, timeout=_OPENAI_TIMEOUT)
 
@@ -105,7 +107,7 @@ def _log_embedding_usage(model: str, latency_ms: float, usage: object | None) ->
 def get_embedding(
     text: str,
     model: str = "text-embedding-3-small",
-    retries: int = 3,
+    retries: int = 2,
     use_cache: bool = True,
 ) -> List[float]:
     """Get embedding for text using OpenAI (sync, with retry + cache)."""
@@ -159,7 +161,7 @@ def get_embedding_cache_stats() -> dict:
 async def get_embedding_async(
     text: str,
     model: str = "text-embedding-3-small",
-    retries: int = 3,
+    retries: int = 2,
     use_cache: bool = True,
 ) -> List[float]:
     """Get embedding for text using OpenAI (async, with retry + cache)."""

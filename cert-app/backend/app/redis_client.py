@@ -156,9 +156,10 @@ class RedisClient:
             tuple: (allowed, remaining, reset_after)
         """
         if not self.client:
-            # Redis 장애 시 fail-closed: 레이트리밋 적용 불가이므로 요청 거부(429 유도)
-            logger.warning("Redis down: rate limit unavailable, rejecting request (fail-closed).")
-            return False, 0, window_seconds
+            # Redis 미연결 시: 서비스 가용성 우선으로 fail-open 동작
+            # 레이트리밋은 비활성화되지만 트래픽 자체는 허용한다.
+            logger.warning("Redis not available: rate limit disabled (fail-open).")
+            return True, max_requests, 0
 
         try:
             pipe = self.client.pipeline()

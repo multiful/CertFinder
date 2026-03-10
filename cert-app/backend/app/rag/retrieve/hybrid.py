@@ -592,18 +592,13 @@ def hybrid_retrieve(
         else:
             combined = _rrf_merge_n(lists_to_merge, weights=weights_to_merge, rrf_k=rrf_k)
     elif getattr(settings, "RAG_CONTRASTIVE_ENABLE", False) and contrastive_results:
-        if rrf_w_bm25 is not None and rrf_w_dense1536 is not None and rrf_w_contrastive768 is not None:
-            w_b, w_v, w_c = rrf_w_bm25, rrf_w_dense1536, rrf_w_contrastive768
-        elif getattr(settings, "RAG_QUERY_TYPE_WEIGHTS_ENABLE", False):
-            w_b, w_v, w_c = _three_way_weights_by_query_type(query, query_type, settings)
-        else:
-            w_b = rrf_w_bm25 if rrf_w_bm25 is not None else getattr(settings, "RAG_RRF_W_BM25", 1.0)
-            w_v = rrf_w_dense1536 if rrf_w_dense1536 is not None else getattr(settings, "RAG_RRF_W_DENSE1536", 1.0)
-            w_c = rrf_w_contrastive768 if rrf_w_contrastive768 is not None else getattr(settings, "RAG_RRF_W_CONTRASTIVE768", 1.2)
-            if getattr(settings, "RAG_QUERY_TYPE_CONTRASTIVE_WEIGHTS_ENABLE", False):
-                mul = CONTRASTIVE_QUERY_TYPE_WEIGHTS.get(query_type)
-                if mul is not None:
-                    w_c *= mul
+        w_b = rrf_w_bm25 if rrf_w_bm25 is not None else getattr(settings, "RAG_RRF_W_BM25", 1.0)
+        w_v = rrf_w_dense1536 if rrf_w_dense1536 is not None else getattr(settings, "RAG_RRF_W_DENSE1536", 1.0)
+        w_c = rrf_w_contrastive768 if rrf_w_contrastive768 is not None else getattr(settings, "RAG_RRF_W_CONTRASTIVE768", 1.2)
+        if getattr(settings, "RAG_QUERY_TYPE_CONTRASTIVE_WEIGHTS_ENABLE", False):
+            mul = CONTRASTIVE_QUERY_TYPE_WEIGHTS.get(query_type)
+            if mul is not None:
+                w_c *= mul
         combined = _rrf_merge_n(
             [bm25_scores, vector_results, contrastive_results],
             weights=[w_b, w_v, w_c],

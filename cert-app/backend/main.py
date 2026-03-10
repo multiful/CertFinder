@@ -106,13 +106,15 @@ async def lifespan(app: FastAPI):
             if not redis_client.is_connected():
                 logger.warning("Redis not connected. Skipping background sync.")
                 return
-            logger.info("Background Redis sync starting...")
-            redis_client.flush_all()
+            logger.info("Background Redis sync starting (warming project-specific keys only)...")
             from app.services.fast_sync_service import FastSyncService
             from app.database import SessionLocal
             loop = asyncio.get_running_loop()
             db = SessionLocal()
             try:
+                # 기존 flush_all() 대신 FastSyncService가 자체적으로
+                # 프로젝트 관련 key-prefix만 덮어쓰도록 설계되어 있어
+                # 여기서는 별도의 FLUSH를 호출하지 않는다.
                 await loop.run_in_executor(None, FastSyncService.sync_all_to_redis, db)
             finally:
                 db.close()

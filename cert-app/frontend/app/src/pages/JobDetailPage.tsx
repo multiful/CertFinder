@@ -199,7 +199,7 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
                     </div>
 
                     {/* How to Get Employed */}
-                    <Card className="bg-slate-900/50 border-slate-800 overflow-hidden group">
+                    <Card className="relative bg-slate-900/50 border-slate-800 overflow-hidden group">
                         <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-20 group-hover:opacity-100 transition-opacity" />
                         <CardContent className="p-8 space-y-6">
                             <div className="flex items-center gap-3 text-indigo-400 font-bold text-sm tracking-widest uppercase">
@@ -214,7 +214,7 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
                     </Card>
 
                     {/* Core Competencies */}
-                    <Card className="bg-slate-900/50 border-slate-800 overflow-hidden group">
+                    <Card className="relative bg-slate-900/50 border-slate-800 overflow-hidden group">
                         <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-20 group-hover:opacity-100 transition-opacity" />
                         <CardContent className="p-8 space-y-6">
                             <div className="flex items-center gap-3 text-blue-400 font-bold text-sm tracking-widest uppercase">
@@ -272,7 +272,7 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
 
                 {/* Right Side: Radar Chart & Metadata */}
                 <div className="lg:col-span-4 space-y-8">
-                    <Card className="bg-slate-900/50 border-slate-800 sticky top-24 overflow-hidden">
+                    <Card className="relative bg-slate-900/50 border-slate-800 sticky top-24 overflow-hidden">
                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-600 to-violet-600" />
                         <CardContent className="p-8 space-y-8">
                             <div className="space-y-1 text-center">

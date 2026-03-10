@@ -30,6 +30,7 @@ class RAGAskRequest(BaseModel):
     filters: Optional[Dict[str, Any]] = None
     baseline_id: str = Field(default="enhanced_reranker", description="baseline | current | current_reranker | enhanced_reranker")
     top_k: int = Field(default=4, ge=1, le=20)
+    user_profile: Optional[Dict[str, Any]] = Field(default=None, description="재질의/리랭커용. major(전공) 등 있으면 '전공: X 목적: Y 질의: ...' 형태로 보강")
 
 
 class RAGAskResponse(BaseModel):
@@ -64,6 +65,7 @@ def _run_retrieval_sync(
     top_k: int,
     baseline_id: str,
     filters: Optional[Dict[str, Any]],
+    user_profile: Optional[Dict[str, Any]] = None,
 ) -> Tuple[List[tuple], List[tuple]]:
     """
     동기 검색+콘텐츠 조회. 이벤트 루프 블로킹 방지를 위해 asyncio.to_thread에서 호출.
@@ -94,7 +96,7 @@ def _run_retrieval_sync(
             else:
                 chunk_ids_with_scores = chunk_ids_with_scores[:top_k]
         elif baseline_id == "enhanced_reranker":
-            candidates = hybrid_retrieve(db, question, top_k=top_k, filters=filters, use_reranker=True)
+            candidates = hybrid_retrieve(db, question, top_k=top_k, filters=filters, use_reranker=True, user_profile=user_profile)
             chunk_ids_with_scores = [(c[0], c[1]) for c in candidates]
         else:
             vector_results = get_vector_search(db, question, top_k=top_k, threshold=None)
@@ -134,6 +136,7 @@ async def rag_ask(
         body.top_k,
         body.baseline_id,
         body.filters,
+        body.user_profile,
     )
 
     top1_score = chunk_ids_with_scores[0][1] if chunk_ids_with_scores else 0.0
