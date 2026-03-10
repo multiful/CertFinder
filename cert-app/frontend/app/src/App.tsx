@@ -24,6 +24,21 @@ function App() {
   useEffect(() => {
     document.documentElement.classList.add('dark');
 
+    const focusMainHeading = () => {
+      try {
+        const main = document.getElementById('main-content');
+        if (!main) return;
+        const heading = main.querySelector('h1, [data-main-heading]') as HTMLElement | null;
+        if (!heading) return;
+        if (!heading.hasAttribute('tabindex')) {
+          heading.setAttribute('tabindex', '-1');
+        }
+        heading.focus();
+      } catch {
+        // 포커스 이동 실패는 UX에만 영향, 조용히 무시
+      }
+    };
+
     const handleLocationChange = () => {
       const newState = getRouteFromPath(window.location.pathname, window.location.search);
       RouterContext.currentRoute = newState;
@@ -34,6 +49,7 @@ function App() {
     const unsubscribe = RouterContext.subscribe((newState) => {
       setRouteState(newState);
       window.scrollTo(0, 0); // Always scroll to top on navigation
+       setTimeout(focusMainHeading, 0);
     });
 
     return () => {
