@@ -312,9 +312,15 @@ def hybrid_retrieve(
     - use_reranker: None이면 RAG_USE_CROSS_ENCODER_RERANKER 설정 따름, True/False면 강제.
     - user_profile: 있으면 RAG_PERSONALIZED_* 설정 시 개인화 rewrite/soft score 적용. 없으면 기존 경로.
     - rrf_w_bm25 / rrf_w_dense1536 / rrf_w_contrastive768: 3-way RRF 시 가중치 오버라이드(None이면 설정값 사용).
+    - channels_override: 채널 제한. ["bm25"], ["vector"], ["contrastive"] 또는 조합. None이면 3채널 모두 사용.
     filters 있으면 메타데이터 필터. 반환: [(chunk_id, score), ...]
     """
     settings = get_rag_settings()
+    channels_set = (channels_override or [])
+    use_bm25 = len(channels_set) == 0 or "bm25" in channels_set
+    use_vector = len(channels_set) == 0 or "vector" in channels_set
+    use_contrastive_ch = len(channels_set) == 0 or "contrastive" in channels_set
+
     top_n = (top_n_candidates_override if top_n_candidates_override is not None else settings.RAG_TOP_N_CANDIDATES)
     # 채널별 후보 수(N): 오버라이드 있으면 우선, 없으면 설정값 또는 top_n
     bm25_top_n = bm25_top_n_override if bm25_top_n_override is not None else (getattr(settings, "RAG_BM25_TOP_N", None) or top_n)
