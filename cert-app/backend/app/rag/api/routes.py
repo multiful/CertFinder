@@ -2,7 +2,6 @@
 POST /rag/ask: question, filters, baseline_id, top_k → answer, citations, debug(scores)
 """
 import asyncio
-import hashlib
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -11,8 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db_session, check_rate_limit
-from app.rag.config import get_rag_settings
+from app.api.deps import check_rate_limit
 from app.rag.retrieve.hybrid import hybrid_retrieve, _fetch_contents_by_chunk_ids
 from app.rag.retrieve.cache import get_cached_rag_response, set_cached_rag_response
 from app.rag.rerank.cross_encoder import rerank_with_cross_encoder
@@ -113,16 +111,13 @@ def _run_retrieval_sync(
 @router.post("/ask", response_model=RAGAskResponse)
 async def rag_ask(
     body: RAGAskRequest,
-    db: Session = Depends(get_db_session),
     _: None = Depends(check_rate_limit),
 ):
     """RAG 질의: baseline_id에 따라 벡터만/현재 hybrid/고도화 hybrid+rerank+gating."""
-    settings = get_rag_settings()
     question = (body.question or "").strip()
     if not question:
         raise HTTPException(400, "question required")
 
-    cache_key_id = hashlib.sha256(question.encode()).hexdigest()[:16]
     cached = get_cached_rag_response(
         question,
         filters=body.filters,

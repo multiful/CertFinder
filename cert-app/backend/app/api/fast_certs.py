@@ -37,21 +37,17 @@ async def get_cert_fast(cert_id: int):
     초저지연(Ultra-low Latency) 자격증 조회 시스템 - (안티그래비티 프로젝트 '무중력 속도')
     불필요한 미들웨어 생략 & orjson 직렬화 & aioredis 활용
     """
-    try:
-        # 비동기 Redis에서 GET 단 한 번으로 조회 (인위적 지연 없음)
-        # 매우 짧은 timeout 안에 응답이 오지 않으면 DB Fallback 시도 (옵션)
-        async with aioredis.async_timeout.timeout(0.05):
-            cached_data = await redis_pool.get(f"fastcert:{cert_id}")
-            
-        if cached_data:
-            # 이미 Orjson으로 완전 직렬화된 바이트 문자열이므로 그대로 Response에 담아 전송
-            return Response(content=cached_data, media_type="application/json")
-            
-    except Exception as e:
-        # Redis 연결 실패나 타임아웃 발생 시 아주 짧은 처리 후 Fallback
-        logger.warning(f"Redis get failed for cert {cert_id}, falling back to DB: {e}")
+    if redis_pool:
+        try:
+            # 비동기 Redis에서 GET 단 한 번으로 조회 (인위적 지연 없음)
+            async with aioredis.async_timeout.timeout(0.05):
+                cached_data = await redis_pool.get(f"fastcert:{cert_id}")
+            if cached_data:
+                return Response(content=cached_data, media_type="application/json")
+        except Exception as e:
+            logger.warning("Redis get failed for cert %s, falling back to DB: %s", cert_id, e)
 
-    # Fallback 로직: Redis 실패/미적중 시 DB 조회
+    # Redis 미연결/미적중/타임아웃 시 DB 폴백
     db = SessionLocal()
     try:
         row = db.execute(

@@ -269,7 +269,7 @@ export function JobListPage() {
                             ];
 
                             return (
-                                <article key={job.job_id} aria-label={job.title} className="contents">
+                                <article key={job.job_id} aria-label={job.job_name} className="contents">
                                 <Card
                                     onClick={() => router.navigate(`/jobs/${job.job_id}`)}
                                     className="bg-slate-900/50 border-slate-800 hover:border-blue-500/50 hover:bg-slate-900/80 transition-all duration-500 shadow-2xl group overflow-hidden rounded-[2rem] cursor-pointer"
