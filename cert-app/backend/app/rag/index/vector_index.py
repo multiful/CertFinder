@@ -43,11 +43,13 @@ def get_vector_search(
     top_k: int = 10,
     threshold: Optional[float] = None,
     use_rewrite: bool = True,
+    query_vec: Optional[List[float]] = None,
 ) -> List[tuple]:
     """
     pgvector 유사도 검색. (chunk_id, score) 형태로 반환.
     chunk_id는 qual_id:chunk_index 문자열.
     use_rewrite=True이면 dense 전용 rewrite 적용 후 임베딩(설정 RAG_DENSE_USE_QUERY_REWRITE 반영).
+    query_vec: 제공 시 해당 쿼리용 임베딩 재사용(평가 러너 등). 원문 query와 동일할 때만 사용.
     비IT 쿼리일 때는 원문 + 재작성 두 번 검색 후 RRF 병합하여 벡터 강화.
     """
     from app.services.vector_service import vector_service
@@ -100,6 +102,7 @@ def get_vector_search(
         merged = _rrf_merge_two(list_a, list_b, k=60)
         merged = merged[:top_k]
         return merged
+    vec_kw = {"query_embedding": query_vec} if (query_vec is not None and vector_query == query) else {}
     results = vector_service.similarity_search(
         db,
         vector_query,
@@ -107,5 +110,6 @@ def get_vector_search(
         match_threshold=th,
         include_content=False,
         include_metadata=False,
+        **vec_kw,
     )
     return _chunk_id_score(results)

@@ -119,10 +119,12 @@ class VectorService:
         exclude_qual_ids: Optional[List[int]] = None,
         include_content: bool = True,
         include_metadata: bool = True,
+        query_embedding: Optional[List[float]] = None,
     ) -> List[Dict]:
         """
         벡터 유사도 검색 (코사인). match_threshold는 DB WHERE 절에서 적용.
         exclude_qual_ids: 이미 취득한 자격 등 검색 제외할 qual_id 목록.
+        query_embedding: 제공 시 get_embedding 호출 생략(평가 러너 등에서 재사용).
 
         include_content / include_metadata:
             - False 로 두면 대용량 컬럼(content, metadata)을 실제로 읽지 않으므로
@@ -130,12 +132,15 @@ class VectorService:
             - RAG 파이프라인처럼 chunk_id·similarity만 필요할 때는 둘 다 False 권장.
         """
         from app.utils.ai import get_embedding
-        q = (query_text or "").strip() or " "
-        try:
-            query_embedding = get_embedding(q)
-        except Exception as e:
-            logger.exception("get_embedding failed for similarity_search")
-            raise
+        if query_embedding is not None and isinstance(query_embedding, list) and len(query_embedding) > 0:
+            pass  # 호출자 제공 임베딩 재사용 (평가 러너 등)
+        else:
+            q = (query_text or "").strip() or " "
+            try:
+                query_embedding = get_embedding(q)
+            except Exception as e:
+                logger.exception("get_embedding failed for similarity_search")
+                raise
         if not query_embedding or not isinstance(query_embedding, list):
             return []
         max_distance = (1.0 - match_threshold) if (match_threshold is not None and match_threshold > 0) else 1.0

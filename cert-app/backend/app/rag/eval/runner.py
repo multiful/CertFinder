@@ -32,10 +32,12 @@ from app.utils.ai import get_embedding
 from app.database import SessionLocal
 
 
-def _run_baseline_vector(db: Session, query: str, top_k: int, gold_ids: set) -> tuple:
-    """베이스라인: 벡터 유사도만. 반환 (chunk_ids, latency_ms)."""
+def _run_baseline_vector(
+    db: Session, query: str, top_k: int, gold_ids: set, query_vec: Optional[Any] = None
+) -> tuple:
+    """베이스라인: 벡터 유사도만. query_vec 있으면 재사용(질의당 임베딩 1회). 반환 (chunk_ids, latency_ms)."""
     start = time.perf_counter()
-    results = get_vector_search(db, query, top_k=top_k, threshold=None)
+    results = get_vector_search(db, query, top_k=top_k, threshold=None, query_vec=query_vec)
     chunk_ids = [r[0] for r in results]
     latency = (time.perf_counter() - start) * 1000
     return chunk_ids, latency
@@ -219,9 +221,13 @@ def run_eval_three_way(
                         pass
             qid = str(row.get("id", q[:32]))
 
+            # 질의당 임베딩 1회: baseline/current 공용 캐시 선충전
+            if "baseline" in pipelines or "current" in pipelines:
+                embedding_cache.setdefault(q, get_embedding(q))
+
             # Baseline (벡터만)
             if "baseline" in pipelines:
-                ids_b, lat_b = _run_baseline_vector(db, q, top_k, gold_ids)
+                ids_b, lat_b = _run_baseline_vector(db, q, top_k, gold_ids, query_vec=embedding_cache.get(q))
                 agg["baseline"]["recall5"].append(recall_at_k(ids_b, gold_ids, 5))
                 agg["baseline"]["recall10"].append(recall_at_k(ids_b, gold_ids, 10))
                 agg["baseline"]["precision5"].append(precision_at_k(ids_b, gold_ids, 5))
@@ -240,10 +246,8 @@ def run_eval_three_way(
             else:
                 ids_b = []
 
-            # Current
+            # Current (캐시는 위에서 선충전됨)
             if "current" in pipelines:
-                if q not in embedding_cache:
-                    embedding_cache[q] = get_embedding(q)
                 vec = embedding_cache[q]
                 ids_c, lat_c = _run_current_rag(
                     db,
@@ -347,8 +351,7 @@ def run_eval_three_way(
 
             # Current + 리랭커 (Current RRF 후보, pool → Reranker Top4)
             if "current_reranker" in pipelines:
-                if q not in embedding_cache:
-                    embedding_cache[q] = get_embedding(q)
+                embedding_cache.setdefault(q, get_embedding(q))
                 vec = embedding_cache[q]
                 ids_cr, lat_cr = _run_current_reranker_rag(
                     db,
