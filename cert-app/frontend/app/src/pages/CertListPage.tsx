@@ -653,10 +653,10 @@ export function CertListPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className={viewMode === 'grid' ? "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"}>
+          <div className={viewMode === 'grid' ? "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"} role="list">
             {filteredItems.map((cert: any) => (
+              <article key={cert.qual_id} aria-label={cert.qual_name} className={viewMode === 'list' ? '' : 'contents'}>
               <Card
-                key={cert.qual_id}
                 onClick={() => router.navigate(`/certs/${cert.qual_id}`)}
                 className={`group cursor-pointer bg-slate-900 border-slate-800 hover:border-blue-500/40 transition-all duration-300 overflow-hidden ${viewMode === 'list' ? 'flex flex-row items-center py-2' : 'flex flex-col'}`}
               >
@@ -741,6 +741,7 @@ export function CertListPage() {
                   </div>
                 )}
               </Card>
+              </article>
             ))}
           </div>
         )}

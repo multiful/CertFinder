@@ -58,7 +58,7 @@ const AI_STATS = [
     },
     {
         label: '순위 융합·리랭킹',
-        value: 'RRF → Reranker',
+        value: 'RRF + Reranker',
         unit: '',
         icon: Layers,
         color: 'indigo',
@@ -66,24 +66,24 @@ const AI_STATS = [
         descSmall: true,
     },
     {
-        label: '검색 품질 종합',
-        value: '+700%',
-        unit: ' 개선',
+        label: '검색 품질',
+        value: 'Recall · MRR',
+        unit: '',
         icon: TrendingUp,
         color: 'green',
-        desc: '(baseline 대비)',
+        desc: '상위 노출 정확도 지표',
         descSmall: true,
     },
 ] as const;
 
-/** 베이스라인(벡터 단일) 대비 고도화 — 기존 대비 배 수 */
+/** 베이스라인(벡터 단일) 대비 고도화 — 배 향상 */
 const RAG_GROWTH_BASELINE: { label: string; growth: string }[] = [
-    { label: 'Recall@5', growth: '기존 3.3배' },
-    { label: 'Recall@10', growth: '기존 4배' },
-    { label: 'Recall@20', growth: '기존 2.8배' },
-    { label: 'Hit@20', growth: '기존 3배' },
-    { label: 'Success@4', growth: '기존 2배' },
-    { label: 'MRR@4', growth: '기존 8배' },
+    { label: 'Recall@5', growth: '3.3배 향상' },
+    { label: 'Recall@10', growth: '4배 향상' },
+    { label: 'Recall@20', growth: '2.8배 향상' },
+    { label: 'Hit@20', growth: '3배 향상' },
+    { label: 'Success@4', growth: '2배 향상' },
+    { label: 'MRR@4', growth: '8배 향상' },
 ];
 
 /** 레거시(Dense+Sparse RRF) 대비 고도화 — 평가지표 (갱신 시 반영) */

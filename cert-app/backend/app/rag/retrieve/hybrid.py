@@ -299,6 +299,11 @@ def hybrid_retrieve(
     rrf_k_override: Optional[int] = None,
     top_n_candidates_override: Optional[int] = None,
     dedup_per_cert_override: Optional[bool] = None,
+    bm25_top_n_override: Optional[int] = None,
+    vector_top_n_override: Optional[int] = None,
+    contrastive_top_n_override: Optional[int] = None,
+    vector_threshold_override: Optional[float] = None,
+    channels_override: Optional[List[str]] = None,
 ) -> List[Tuple[str, float]]:
     """
     BM25 + Vector를 RRF로 병합.
@@ -311,17 +316,17 @@ def hybrid_retrieve(
     """
     settings = get_rag_settings()
     top_n = (top_n_candidates_override if top_n_candidates_override is not None else settings.RAG_TOP_N_CANDIDATES)
-    # 채널별 후보 수(N): 기본은 RAG_TOP_N_CANDIDATES, 필요 시 BM25/Contrastive만 별도 조정
-    bm25_top_n = getattr(settings, "RAG_BM25_TOP_N", None) or top_n
+    # 채널별 후보 수(N): 오버라이드 있으면 우선, 없으면 설정값 또는 top_n
+    bm25_top_n = bm25_top_n_override if bm25_top_n_override is not None else (getattr(settings, "RAG_BM25_TOP_N", None) or top_n)
     if isinstance(bm25_top_n, float):
         bm25_top_n = int(bm25_top_n)
-    # 벡터만 더 많이/적게 뽑을 때: RAG_VECTOR_TOP_N_OVERRIDE 설정 시 RRF 입력 다양성/비용 조정
-    vec_top_k = getattr(settings, "RAG_VECTOR_TOP_N_OVERRIDE", None) or top_n
+    vec_top_k = vector_top_n_override if vector_top_n_override is not None else (getattr(settings, "RAG_VECTOR_TOP_N_OVERRIDE", None) or top_n)
     if isinstance(vec_top_k, float):
         vec_top_k = int(vec_top_k)
-    contrastive_top_n = getattr(settings, "RAG_CONTRASTIVE_TOP_N", None) or top_n
+    contrastive_top_n = contrastive_top_n_override if contrastive_top_n_override is not None else (getattr(settings, "RAG_CONTRASTIVE_TOP_N", None) or top_n)
     if isinstance(contrastive_top_n, float):
         contrastive_top_n = int(contrastive_top_n)
+    vec_threshold = vector_threshold_override if vector_threshold_override is not None else settings.RAG_VECTOR_THRESHOLD
     index_dir = bm25_index_path or (get_rag_index_dir() / "bm25.pkl")
     short_keyword = _is_short_query((query or "").strip())
     # 질의 타입은 BM25 쿼리 확장·가중치·게이팅·contrastive/reranker 사용 여부에 공통으로 활용
@@ -344,16 +349,16 @@ def hybrid_retrieve(
     if getattr(settings, "RAG_DENSE_MULTI_QUERY_ENABLE", False):
         # Multi-query: 원본 + rewrite 각각 검색 후 RRF 병합 (diversity·recall 향상, Query expansion + multi-query 논문)
         vec_orig = get_vector_search(
-            db, query, top_k=vec_top_k, threshold=settings.RAG_VECTOR_THRESHOLD, use_rewrite=False
+            db, query, top_k=vec_top_k, threshold=vec_threshold, use_rewrite=False
         )
         vec_rewrite = get_vector_search(
-            db, vector_query, top_k=vec_top_k, threshold=settings.RAG_VECTOR_THRESHOLD, use_rewrite=False
+            db, vector_query, top_k=vec_top_k, threshold=vec_threshold, use_rewrite=False
         )
         rrf_k_mq = _rrf_k()
         vector_results = _rrf_merge(vec_orig, vec_rewrite, w_bm25=0.5, w_vector=0.5, rrf_k=rrf_k_mq)
     else:
         vector_results = get_vector_search(
-            db, vector_query, top_k=vec_top_k, threshold=settings.RAG_VECTOR_THRESHOLD, use_rewrite=False
+            db, vector_query, top_k=vec_top_k, threshold=vec_threshold, use_rewrite=False
         )
 
     # COT 쿼리 확장: 대안 검색 문구 생성 후 다중 벡터 검색 RRF (창의적 방법론)
@@ -364,7 +369,7 @@ def hybrid_retrieve(
             for alt in cot_alts:
                 try:
                     lst = get_vector_search(
-                        db, alt, top_k=vec_top_k, threshold=settings.RAG_VECTOR_THRESHOLD, use_rewrite=False
+                        db, alt, top_k=vec_top_k, threshold=vec_threshold, use_rewrite=False
                     )
                     if lst:
                         cot_lists.append(lst)
@@ -399,7 +404,7 @@ def hybrid_retrieve(
         if hyde_doc:
             try:
                 hyde_results = get_vector_search(
-                    db, hyde_doc, top_k=vec_top_k, threshold=settings.RAG_VECTOR_THRESHOLD, use_rewrite=False
+                    db, hyde_doc, top_k=vec_top_k, threshold=vec_threshold, use_rewrite=False
                 )
             except Exception:
                 hyde_results = []

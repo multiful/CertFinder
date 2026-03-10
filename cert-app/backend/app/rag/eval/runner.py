@@ -105,6 +105,10 @@ def _run_enhanced_reranker_rag(
     use_reranker: bool = True,
     top_n_candidates_override: Optional[int] = None,
     dedup_per_cert_override: Optional[bool] = None,
+    bm25_top_n_override: Optional[int] = None,
+    vector_top_n_override: Optional[int] = None,
+    contrastive_top_n_override: Optional[int] = None,
+    vector_threshold_override: Optional[float] = None,
 ) -> tuple:
     """Enhanced RAG: RRF 후보 + (옵션) Cross-Encoder → Top4. use_reranker=False면 검색만. 반환 (chunk_ids, latency_ms)."""
     start = time.perf_counter()
@@ -114,6 +118,10 @@ def _run_enhanced_reranker_rag(
         rrf_k_override=rrf_k_override,
         top_n_candidates_override=top_n_candidates_override,
         dedup_per_cert_override=dedup_per_cert_override,
+        bm25_top_n_override=bm25_top_n_override,
+        vector_top_n_override=vector_top_n_override,
+        contrastive_top_n_override=contrastive_top_n_override,
+        vector_threshold_override=vector_threshold_override,
     )
     chunk_ids = [c[0] for c in candidates]
     latency = (time.perf_counter() - start) * 1000
@@ -138,6 +146,10 @@ def run_eval_three_way(
     use_reranker: bool = True,
     top_n_candidates_override: Optional[int] = None,
     dedup_per_cert_override: Optional[bool] = None,
+    bm25_top_n_override: Optional[int] = None,
+    vector_top_n_override: Optional[int] = None,
+    contrastive_top_n_override: Optional[int] = None,
+    vector_threshold_override: Optional[float] = None,
 ) -> Dict[str, Dict[str, float]]:
     """
     골든셋으로 4-way 실행 후 메트릭 집계. RRF Top30 후보, Reranker는 상위 20개 pool → Top4.
@@ -267,6 +279,10 @@ def run_eval_three_way(
                     use_reranker=use_reranker,
                     top_n_candidates_override=top_n_candidates_override,
                     dedup_per_cert_override=dedup_per_cert_override,
+                    bm25_top_n_override=bm25_top_n_override,
+                    vector_top_n_override=vector_top_n_override,
+                    contrastive_top_n_override=contrastive_top_n_override,
+                    vector_threshold_override=vector_threshold_override,
                 )
                 agg["enhanced_reranker"]["recall5"].append(recall_at_k(ids_er, gold_ids, 5))
                 agg["enhanced_reranker"]["recall10"].append(recall_at_k(ids_er, gold_ids, 10))

@@ -52,6 +52,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500/30 selection:text-blue-200">
+      {/* Skip to main content — a11y / SEO */}
+      <a href="#main-content" className="absolute -left-[9999px] top-4 z-[100] px-4 py-2 bg-blue-600 text-white rounded-xl outline-none ring-2 ring-blue-400 focus:left-4 focus:overflow-visible">
+        본문으로 건너뛰기
+      </a>
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -117,8 +121,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         )}
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      {/* Main Content — id for skip link / a11y */}
+      <main id="main-content" className="container mx-auto px-4 py-8" role="main">
         {children}
       </main>
 

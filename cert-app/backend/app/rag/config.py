@@ -30,11 +30,9 @@ class RAGSettings(BaseSettings):
     RAG_VECTOR_TOP_N_OVERRIDE: Optional[int] = None  # 설정 시 벡터만 이 수만큼 뽑음. 100 실험 시 지표 동일·비용만 증가해 미적용
     RAG_ALPHA: float = 0.5  # hybrid: alpha*bm25_norm + (1-alpha)*vector_norm
     RAG_VECTOR_THRESHOLD: float = 0.02  # 유사도 임계값. 0.02=품질 개선 골든에서 MRR@4·nDCG@20 상승으로 적용
-    # 후보 수(N) 튜닝용 파라미터
-    # - RAG_BM25_TOP_N / RAG_CONTRASTIVE_TOP_N: None이면 RAG_TOP_N_CANDIDATES 사용
-    #   골든 평가·운영 로그를 기반으로 그리드 서치 후 적절한 값으로 오버라이드
-    RAG_BM25_TOP_N: Optional[int] = None
-    RAG_CONTRASTIVE_TOP_N: Optional[int] = None
+    # 후보 수(N). 채널별 K 분석 B80_V110_C80: Recall@5 0.569, MRR 0.694, 지연 절감. Vector=110은 RAG_TOP_N_CANDIDATES.
+    RAG_BM25_TOP_N: Optional[int] = 80
+    RAG_CONTRASTIVE_TOP_N: Optional[int] = 80
 
     # 랜덤 서치로 찾은 최적 가중치 (설정 시 기본값으로 사용)
     RAG_CURRENT_W_D: Optional[float] = None  # Current RRF Dense 가중치
@@ -99,7 +97,7 @@ class RAGSettings(BaseSettings):
     RAG_STEPBACK_QUERY_ENABLE: bool = False  # True면 stepback 쿼리로 한 번 더 벡터 검색 후 기존 vector와 RRF
 
     # 후보 다양화·정렬 (다른 축 고도화)
-    RAG_DEDUP_PER_CERT: bool = False  # True면 자격증(qual_id)당 최고점 청크 1개만 유지 후 재정렬 → 상위 목록이 서로 다른 자격증으로 다양해짐
+    RAG_DEDUP_PER_CERT: bool = False  # True=자격증당 1개만 유지. 전체 골든 3모델 평가에서 Recall/MRR 악화로 False 유지
     RAG_QUERY_TYPE_WEIGHTS_ENABLE: bool = False  # True면 query_type별 BM25/Vector 가중치 적용 (cert_name_included→BM25 강화, natural→Vector 강화)
     RAG_DOMAIN_AWARE_WEIGHTS_ENABLE: bool = False  # True면 비IT 쿼리에 BM25 비중 상향(0.58/0.42). RAG_QUERY_TYPE_WEIGHTS_ENABLE와 함께 사용. 적용 후 평가로 유지 여부 결정.
 

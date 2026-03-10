@@ -265,10 +265,11 @@ export function HomePage() {
               ))}
             </div>
           ) : trendingCerts.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" role="list">
               {trendingCerts.map((cert, index) => (
-                <div
+                <article
                   key={cert.qual_id}
+                  aria-label={cert.qual_name}
                   onClick={() => router.navigate(`/certs/${cert.qual_id}`)}
                   className="group relative p-6 bg-slate-900 border border-slate-800 rounded-2xl hover:border-blue-500/50 hover:bg-slate-900/80 transition-all cursor-pointer overflow-hidden shadow-lg card-hover-effect"
                 >
@@ -298,7 +299,7 @@ export function HomePage() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           ) : (
