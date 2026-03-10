@@ -167,5 +167,5 @@ Redis 미연결 시 캐시·트렌딩·레이트리밋은 비활성화되고, DB
 - **JWT 검증**: `app/utils/auth.py`에서 Supabase `/auth/v1/user` REST API에 위임.
 - **시퀀스 중복**: 대량 import 후 `qualification` 등 SERIAL 시퀀스 꼬리면  
   `SELECT SETVAL(pg_get_serial_sequence('public.qualification','qual_id'), (SELECT MAX(qual_id) FROM qualification)+1);` 로 동기화.
-- **성능·캐시·RAG**: DB 쿼리 병목, Redis 캐시 전략, RAG 후보군·리랭커 풀, `/search/rag` content 제거 롤백 등은 `backend/docs/PERFORMANCE_IMPROVEMENT_METRICS.md` 참고.
-- **배포**: Render(Vercel)·Supabase·Redis Cloud·환경변수는 `.cursorskills` 또는 프로젝트 배포 규칙 참고.
+- **성능·캐시·RAG**: DB 쿼리 병목, Redis 캐시 전략, RAG 후보군·리랭커 풀, `/search/rag` content 제거 롤백 등은 `backend/docs/README.md` §1 및 `backend/docs/PERFORMANCE_IMPROVEMENT_METRICS.md` 참고.
+- **배포**: Render(Vercel)·Supabase·Redis Cloud·환경변수는 `.cursor/rules/deployment.mdc` 참고.

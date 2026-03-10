@@ -6,7 +6,7 @@
 - **아님:** jhgan/ko-sroberta-multitask 등 일반 768-dim 한국어 모델은 contrastive가 아님. FAISS는 공식 모델로 구축됨.
 
 - **설정:** `.env` 에 `RAG_CONTRASTIVE_MODEL=multifuly/cert-constrative-embedding`, `RAG_CONTRASTIVE_INDEX_DIR=data/contrastive_index`
-- **문서:** `backend/docs/CONTRASTIVE_HUGGINGFACE_UPLOAD.md`, `backend/docs/CONTRASTIVE_USAGE_LOCAL.md`
+- **문서:** `backend/docs/README.md` §3 (Contrastive — 설정·인덱스·HuggingFace·로컬 사용)
 
 ---
 

@@ -296,6 +296,9 @@ def hybrid_retrieve(
     rrf_w_bm25: Optional[float] = None,
     rrf_w_dense1536: Optional[float] = None,
     rrf_w_contrastive768: Optional[float] = None,
+    rrf_k_override: Optional[int] = None,
+    top_n_candidates_override: Optional[int] = None,
+    dedup_per_cert_override: Optional[bool] = None,
 ) -> List[Tuple[str, float]]:
     """
     BM25 + Vector를 RRF로 병합.
@@ -307,7 +310,7 @@ def hybrid_retrieve(
     filters 있으면 메타데이터 필터. 반환: [(chunk_id, score), ...]
     """
     settings = get_rag_settings()
-    top_n = settings.RAG_TOP_N_CANDIDATES
+    top_n = (top_n_candidates_override if top_n_candidates_override is not None else settings.RAG_TOP_N_CANDIDATES)
     # 채널별 후보 수(N): 기본은 RAG_TOP_N_CANDIDATES, 필요 시 BM25/Contrastive만 별도 조정
     bm25_top_n = getattr(settings, "RAG_BM25_TOP_N", None) or top_n
     if isinstance(bm25_top_n, float):
@@ -507,7 +510,7 @@ def hybrid_retrieve(
 
     # Fusion: 2-way / 3-way(HyDE) / 3-way(BM25+dense1536+contrastive768)
     fusion_method = (getattr(settings, "RAG_FUSION_METHOD", None) or "rrf").strip().lower()
-    rrf_k = _rrf_k()
+    rrf_k = rrf_k_override if rrf_k_override is not None else _rrf_k()
     if getattr(settings, "RAG_CONTRASTIVE_ENABLE", False) and contrastive_results:
         w_b = rrf_w_bm25 if rrf_w_bm25 is not None else getattr(settings, "RAG_RRF_W_BM25", 1.0)
         w_v = rrf_w_dense1536 if rrf_w_dense1536 is not None else getattr(settings, "RAG_RRF_W_DENSE1536", 1.0)
@@ -577,7 +580,8 @@ def hybrid_retrieve(
             pass
 
     # 자격증 단위 다양화: qual_id당 최고점 청크 1개만 유지 후 재정렬 (상위 목록이 서로 다른 자격증으로)
-    if getattr(settings, "RAG_DEDUP_PER_CERT", False) and candidates:
+    dedup_per_cert = dedup_per_cert_override if dedup_per_cert_override is not None else getattr(settings, "RAG_DEDUP_PER_CERT", False)
+    if dedup_per_cert and candidates:
         candidates = _dedup_per_cert(candidates)
 
     # 개인화 soft scoring (profile 있을 때만, 전공/즐겨찾기/취득/난이도 적합도)

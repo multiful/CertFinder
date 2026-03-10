@@ -12,7 +12,7 @@
 
 ## 프로젝트 개요
 
-**CertFinder**는 대한민국 **1,100여 종**의 국가 기술·전문 자격증 데이터를 실시간으로 분석해, 사용자에게 맞는 자격증과 직무 정보를 제공하는 웹 플랫폼입니다. 합격률·난이도·취업 전망과 함께 **전공 기반 AI 추천**, **직무 분석**, **북마크·취득 자격증 관리**까지 한 곳에서 이용할 수 있습니다.
+**CertFinder**는 대한민국 **1,101개** 국가 기술·전문 자격증 데이터를 실시간으로 분석해, 사용자에게 맞는 자격증과 직무 정보를 제공하는 웹 플랫폼입니다. 합격률·난이도·취업 전망과 함께 **전공 기반 AI 추천**, **직무 분석**, **북마크·취득 자격증 관리**까지 한 곳에서 이용할 수 있습니다.
 
 | 환경 | URL |
 |------|-----|
@@ -84,14 +84,13 @@ CertWeb/
 │   ├── backend/                    # FastAPI
 │   │   ├── app/
 │   │   │   ├── api/                # 라우터 (certs, jobs, recommendations, ai_recommendations, contact, me, ...)
-│   │   │   ├── crud/
-│   │   │   ├── models.py
+│   │   │   ├── crud.py, models.py
 │   │   │   ├── schemas/
 │   │   │   ├── utils/               # ai.py (embedding, query expansion, LLM rerank/reason)
 │   │   │   └── services/
 │   │   ├── main.py
 │   │   ├── requirements.txt
-│   │   └── scripts/                # populate_certificates_vectors.py 등
+│   │   └── scripts/                # 평가(eval_three_models_no_reranker), 적용 검증(bench_apply_verification) 등
 │   └── frontend/
 │       └── app/                     # Vite + React
 │           ├── src/
@@ -119,7 +118,7 @@ CertWeb/
 
 - **RAG 임베딩 관리**
   - 자격증 요약 텍스트 임베딩은 Supabase `certificates_vectors` 테이블에 미리 저장되어 있으며,
-    필요 시 운영자가 `scripts/populate_certificates_vectors.py`를 안전한 환경(로컬 관리자 또는 백엔드 워커)에서 실행해 재생성한다.
+    필요 시 운영자가 RAG 인덱스 빌드 스크립트를 안전한 환경(로컬 관리자 또는 백엔드 워커)에서 실행해 재생성한다.
   - 이 작업에는 `OPENAI_API_KEY`와 DB 권한이 필요하므로, 일반 사용자는 수행할 수 없다.
 
 - **모니터링**

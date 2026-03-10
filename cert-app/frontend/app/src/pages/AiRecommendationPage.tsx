@@ -49,27 +49,30 @@ const AI_STATS = [
     },
     {
         label: '검색 파이프라인',
-        value: 'BM25 · Vector · Contrastive',
+        value: '3-way Hybrid',
         unit: '',
         icon: GitMerge,
         color: 'purple',
-        desc: '3-way RRF (키워드·시멘틱·Contrastive)',
+        desc: '(keyword · semantic · contrastive)',
+        descSmall: true,
     },
     {
         label: '순위 융합·리랭킹',
-        value: 'RRF + Reranker',
+        value: 'RRF → Reranker',
         unit: '',
         icon: Layers,
         color: 'indigo',
-        desc: 'RRF Top30 → Cross-Encoder 리랭킹',
+        desc: '(fusion → rerank)',
+        descSmall: true,
     },
     {
-        label: '검색 품질 (MRR)',
+        label: '검색 품질 종합',
         value: '+700%',
-        unit: ' 향상',
+        unit: ' 개선',
         icon: TrendingUp,
         color: 'green',
-        desc: '원하는 자격증이 추천 상위에 얼마나 잘 나오는지 보는 지표. 높을수록 맞춤 추천이 잘 됩니다.',
+        desc: '(baseline 대비)',
+        descSmall: true,
     },
 ] as const;
 
@@ -547,7 +550,7 @@ export function AiRecommendationPage() {
                                                 {stat.value}
                                                 {stat.unit && <span className="text-sm font-semibold text-slate-500 ml-1">{stat.unit}</span>}
                                             </p>
-                                            <p className="text-[11px] text-slate-600 mt-1">{stat.desc}</p>
+                                            <p className={`mt-1 text-slate-600 ${'descSmall' in stat && stat.descSmall ? 'text-[9px]' : 'text-[11px]'}`}>{stat.desc}</p>
                                         </div>
                                     </div>
                                 );

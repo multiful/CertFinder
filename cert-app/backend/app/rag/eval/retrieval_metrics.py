@@ -125,3 +125,32 @@ def ndcg_at_k(retrieved_ids: List[str], gold_ids: Set[str], k: int) -> float:
 
 def _log2(x: float) -> float:
     return math.log2(x) if x > 0 else 1.0
+
+
+def f1_at_k(retrieved_ids: List[str], gold_ids: Set[str], k: int) -> float:
+    """F1@K: Precision@K와 Recall@K의 조화 평균. 2*P*R/(P+R). P+R=0이면 0."""
+    if not gold_ids or k <= 0:
+        return 0.0
+    p = precision_at_k(retrieved_ids, gold_ids, k)
+    r = recall_at_k(retrieved_ids, gold_ids, k)
+    if p + r <= 0:
+        return 0.0
+    return 2.0 * p * r / (p + r)
+
+
+def average_precision(retrieved_ids: List[str], gold_ids: Set[str]) -> float:
+    """
+    Average Precision (AP): 정답이 등장할 때마다의 Precision@k를 누적해 평균.
+    MAP = 질의별 AP의 평균. 추천/검색에서 순위 품질을 반영.
+    """
+    if not gold_ids:
+        return 0.0
+    num_hits = 0
+    precision_sum = 0.0
+    for i, cid in enumerate(retrieved_ids):
+        if cid in gold_ids:
+            num_hits += 1
+            precision_sum += num_hits / (i + 1)
+    if num_hits == 0:
+        return 0.0
+    return precision_sum / len(gold_ids)

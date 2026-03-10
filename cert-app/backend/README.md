@@ -46,11 +46,11 @@ backend/
 │   │   └── data_loader.py
 │   ├── redis_client.py, database.py, models.py, schemas/, config.py
 │   └── utils/ai.py, auth.py, stream_producer.py
-├── scripts/                     # 평가·코퍼스 정제·리랭커 데이터 파이프라인
-│   ├── build_reranker_train_neg_rebalanced.py, audit_reranker_train_quality.py
-│   ├── clean_all_cert_corpus.py, apply_corpus_rules_to_reranker_train.py, audit_corpus_field_major.py
-│   ├── eval_contrastive_baseline_vs_3way.py, eval_contrastive_only_top7.py, eval_rrf_baseline_vs_contrastive_random_weights.py
-│   └── check_contrastive_connection.py, test_contrastive_latency.py, measure_contrastive_embed_latency.py
+├── scripts/                     # 평가·적용 검증·데이터 파이프라인
+│   ├── eval_three_models_no_reranker.py   # 3모델 비교(베이스라인/레거시/고도화), CSV·보고서
+│   ├── bench_apply_verification.py        # RAG 응답 크기·get_list 지연 측정
+│   ├── export_rag_eval_metrics.py         # rag_eval_metrics_8.json 생성 (API /rag-eval-metrics용)
+│   └── (기타) audit_corpus_field_major.py, apply_corpus_rules_to_reranker_train.py 등 — docs/README.md 참고
 ├── data/                     # 골든셋, 코퍼스, contrastive 학습 데이터
 ├── main.py
 ├── requirements.txt
@@ -215,23 +215,17 @@ RAG는 외부 API 호출(OpenAI, HF Space)과 대형 인덱스(FAISS, PostgreSQL
 ## 📊 평가 및 골든셋
 
 - **표준 골든셋 (이 골든으로 평가)**: `data/reco_golden_recommendation_18.jsonl`
-  - **형식**: 질문은 **직무 희망만** (예: "데이터 분석 쪽으로 가고싶어", "통번역 관련 일 하고 싶어"). 학년·학과·취득/북마크 자격증은 **프로필**(로그인 사용자, 없을 수 있음)에서 가져와 재질의에 반영.
-  - **건수**: n=34 (프로필 없음 16건 + 프로필 있음 18건, IT·비IT 혼합).
-  - **이후 모든 RAG 평가는 이 골든셋 기준으로 수행.**
-- **베이스라인(2-way) vs 3-way(contrastive) 대조 평가**  
-  `uv run python scripts/eval_contrastive_baseline_vs_3way.py --golden data/reco_golden_recommendation_18.jsonl [--max-queries N]`  
-  (동일 골든으로 `RAG_CONTRASTIVE_ENABLE=false` / `true` 각각 실행 후 enhanced_reranker 메트릭 비교)
-- **Contrastive 단독 top-7 (34 골든)**  
-  `uv run python scripts/eval_contrastive_only_top7.py` → `data/contrastive_only_top7_34.csv` 등
-- **RRF 2-way vs 3-way + 가중치 랜덤 서치**  
-  `uv run python scripts/eval_rrf_baseline_vs_contrastive_random_weights.py` (골든 맨 뒤 5개 사용)
-- **Contrastive 연결·지연 확인**  
-  `uv run python scripts/check_contrastive_connection.py` 또는 `uv run python scripts/test_contrastive_latency.py`  
-  (`.env`에 `RAG_CONTRASTIVE_ENABLE=true`, `RAG_CONTRASTIVE_MODEL`, `RAG_CONTRASTIVE_INDEX_DIR` 설정 필요)
+  - **형식**: 질문은 **직무 희망만** (예: "데이터 분석 쪽으로 가고싶어"). 학년·학과·취득/북마크는 **프로필**에서 재질의에 반영.
+  - **건수**: n=34 (프로필 없음 16건 + 프로필 있음 18건, IT·비IT 혼합). **모든 RAG 평가는 이 골든셋 기준.**
+- **3모델 비교 (리랭커 없음)**  
+  `uv run python scripts/eval_three_models_no_reranker.py --golden data/reco_golden_recommendation_18.jsonl --output data/eval_three_models_8.csv --report data/eval_three_models_8_report.md`  
+  → Vector(베이스라인) / Dense+Sparse RRF(레거시) / BM25+Vector+Contrastive+RRF(고도화) 지표·개선률 출력.
+- **적용 검증 (RAG 응답 크기·DB 지연)**  
+  `uv run python scripts/bench_apply_verification.py` (backend 디렉터리, PYTHONPATH=backend)
+- **RAG 평가 메트릭 JSON (API용)**  
+  `uv run python scripts/export_rag_eval_metrics.py` → `data/rag_eval_metrics_8.json` (GET /api/v1/recommendations/ai/rag-eval-metrics에서 사용)
 
-상세 운영 기본값·평가 절차: `docs/DENSE_VECTOR_OPERATIONAL_DEFAULTS.md` (해당 문서가 있는 경우).
-
-- **성능 개선 지표(적용 전/후, 캐시 등)**: `docs/PERFORMANCE_IMPROVEMENT_METRICS.md` — 기능별 계측 항목 및 적용 여부, Reranker 캐싱 필수, 리랭커 적용 시 성능 저하 원인 분석.
+- **백엔드 문서 (통합)**: `docs/README.md` — 성능 개선 지표(적용 전/후, 캐시, 복구), 운영 기본값·평가 절차, Contrastive §3. 상세: `docs/PERFORMANCE_IMPROVEMENT_METRICS.md`.
 
 ---
 
@@ -239,17 +233,17 @@ RAG는 외부 API 호출(OpenAI, HF Space)과 대형 인덱스(FAISS, PostgreSQL
 
 | 용도 | 파일·스크립트 |
 |------|----------------|
-| **RAG 코퍼스** | `data/all_cert_corpus.json` (Supabase export 등으로 준비). 정제: `uv run python scripts/clean_all_cert_corpus.py` → `data/cleaned_all_cert_corpus_output.json` |
-| **리랭커 학습 데이터** | `data/reranker_train_from_contrastive.jsonl`. Negative 재구성: `uv run python scripts/build_reranker_train_neg_rebalanced.py`. 품질 검사: `uv run python scripts/audit_reranker_train_quality.py` |
-| **코퍼스 분야/전공 검토** | `uv run python scripts/audit_corpus_field_major.py`. Reranker passage 치환: `uv run python scripts/apply_corpus_rules_to_reranker_train.py` |
+| **골든셋** | `data/reco_golden_recommendation_18.jsonl` (표준 평가용). 평가 결과: `data/eval_three_models_8.csv`, `data/eval_three_models_8_report.md` |
+| **RAG 평가 메트릭** | `scripts/export_rag_eval_metrics.py` → `data/rag_eval_metrics_8.json` (API 노출) |
+| **RAG 코퍼스·리랭커** | `data/all_cert_corpus.json`, `data/reranker_train_from_contrastive.jsonl` 등. 정제·품질 검사·코퍼스 검토 스크립트는 `scripts/` 및 `docs/README.md` 참고. |
 
 ---
 
 ## 📚 참고 문서
 
-- **RAG 고도화 가이드**: `RAG_IMPROVEMENT.md` — 벡터 vs 키워드 진단, 청킹·벡터·키워드·리랭커 순서, Gating·캐시, RAGAS 등.
+- **백엔드 문서 (통합)**: `docs/README.md` — 성능 지표·적용 검증·운영 기본값·Contrastive §3.
+- **성능 개선 지표 (상세)**: `docs/PERFORMANCE_IMPROVEMENT_METRICS.md` — DB 쿼리·Reranker·복구 절차.
 - **배포·CORS·환경변수**: `.cursor/rules/deployment.mdc`
-- **Contrastive 임베딩 (HF Space)**: `scripts/hf_space_contrastive_embed/README.md`
 - **리랭커 데이터 품질**: `data/RERANKER_TRAIN_QUALITY_REVIEW.md`, `data/ANALYSIS_SCRIPTS_AUDIT.md`
 
 ---

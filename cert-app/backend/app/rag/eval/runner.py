@@ -10,7 +10,18 @@ from sqlalchemy.orm import Session
 
 from app.rag.eval.golden import load_golden
 from app.rag.eval.common import normalize_gold_labels
-from app.rag.eval.retrieval_metrics import recall_at_k, precision_at_k, mrr, recall_at_k_qual, mrr_qual
+from app.rag.eval.retrieval_metrics import (
+    recall_at_k,
+    precision_at_k,
+    mrr,
+    mrr_at_k,
+    recall_at_k_qual,
+    mrr_qual,
+    ndcg_at_k,
+    average_precision,
+    success_at_k,
+    f1_at_k,
+)
 from app.rag.retrieve.hybrid import hybrid_retrieve, _fetch_contents_by_chunk_ids
 from app.rag.retrieve.contrastive_retriever import prewarm_contrastive
 from app.rag.rerank.cross_encoder import rerank_with_cross_encoder
@@ -90,13 +101,19 @@ def _run_enhanced_reranker_rag(
     rrf_w_bm25: Optional[float] = None,
     rrf_w_dense1536: Optional[float] = None,
     rrf_w_contrastive768: Optional[float] = None,
+    rrf_k_override: Optional[int] = None,
     use_reranker: bool = True,
+    top_n_candidates_override: Optional[int] = None,
+    dedup_per_cert_override: Optional[bool] = None,
 ) -> tuple:
     """Enhanced RAG: RRF 후보 + (옵션) Cross-Encoder → Top4. use_reranker=False면 검색만. 반환 (chunk_ids, latency_ms)."""
     start = time.perf_counter()
     candidates = hybrid_retrieve(
         db, query, top_k=top_k, filters=None, alpha=alpha, use_reranker=use_reranker,
         rrf_w_bm25=rrf_w_bm25, rrf_w_dense1536=rrf_w_dense1536, rrf_w_contrastive768=rrf_w_contrastive768,
+        rrf_k_override=rrf_k_override,
+        top_n_candidates_override=top_n_candidates_override,
+        dedup_per_cert_override=dedup_per_cert_override,
     )
     chunk_ids = [c[0] for c in candidates]
     latency = (time.perf_counter() - start) * 1000
@@ -117,7 +134,10 @@ def run_eval_three_way(
     rrf_w_bm25: Optional[float] = None,
     rrf_w_dense1536: Optional[float] = None,
     rrf_w_contrastive768: Optional[float] = None,
+    rrf_k_override: Optional[int] = None,
     use_reranker: bool = True,
+    top_n_candidates_override: Optional[int] = None,
+    dedup_per_cert_override: Optional[bool] = None,
 ) -> Dict[str, Dict[str, float]]:
     """
     골든셋으로 4-way 실행 후 메트릭 집계. RRF Top30 후보, Reranker는 상위 20개 pool → Top4.
@@ -157,6 +177,15 @@ def run_eval_three_way(
                 "precision5": [],
                 "precision10": [],
                 "mrr": [],
+                "mrr5": [],
+                "mrr10": [],
+                "ndcg5": [],
+                "ndcg10": [],
+                "map": [],
+                "f15": [],
+                "f110": [],
+                "hit5": [],
+                "hit10": [],
                 "latency": [],
             }
             for pipe in pipelines
@@ -184,6 +213,15 @@ def run_eval_three_way(
                 agg["baseline"]["precision5"].append(precision_at_k(ids_b, gold_ids, 5))
                 agg["baseline"]["precision10"].append(precision_at_k(ids_b, gold_ids, 10))
                 agg["baseline"]["mrr"].append(mrr(ids_b, gold_ids))
+                agg["baseline"]["ndcg5"].append(ndcg_at_k(ids_b, gold_ids, 5))
+                agg["baseline"]["ndcg10"].append(ndcg_at_k(ids_b, gold_ids, 10))
+                agg["baseline"]["map"].append(average_precision(ids_b, gold_ids))
+                agg["baseline"]["mrr5"].append(mrr_at_k(ids_b, gold_ids, 5))
+                agg["baseline"]["mrr10"].append(mrr_at_k(ids_b, gold_ids, 10))
+                agg["baseline"]["f15"].append(f1_at_k(ids_b, gold_ids, 5))
+                agg["baseline"]["f110"].append(f1_at_k(ids_b, gold_ids, 10))
+                agg["baseline"]["hit5"].append(success_at_k(ids_b, gold_ids, 5))
+                agg["baseline"]["hit10"].append(success_at_k(ids_b, gold_ids, 10))
                 agg["baseline"]["latency"].append(lat_b)
             else:
                 ids_b = []
@@ -207,6 +245,15 @@ def run_eval_three_way(
                 agg["current"]["precision5"].append(precision_at_k(ids_c, gold_ids, 5))
                 agg["current"]["precision10"].append(precision_at_k(ids_c, gold_ids, 10))
                 agg["current"]["mrr"].append(mrr(ids_c, gold_ids))
+                agg["current"]["ndcg5"].append(ndcg_at_k(ids_c, gold_ids, 5))
+                agg["current"]["ndcg10"].append(ndcg_at_k(ids_c, gold_ids, 10))
+                agg["current"]["map"].append(average_precision(ids_c, gold_ids))
+                agg["current"]["mrr5"].append(mrr_at_k(ids_c, gold_ids, 5))
+                agg["current"]["mrr10"].append(mrr_at_k(ids_c, gold_ids, 10))
+                agg["current"]["f15"].append(f1_at_k(ids_c, gold_ids, 5))
+                agg["current"]["f110"].append(f1_at_k(ids_c, gold_ids, 10))
+                agg["current"]["hit5"].append(success_at_k(ids_c, gold_ids, 5))
+                agg["current"]["hit10"].append(success_at_k(ids_c, gold_ids, 10))
                 agg["current"]["latency"].append(lat_c)
             else:
                 ids_c = []
@@ -216,13 +263,25 @@ def run_eval_three_way(
                 ids_er, lat_er = _run_enhanced_reranker_rag(
                     db, q, top_k, gold_ids, alpha=enhanced_alpha,
                     rrf_w_bm25=rrf_w_bm25, rrf_w_dense1536=rrf_w_dense1536, rrf_w_contrastive768=rrf_w_contrastive768,
+                    rrf_k_override=rrf_k_override,
                     use_reranker=use_reranker,
+                    top_n_candidates_override=top_n_candidates_override,
+                    dedup_per_cert_override=dedup_per_cert_override,
                 )
                 agg["enhanced_reranker"]["recall5"].append(recall_at_k(ids_er, gold_ids, 5))
                 agg["enhanced_reranker"]["recall10"].append(recall_at_k(ids_er, gold_ids, 10))
                 agg["enhanced_reranker"]["precision5"].append(precision_at_k(ids_er, gold_ids, 5))
                 agg["enhanced_reranker"]["precision10"].append(precision_at_k(ids_er, gold_ids, 10))
                 agg["enhanced_reranker"]["mrr"].append(mrr(ids_er, gold_ids))
+                agg["enhanced_reranker"]["ndcg5"].append(ndcg_at_k(ids_er, gold_ids, 5))
+                agg["enhanced_reranker"]["ndcg10"].append(ndcg_at_k(ids_er, gold_ids, 10))
+                agg["enhanced_reranker"]["map"].append(average_precision(ids_er, gold_ids))
+                agg["enhanced_reranker"]["mrr5"].append(mrr_at_k(ids_er, gold_ids, 5))
+                agg["enhanced_reranker"]["mrr10"].append(mrr_at_k(ids_er, gold_ids, 10))
+                agg["enhanced_reranker"]["f15"].append(f1_at_k(ids_er, gold_ids, 5))
+                agg["enhanced_reranker"]["f110"].append(f1_at_k(ids_er, gold_ids, 10))
+                agg["enhanced_reranker"]["hit5"].append(success_at_k(ids_er, gold_ids, 5))
+                agg["enhanced_reranker"]["hit10"].append(success_at_k(ids_er, gold_ids, 10))
                 agg["enhanced_reranker"]["latency"].append(lat_er)
                 agg_qual["enhanced_reranker"]["recall5_qual"].append(recall_at_k_qual(ids_er, gold_qual_ids, 5))
                 agg_qual["enhanced_reranker"]["recall10_qual"].append(recall_at_k_qual(ids_er, gold_qual_ids, 10))
@@ -247,6 +306,15 @@ def run_eval_three_way(
                 agg["current_reranker"]["precision5"].append(precision_at_k(ids_cr, gold_ids, 5))
                 agg["current_reranker"]["precision10"].append(precision_at_k(ids_cr, gold_ids, 10))
                 agg["current_reranker"]["mrr"].append(mrr(ids_cr, gold_ids))
+                agg["current_reranker"]["ndcg5"].append(ndcg_at_k(ids_cr, gold_ids, 5))
+                agg["current_reranker"]["ndcg10"].append(ndcg_at_k(ids_cr, gold_ids, 10))
+                agg["current_reranker"]["map"].append(average_precision(ids_cr, gold_ids))
+                agg["current_reranker"]["mrr5"].append(mrr_at_k(ids_cr, gold_ids, 5))
+                agg["current_reranker"]["mrr10"].append(mrr_at_k(ids_cr, gold_ids, 10))
+                agg["current_reranker"]["f15"].append(f1_at_k(ids_cr, gold_ids, 5))
+                agg["current_reranker"]["f110"].append(f1_at_k(ids_cr, gold_ids, 10))
+                agg["current_reranker"]["hit5"].append(success_at_k(ids_cr, gold_ids, 5))
+                agg["current_reranker"]["hit10"].append(success_at_k(ids_cr, gold_ids, 10))
                 agg["current_reranker"]["latency"].append(lat_cr)
             else:
                 ids_cr = []
@@ -293,6 +361,15 @@ def run_eval_three_way(
                 "Precision@5": avg(vals["precision5"]),
                 "Precision@10": avg(vals["precision10"]),
                 "MRR": avg(vals["mrr"]),
+                "MRR@5": avg(vals["mrr5"]),
+                "MRR@10": avg(vals["mrr10"]),
+                "NDCG@5": avg(vals["ndcg5"]),
+                "NDCG@10": avg(vals["ndcg10"]),
+                "MAP": avg(vals["map"]),
+                "F1@5": avg(vals["f15"]),
+                "F1@10": avg(vals["f110"]),
+                "Hit@5": avg(vals["hit5"]),
+                "Hit@10": avg(vals["hit10"]),
                 "Avg_Latency_ms": avg(vals["latency"]),
                 "P95_Latency_ms": p95(vals["latency"]),
             }
@@ -303,29 +380,29 @@ def run_eval_three_way(
                 results[name]["MRR_qual"] = avg(qv["mrr_qual"])
 
         if output_csv:
+            csv_cols = [
+                "pipeline", "Recall@5", "Recall@10", "Precision@5", "Precision@10", "MRR", "MRR@5", "MRR@10",
+                "NDCG@5", "NDCG@10", "MAP", "F1@5", "F1@10", "Hit@5", "Hit@10",
+                "Avg_Latency_ms", "P95_Latency_ms",
+            ]
             with open(output_csv, "w", newline="", encoding="utf-8") as f:
                 w = csv.writer(f)
-                w.writerow(["pipeline", "Recall@5", "Recall@10", "Precision@5", "Precision@10", "MRR", "Avg_Latency_ms", "P95_Latency_ms"])
+                w.writerow(csv_cols)
                 for name, row in results.items():
-                    w.writerow(
-                        [
-                            name,
-                            row.get("Recall@5", 0),
-                            row.get("Recall@10", 0),
-                            row.get("Precision@5", 0),
-                            row.get("Precision@10", 0),
-                            row.get("MRR", 0),
-                            row.get("Avg_Latency_ms", 0),
-                            row.get("P95_Latency_ms", 0),
-                        ]
-                    )
+                    w.writerow([name] + [row.get(k, 0) for k in csv_cols[1:]])
 
         # 콘솔 표 (quiet 시 스킵)
         if not quiet:
             print("\n[ RAG 4-way Eval ]")
             print("-" * 60)
             for name, row in results.items():
-                line = f"  {name}: R@5={row['Recall@5']:.3f} R@10={row['Recall@10']:.3f} P@5={row['Precision@5']:.3f} P@10={row['Precision@10']:.3f} MRR={row['MRR']:.3f} avg_ms={row['Avg_Latency_ms']:.0f} p95_ms={row['P95_Latency_ms']:.0f}"
+                line = (
+                    f"  {name}: R@5={row['Recall@5']:.3f} R@10={row['Recall@10']:.3f} "
+                    f"P@5={row['Precision@5']:.3f} P@10={row['Precision@10']:.3f} MRR={row['MRR']:.3f} MRR@5={row.get('MRR@5', 0):.3f} MRR@10={row.get('MRR@10', 0):.3f} "
+                    f"NDCG@5={row.get('NDCG@5', 0):.3f} NDCG@10={row.get('NDCG@10', 0):.3f} MAP={row.get('MAP', 0):.3f} "
+                    f"F1@5={row.get('F1@5', 0):.3f} F1@10={row.get('F1@10', 0):.3f} H@5={row.get('Hit@5', 0):.3f} H@10={row.get('Hit@10', 0):.3f} "
+                    f"avg_ms={row['Avg_Latency_ms']:.0f} p95_ms={row['P95_Latency_ms']:.0f}"
+                )
                 if name == "enhanced_reranker" and "Recall@5_qual" in row:
                     line += f"  [qual] R@5={row['Recall@5_qual']:.3f} R@10={row['Recall@10_qual']:.3f} MRR={row['MRR_qual']:.3f}"
                 print(line)

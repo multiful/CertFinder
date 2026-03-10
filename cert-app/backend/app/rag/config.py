@@ -24,7 +24,7 @@ class RAGSettings(BaseSettings):
 
     # Retrieval: RRF Top30 → Reranker Top4 (Vector 단일 채널 고도화: 후보 확대)
     RAG_TOP_K: int = 4  # 최종 반환/생성에 사용할 청크 수 (reranker 출력)
-    RAG_TOP_N_CANDIDATES: int = 95  # RRF로 뽑을 후보 수. 보수적: 변경 시 지표 재측정 후 적용·악화 시 복구. docs/PERFORMANCE_IMPROVEMENT_METRICS.md
+    RAG_TOP_N_CANDIDATES: int = 110  # RRF로 뽑을 후보 수. 95→110: MRR +3% 상승, 지연 +5% 수준(평가 스윕 기준). docs/README.md §1
     RAG_RRF_K: int = 60  # RRF 상수. 60=품질 개선 골든 n=34에서 전 지표 상승으로 적용. 논문(SIGIR'09) 표준
     RAG_FUSION_METHOD: str = "linear"  # "rrf" | "linear". linear=min-max 정규화 후 λ*BM25+(1-λ)*Vector (골든 평가에서 R@20·Hit@20·MRR@4 상승으로 적용)
     RAG_VECTOR_TOP_N_OVERRIDE: Optional[int] = None  # 설정 시 벡터만 이 수만큼 뽑음. 100 실험 시 지표 동일·비용만 증가해 미적용
@@ -39,7 +39,7 @@ class RAGSettings(BaseSettings):
     # 랜덤 서치로 찾은 최적 가중치 (설정 시 기본값으로 사용)
     RAG_CURRENT_W_D: Optional[float] = None  # Current RRF Dense 가중치
     RAG_CURRENT_W_S: Optional[float] = None  # Current RRF Sparse 가중치
-    RAG_ENHANCED_ALPHA: Optional[float] = None  # Enhanced BM25 가중치 (Vector=1-alpha)
+    RAG_ENHANCED_ALPHA: Optional[float] = 0.35  # Enhanced BM25 가중치 (Vector=1-alpha). 조밀 랜덤 서치 적용. None이면 내부 fallback
 
     @field_validator("RAG_CURRENT_W_D", "RAG_CURRENT_W_S", "RAG_ENHANCED_ALPHA", "RAG_BM25_K1", "RAG_BM25_B", mode="before")
     @classmethod
@@ -51,7 +51,7 @@ class RAGSettings(BaseSettings):
     RAG_GATING_MIN_EVIDENCE_COUNT: int = 2  # 최소 근거 개수
 
     # Rerank (HF Space API 전용. 로컬 Cross-Encoder 미사용)
-    # 보수적 운영: RRF만 사용이 기본. Reranker 켤 때만 캐시·게이팅 필수. 변경 시 docs/PERFORMANCE_IMPROVEMENT_METRICS.md 참고.
+    # 보수적 운영: RRF만 사용이 기본. Reranker 켤 때만 캐시·게이팅 필수. 변경 시 docs/README.md §1 참고.
     # 모델: multifuly/certweb-reranker-model, 서빙 Space: multifuly/certweb-reranker
     RAG_RERANK_SCORES_PATH: Optional[str] = None  # rerank_scores.jsonl 경로 (레거시)
     RAG_USE_CROSS_ENCODER_RERANKER: bool = False  # True면 hybrid 후 Reranker API로 재정렬. 기본 False=RRF만 사용.
@@ -129,9 +129,9 @@ class RAGSettings(BaseSettings):
 
     # Metadata soft scoring (RRF 후보에 직무/전공 일치 가산, 분야 이탈 감점). 운영 기본 ON (full_challenger 경로).
     RAG_METADATA_SOFT_SCORE_ENABLE: bool = True
-    RAG_METADATA_SOFT_JOB_BONUS: float = 0.22  # 직무 일치 가산 강화(RRF 순위 상승)
-    RAG_METADATA_SOFT_MAJOR_BONUS: float = 0.14  # 전공 일치 가산 (목적과 동일 수준)
-    RAG_METADATA_SOFT_TARGET_BONUS: float = 0.14  # 목적 일치 가산 상향(RRF 품질)
+    RAG_METADATA_SOFT_JOB_BONUS: float = 0.25  # 직무 일치 가산 (옵션 비교 후 소폭 상향, 지표 동일·지연 개선)
+    RAG_METADATA_SOFT_MAJOR_BONUS: float = 0.16  # 전공 일치 가산
+    RAG_METADATA_SOFT_TARGET_BONUS: float = 0.16  # 목적 일치 가산
     RAG_METADATA_SOFT_FIELD_PENALTY: float = -0.20
     # IT↔비IT 도메인 불일치 감점 (쿼리 IT인데 자격증 비IT, 또는 그 반대 → 감점으로 상대 순위 하락)
     RAG_METADATA_DOMAIN_MISMATCH_ENABLE: bool = False  # True면 도메인 불일치 시 감점 적용. 실험 후 유지 여부 결정.
@@ -163,9 +163,10 @@ class RAGSettings(BaseSettings):
     # - RAG_CONTRASTIVE_ALLOWED_QUERY_TYPES: contrastive arm을 사용할 query_type 목록 (comma-separated)
     #   기본: natural, comparison, roadmap, mixed, purpose_only
     RAG_CONTRASTIVE_ALLOWED_QUERY_TYPES: str = "natural,comparison,roadmap,mixed,purpose_only"
-    RAG_RRF_W_BM25: float = 1.0  # 3-way RRF 시 BM25 가중치
-    RAG_RRF_W_DENSE1536: float = 1.0  # 3-way RRF 시 dense(1536) 가중치
-    RAG_RRF_W_CONTRASTIVE768: float = 1.2  # 3-way RRF 시 contrastive(768) 가중치
+    # 랜덤 서치로 선정 (run_rrf_random_search.py, 전체 골든). 이전 1.0/1.0/1.2 → 적용
+    RAG_RRF_W_BM25: float = 0.6  # 3-way RRF 시 BM25 가중치 (조밀 랜덤 서치 20 trials 적용)
+    RAG_RRF_W_DENSE1536: float = 0.55  # 3-way RRF 시 dense(1536) 가중치
+    RAG_RRF_W_CONTRASTIVE768: float = 0.85  # 3-way RRF 시 contrastive(768) 가중치
 
     # Cache
     RAG_CACHE_TTL: int = 600  # Redis 캐시 TTL(초)
