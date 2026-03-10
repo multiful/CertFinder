@@ -103,6 +103,19 @@ QUERY_TYPE_RRF_WEIGHTS: Dict[str, Tuple[float, float]] = {
 # 비IT 쿼리 전용: BM25 강화(확장 골든 평가에서 비IT는 BM25가 유리). RAG_DOMAIN_AWARE_WEIGHTS_ENABLE 시 사용.
 NON_IT_RRF_WEIGHTS: Tuple[float, float] = (0.58, 0.42)
 
+# query_type별 Contrastive 가중치 multiplier (3-way RRF 시 사용).
+CONTRASTIVE_QUERY_TYPE_WEIGHTS: Dict[str, float] = {
+    # 자연어/의도형 쿼리에서는 Contrastive 비중을 강화
+    "natural": 1.4,
+    "purpose_only": 1.4,
+    "roadmap": 1.3,
+    "comparison": 1.3,
+    "profile_personalized": 1.4,
+    # 키워드/자격증명 위주 쿼리에서는 Contrastive 비중을 약화
+    "keyword": 0.5,
+    "cert_name_included": 0.3,
+}
+
 
 def _query_suggests_it(query: str) -> bool:
     """쿼리가 IT 도메인으로 보이면 True. 도메인 가중치/도메인 불일치 감점에 사용."""
@@ -541,8 +554,15 @@ def hybrid_retrieve(
             lists_to_merge.append(vector_results)
             weights_to_merge.append(rrf_w_dense1536 if rrf_w_dense1536 is not None else getattr(settings, "RAG_RRF_W_DENSE1536", 1.0))
         if use_contrastive_ch and contrastive_results:
+            base_wc = rrf_w_contrastive768 if rrf_w_contrastive768 is not None else getattr(
+                settings, "RAG_RRF_W_CONTRASTIVE768", 1.2
+            )
+            if getattr(settings, "RAG_QUERY_TYPE_CONTRASTIVE_WEIGHTS_ENABLE", False):
+                mul = CONTRASTIVE_QUERY_TYPE_WEIGHTS.get(query_type)
+                if mul is not None:
+                    base_wc *= mul
             lists_to_merge.append(contrastive_results)
-            weights_to_merge.append(rrf_w_contrastive768 if rrf_w_contrastive768 is not None else getattr(settings, "RAG_RRF_W_CONTRASTIVE768", 1.2))
+            weights_to_merge.append(base_wc)
         if len(lists_to_merge) == 0:
             combined: List[Tuple[str, float]] = []
         elif len(lists_to_merge) == 1:
@@ -553,6 +573,10 @@ def hybrid_retrieve(
         w_b = rrf_w_bm25 if rrf_w_bm25 is not None else getattr(settings, "RAG_RRF_W_BM25", 1.0)
         w_v = rrf_w_dense1536 if rrf_w_dense1536 is not None else getattr(settings, "RAG_RRF_W_DENSE1536", 1.0)
         w_c = rrf_w_contrastive768 if rrf_w_contrastive768 is not None else getattr(settings, "RAG_RRF_W_CONTRASTIVE768", 1.2)
+        if getattr(settings, "RAG_QUERY_TYPE_CONTRASTIVE_WEIGHTS_ENABLE", False):
+            mul = CONTRASTIVE_QUERY_TYPE_WEIGHTS.get(query_type)
+            if mul is not None:
+                w_c *= mul
         combined = _rrf_merge_n(
             [bm25_scores, vector_results, contrastive_results],
             weights=[w_b, w_v, w_c],

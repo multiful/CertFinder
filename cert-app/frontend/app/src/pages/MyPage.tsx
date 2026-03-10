@@ -20,8 +20,8 @@ import {
     DialogTrigger,
     DialogFooter,
 } from "@/components/ui/dialog";
-import { getFavorites, getRecentViewed, getRecommendations, updateProfile, getProfile, getAcquiredCerts, addAcquiredCert, removeAcquiredCert, getCertifications, getAcquiredCertsSummary } from '@/lib/api';
-import type { AcquiredCertItem, AcquiredCertSummary } from '@/lib/api';
+import { getFavorites, getRecentViewed, getRecommendations, updateProfile, getProfile, getAcquiredCerts, addAcquiredCert, removeAcquiredCert, getCertifications } from '@/lib/api';
+import type { AcquiredCertItem } from '@/lib/api';
 import type { QualificationListResponse } from '@/types';
 import { toast } from 'sonner';
 
@@ -142,7 +142,6 @@ export function MyPage() {
     const [nicknameError, setNicknameError] = useState<string | null>(null);
     const [dataLoading, setDataLoading] = useState(true);
     const [acquiredCerts, setAcquiredCerts] = useState<AcquiredCertItem[]>([]);
-    const [xpSummary, setXpSummary] = useState<AcquiredCertSummary | null>(null);
     const [isAcquiredDialogOpen, setIsAcquiredDialogOpen] = useState(false);
     const [certSearchQuery, setCertSearchQuery] = useState('');
     const [certSearchResults, setCertSearchResults] = useState<any[]>([]);
@@ -199,12 +198,11 @@ export function MyPage() {
                 return;
             }
 
-            const [favRes, recentData, profileData, acquiredRes, summaryRes, recRes] = await Promise.all([
+            const [favRes, recentData, profileData, acquiredRes, recRes] = await Promise.all([
                 getFavorites(token, 1, 5),
                 getRecentViewed(token),
                 getProfile(token),
                 getAcquiredCerts(token, 1, 200).catch(() => ({ items: [] as AcquiredCertItem[], total: 0 })),
-                getAcquiredCertsSummary(token).catch(() => null),
                 majorFromUser
                     ? getRecommendations(majorFromUser, 20).catch(() => ({ items: [] as any[] }))
                     : Promise.resolve({ items: [] as any[] }),
@@ -214,7 +212,6 @@ export function MyPage() {
             setRecentCerts(recentData);
             setProfile(profileData);
             setAcquiredCerts(acquiredRes.items);
-            setXpSummary(summaryRes);
 
             const finalMajor = profileData?.detail_major ?? majorFromUser;
             let recList: any[];
@@ -234,7 +231,6 @@ export function MyPage() {
                     recentCerts: recentData,
                     profile: profileData,
                     acquiredCerts: acquiredRes.items,
-                    xpSummary: summaryRes,
                     recommendations: recList,
                 }));
             } catch {
@@ -275,7 +271,7 @@ export function MyPage() {
 
     // 캐시 복원: 관심 자격증·최근 본 자격증·전공 맞춤 추천 전체를 5분 캐시로 즉시 표시
     const restoreFromCache = (uid: string) => {
-        let cached: { userId?: string; ts?: number; favorites?: any[]; recentCerts?: any[]; profile?: any; acquiredCerts?: any[]; xpSummary?: any; recommendations?: any[] } | null = null;
+        let cached: { userId?: string; ts?: number; favorites?: any[]; recentCerts?: any[]; profile?: any; acquiredCerts?: any[]; recommendations?: any[] } | null = null;
         try {
             const raw = sessionStorage.getItem(MYPAGE_CACHE_KEY);
             if (raw) cached = JSON.parse(raw);
@@ -291,7 +287,6 @@ export function MyPage() {
         setRecentCerts(cached.recentCerts ?? []);
         setProfile(cached.profile ?? null);
         setAcquiredCerts(cached.acquiredCerts ?? []);
-        setXpSummary(cached.xpSummary ?? null);
         setRecommendations(cached.recommendations ?? []);
         setDataLoading(false);
         return true;
@@ -326,8 +321,8 @@ export function MyPage() {
 
     if (!user) return null;
 
-    // 백엔드 summary가 없을 때 프론트에서 직접 계산한 폴백 사용
-    const effectiveSummary: AcquiredCertSummary | null = xpSummary ?? computeLocalSummary(acquiredCerts);
+    // 항상 프론트에서 취득 자격증 목록 기반으로 요약 계산
+    const effectiveSummary = computeLocalSummary(acquiredCerts);
 
     const SkeletonCard = () => (
         <div className="p-6 rounded-[2rem] bg-slate-900/40 border border-slate-800/50 animate-pulse flex items-center justify-between">
@@ -594,12 +589,8 @@ export function MyPage() {
                                                                             try {
                                                                                 await addAcquiredCert(cert.qual_id, token);
                                                                                 toast.success('추가되었습니다.');
-                                                                                const [r, s] = await Promise.all([
-                                                                                    getAcquiredCerts(token, 1, 200),
-                                                                                    getAcquiredCertsSummary(token).catch(() => null),
-                                                                                ]);
+                                                                                const r = await getAcquiredCerts(token, 1, 200);
                                                                                 setAcquiredCerts(r.items);
-                                                                                setXpSummary(s);
                                                                             } catch (e: any) {
                                                                                 toast.error(e?.message || '추가 실패');
                                                                             }
@@ -628,12 +619,8 @@ export function MyPage() {
                                                                         if (!token) return;
                                                                         try {
                                                                             await removeAcquiredCert(a.qual_id, token);
-                                                                            const [r, s] = await Promise.all([
-                                                                                getAcquiredCerts(token, 1, 200),
-                                                                                getAcquiredCertsSummary(token).catch(() => null),
-                                                                            ]);
+                                                                            const r = await getAcquiredCerts(token, 1, 200);
                                                                             setAcquiredCerts(r.items);
-                                                                            setXpSummary(s);
                                                                             toast.success('제거되었습니다.');
                                                                         } catch (e: any) {
                                                                             toast.error(e?.message || '제거 실패');

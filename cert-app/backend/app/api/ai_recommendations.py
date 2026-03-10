@@ -396,15 +396,29 @@ async def hybrid_recommendation(
                     type("Row", (), {"qual_id": qid, "qual_name": hybrid_qual_names.get(qid, ""), "similarity": sc})()
                     for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:HYBRID_GLOBAL_RESULTS_LIMIT]
                 ]
+                # major_sim 은 이후 통합 단계에서 major_results/global_results 의 qual_id 에 대해서만 필요하므로
+                # 전체 certificates_vectors 테이블이 아니라 해당 후보 ID들에 한정해 계산한다.
                 major_vector = await get_embedding_async(major)
-                major_sim_sql = text("""
-                    SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
-                    FROM certificates_vectors
-                    WHERE embedding IS NOT NULL
-                    GROUP BY qual_id
-                """)
-                m_sims = db.execute(major_sim_sql, {"vec": str(major_vector)}).fetchall()
-                major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
+                candidate_ids_for_sim: list[int] = list(
+                    {
+                        *(r.qual_id for r in major_results or []),
+                        *(qid for qid in (hybrid_rrf_scores or {}).keys()),
+                    }
+                )
+                major_sim_lookup = {}
+                if candidate_ids_for_sim:
+                    major_sim_sql = text("""
+                        SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
+                        FROM certificates_vectors
+                        WHERE embedding IS NOT NULL
+                          AND qual_id = ANY(:ids)
+                        GROUP BY qual_id
+                    """)
+                    m_sims = db.execute(
+                        major_sim_sql,
+                        {"vec": str(major_vector), "ids": candidate_ids_for_sim},
+                    ).fetchall()
+                    major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
                 use_enhanced_rag_result = True
                 logger.info(
                     "hybrid_recommendation: using enhanced RAG, candidates=%d",
@@ -463,8 +477,20 @@ async def hybrid_recommendation(
                 GROUP BY qual_id
             """)
             try:
-                m_sims = db.execute(major_sim_sql, {"vec": str(major_vector)}).fetchall()
-                major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
+                # major_sim 은 후보 cert 에 대해서만 필요하므로 major_results/global_results 의 qual_id 집합으로 제한
+                candidate_ids_for_sim: list[int] = list(
+                    {
+                        *(r.qual_id for r in major_results or []),
+                        *(r.qual_id for r in global_results or []),
+                    }
+                )
+                major_sim_lookup = {}
+                if candidate_ids_for_sim:
+                    m_sims = db.execute(
+                        major_sim_sql,
+                        {"vec": str(major_vector), "ids": candidate_ids_for_sim},
+                    ).fetchall()
+                    major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
             except Exception:
                 major_sim_lookup = {}
     except Exception as e:
