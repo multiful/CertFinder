@@ -106,7 +106,7 @@ export function AiRecommendationPage() {
     const [majorError, setMajorError] = useState<string | null>(null);
     const [, setError] = useState<Error | null>(null);
     const { navigate } = useRouter();
-    const { token } = useAuth();
+    const { token, user } = useAuth();
 
     const [availableMajors, setAvailableMajors] = useState<string[]>([]);
 
@@ -145,11 +145,19 @@ export function AiRecommendationPage() {
                 if (m) { setMajor(m); setInputValue(m); }
                 if (i) setInterest(i);
                 if (r) setResults(r);
+                return;
             }
         } catch {
             // 캐시 파싱 실패 시 무시
         }
-    }, []);
+        // 캐시가 없고 로그인 사용자인 경우, 프로필 전공(detail_major)로 초기값 자동 채움
+        const profileMajor = (user as any)?.user_metadata?.detail_major;
+        if (profileMajor && !major && !inputValue) {
+            setMajor(profileMajor);
+            setInputValue(profileMajor);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
 
     React.useEffect(() => {
         getAvailableMajors().then(res => setAvailableMajors(res.majors)).catch(() => { });
