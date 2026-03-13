@@ -76,14 +76,14 @@ const AI_STATS = [
     },
 ] as const;
 
-/** 베이스라인(벡터 단일) 대비 고도화 — 배 향상 */
+/** 베이스라인(벡터 단일) 대비 고도화 — 현재 combmnz 기준 배 향상 */
 const RAG_GROWTH_BASELINE: { label: string; growth: string }[] = [
-    { label: 'Recall@5', growth: '3.3배 향상' },
-    { label: 'Recall@10', growth: '4배 향상' },
-    { label: 'Recall@20', growth: '2.8배 향상' },
-    { label: 'Hit@20', growth: '3배 향상' },
-    { label: 'Success@4', growth: '2배 향상' },
-    { label: 'MRR@4', growth: '8배 향상' },
+    { label: 'Recall@5', growth: '2.4배 향상' },
+    { label: 'Recall@10', growth: '1.7배 향상' },
+    { label: 'Recall@20', growth: '1.6배 향상' },
+    { label: 'Hit@20', growth: '1.6배 향상' },
+    { label: 'Success@4', growth: '1.8배 향상' },
+    { label: 'MRR@4', growth: '1.9배 향상' },
 ];
 
 /** 레거시(Dense+Sparse) 대비 고도화(Linear fusion) — 평가지표 (갱신 시 반영) */
