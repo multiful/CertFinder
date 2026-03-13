@@ -30,6 +30,7 @@ from app.schemas import (
 )
 from app.crud import favorite_crud, acquired_cert_crud, get_qualification_aggregated_stats_bulk
 from app.redis_client import redis_client
+from app.rag.utils.dense_query_rewrite import UserProfile
 
 router = APIRouter(prefix="/recommendations/ai", tags=["ai-recommendations"])
 logger = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ def _run_enhanced_rag_sync(
     major: str,
     expanded_interest: str,
     acq_qual_ids: List[int],
+    user_profile: Optional[UserProfile] = None,
 ) -> tuple:
     """
     동기 고도화 RAG(hybrid_retrieve + 전공 유사도). 이벤트 루프 블로킹 방지를 위해
@@ -66,6 +68,7 @@ def _run_enhanced_rag_sync(
             top_k=HYBRID_GLOBAL_RESULTS_LIMIT,
             use_reranker=False,
             dedup_per_cert_override=True,
+            user_profile=user_profile,
         )
         hybrid_rrf_scores = {}
         for chunk_id, score in (rag_list or []):
@@ -220,6 +223,7 @@ async def hybrid_recommendation(
     # --- 1) 사용자 맥락 수집 (학년, 프로필 전공, 북마크/취득 자격증 난이도) -----------------
     grade_year: Optional[int] = None
     fav_items, acq_items = [], []
+    user_profile: Optional[UserProfile] = None
 
     profile_row = None
     if user_id:
@@ -233,15 +237,80 @@ async def hybrid_recommendation(
 
     if not major:
         # 비로그인 또는 프로필 전공 미설정 상태에서 major 미입력
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="전공 정보가 필요합니다. 전공을 입력하거나 프로필에서 설정해 주세요.")
-        if profile_row and profile_row.get("grade_year") is not None:
-            try:
-                grade_year = int(profile_row["grade_year"])
-            except Exception:
-                grade_year = None
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="전공 정보가 필요합니다. 전공을 입력하거나 프로필에서 설정해 주세요.",
+        )
 
+    if profile_row and profile_row.get("grade_year") is not None:
+        try:
+            grade_year = int(profile_row["grade_year"])
+        except Exception:
+            grade_year = None
+
+    if user_id:
         fav_items, _ = favorite_crud.get_by_user(db, user_id, page=1, page_size=100)
         acq_items, _ = acquired_cert_crud.get_by_user(db, user_id, page=1, page_size=200)
+
+        # UserProfile 구성: 전공, 학년, 즐겨찾기/취득 자격증 기반
+        try:
+            profile: UserProfile = {}
+            if major:
+                profile["major"] = major
+            if grade_year is not None:
+                profile["grade_level"] = grade_year
+
+            fav_ids = [f.qual_id for f in fav_items if getattr(f, "qual_id", None)]
+            acq_ids = [a.qual_id for a in acq_items if getattr(a, "qual_id", None)]
+
+            if acq_ids:
+                profile["acquired_qual_ids"] = list(dict.fromkeys(acq_ids))[:50]
+
+            qual_ids_for_profile = list({*fav_ids, *acq_ids})
+            if qual_ids_for_profile:
+                rows = db.execute(
+                    text(
+                        """
+                        SELECT qual_id, qual_name, main_field, ncs_large
+                        FROM qualification
+                        WHERE qual_id = ANY(:ids)
+                        """
+                    ),
+                    {"ids": qual_ids_for_profile},
+                ).fetchall()
+                meta_by_id = {r.qual_id: r for r in rows}
+
+                favorite_cert_names: List[str] = []
+                favorite_field_tokens: List[str] = []
+                acquired_cert_names: List[str] = []
+
+                for qid in fav_ids:
+                    r = meta_by_id.get(qid)
+                    if not r:
+                        continue
+                    if r.qual_name:
+                        favorite_cert_names.append(str(r.qual_name).strip())
+                    for fld in (getattr(r, "main_field", None), getattr(r, "ncs_large", None)):
+                        if fld and str(fld).strip():
+                            favorite_field_tokens.append(str(fld).strip())
+
+                for qid in acq_ids:
+                    r = meta_by_id.get(qid)
+                    if not r:
+                        continue
+                    if r.qual_name:
+                        acquired_cert_names.append(str(r.qual_name).strip())
+
+                if favorite_cert_names:
+                    profile["favorite_cert_names"] = list(dict.fromkeys(favorite_cert_names))[:10]
+                if favorite_field_tokens:
+                    profile["favorite_field_tokens"] = list(dict.fromkeys(favorite_field_tokens))[:20]
+                if acquired_cert_names:
+                    profile["acquired_cert_names"] = list(dict.fromkeys(acquired_cert_names))[:10]
+
+            user_profile = profile or None
+        except Exception:
+            user_profile = None
     context_qual_ids = list({*(f.qual_id for f in fav_items), *(a.qual_id for a in acq_items)})
     skill_level: Optional[float] = None  # 유저가 이미 소화한 난이도 지표(1~9.9)
     if context_qual_ids:
@@ -447,6 +516,7 @@ async def hybrid_recommendation(
                 major,
                 expanded_interest,
                 list(acq_qual_ids),
+                user_profile,
             )
             if global_results_th is not None:
                 global_results = global_results_th

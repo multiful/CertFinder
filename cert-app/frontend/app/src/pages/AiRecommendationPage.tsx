@@ -88,12 +88,12 @@ const RAG_GROWTH_BASELINE: { label: string; growth: string }[] = [
 
 /** 레거시(Dense+Sparse) 대비 고도화(Linear fusion) — 평가지표 (갱신 시 반영) */
 const RAG_GROWTH_LEGACY_LINEAR: { label: string; growth: string }[] = [
-    { label: 'Recall@5', growth: '—' },
-    { label: 'Recall@10', growth: '—' },
-    { label: 'Recall@20', growth: '—' },
-    { label: 'Hit@20', growth: '—' },
-    { label: 'Success@4', growth: '—' },
-    { label: 'MRR@4', growth: '—' },
+    { label: 'Recall@5', growth: '1.1배 향상' },
+    { label: 'Recall@10', growth: '1.1배 향상' },
+    { label: 'Recall@20', growth: '1.1배 향상' },
+    { label: 'Hit@20', growth: '1.1배 향상' },
+    { label: 'Success@4', growth: '1.1배 향상' },
+    { label: 'MRR@4', growth: '1.2배 향상' },
 ];
 
 export function AiRecommendationPage() {

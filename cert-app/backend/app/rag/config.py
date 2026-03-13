@@ -52,6 +52,10 @@ class RAGSettings(BaseSettings):
     RAG_COMBMNZ_ZERO_THRESHOLD: float = 0.0
     # rank 기반 정규화 시 지수 p. 1=표준 1/(k+rank), >1이면 상위 순위 강조.
     RAG_COMBMNZ_RANK_EXPONENT: float = 1.0
+    # query_type별 CombMNZ 채널 가중치 사용 여부 및 매핑(JSON 문자열).
+    # 예시: {"natural": {"bm25":1.0,"dense":1.0,"contrastive":1.1}, "keyword":{"bm25":1.2,"dense":0.8,"contrastive":0.7}}
+    RAG_COMBMNZ_QUERY_TYPE_WEIGHTS_ENABLE: bool = False
+    RAG_COMBMNZ_QUERY_TYPE_WEIGHTS: str = ""
 
     # 랜덤 서치로 찾은 최적 가중치 (설정 시 기본값으로 사용)
     RAG_CURRENT_W_D: Optional[float] = None  # Current RRF Dense 가중치

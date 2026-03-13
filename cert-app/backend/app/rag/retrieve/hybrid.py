@@ -601,6 +601,59 @@ def _combmnz_merge_n(
     return scores
 
 
+def _apply_query_type_combmnz_weights(
+    weights: List[float],
+    use_bm25: bool,
+    use_vector: bool,
+    use_contrastive: bool,
+    query_type: Optional[str],
+    settings,
+) -> List[float]:
+    """
+    쿼리 타입별 CombMNZ 채널 가중치 조정.
+    - settings.RAG_COMBMNZ_QUERY_TYPE_WEIGHTS_ENABLE 가 True일 때만 동작.
+    - settings.RAG_COMBMNZ_QUERY_TYPE_WEIGHTS 가 JSON 문자열이면 우선 사용하고,
+      없으면 기본 하드코딩 매핑을 사용한다.
+    """
+    if not getattr(settings, "RAG_COMBMNZ_QUERY_TYPE_WEIGHTS_ENABLE", False):
+        return weights
+    try:
+        import json
+
+        raw = getattr(settings, "RAG_COMBMNZ_QUERY_TYPE_WEIGHTS", "") or ""
+        mapping = json.loads(raw) if raw.strip() else {}
+    except Exception:
+        mapping = {}
+    # 기본 값: natural 은 dense/contrastive 비중을 약간 높이고, keyword 타입은 BM25 비중을 높인다.
+    default_mapping = {
+        "natural": {"bm25": 1.0, "dense": 1.0, "contrastive": 1.1},
+        "comparison": {"bm25": 1.0, "dense": 1.0, "contrastive": 1.1},
+        "roadmap": {"bm25": 1.0, "dense": 1.0, "contrastive": 1.1},
+        "mixed": {"bm25": 1.0, "dense": 1.0, "contrastive": 1.0},
+        "purpose_only": {"bm25": 1.0, "dense": 1.0, "contrastive": 1.1},
+        "keyword": {"bm25": 1.2, "dense": 0.9, "contrastive": 0.7},
+    }
+    qtype = (query_type or "").strip().lower()
+    conf = mapping.get(qtype) or default_mapping.get(qtype)
+    if not conf:
+        return weights
+    bm = float(conf.get("bm25", 1.0))
+    dn = float(conf.get("dense", 1.0))
+    ct = float(conf.get("contrastive", 1.0))
+    out: List[float] = []
+    idx = 0
+    # lists_to_merge 순서: [bm25, vector, contrastive] 와 동일해야 한다.
+    if use_bm25:
+        out.append(weights[idx] * bm)
+        idx += 1
+    if use_vector:
+        out.append(weights[idx] * dn)
+        idx += 1
+    if use_contrastive:
+        out.append(weights[idx] * ct)
+    return out or weights
+
+
 def hybrid_retrieve(
     db: Session,
     query: str,
@@ -949,9 +1002,17 @@ def hybrid_retrieve(
         elif fusion_method == "combsum":
             combined = _combsum_merge_n(lists_to_merge, weights=weights_to_merge)
         elif fusion_method == "combmnz":
+            adj_weights = _apply_query_type_combmnz_weights(
+                weights_to_merge,
+                use_bm25=bool(use_bm25 and bm25_scores),
+                use_vector=bool(use_vector and vector_results),
+                use_contrastive=bool(use_contrastive_ch and contrastive_results),
+                query_type=query_type,
+                settings=settings,
+            )
             combined = _combmnz_merge_n(
                 lists_to_merge,
-                weights=weights_to_merge,
+                weights=adj_weights,
                 norm_mode=getattr(settings, "RAG_COMBMNZ_NORM_MODE", "minmax"),
                 zero_mode=getattr(settings, "RAG_COMBMNZ_ZERO_MODE", "topn"),
                 zero_threshold=getattr(settings, "RAG_COMBMNZ_ZERO_THRESHOLD", 0.0),
@@ -985,9 +1046,18 @@ def hybrid_retrieve(
                 weights=[w_b, w_v, w_c],
             )
         elif fusion_method == "combmnz":
+            base_weights = [w_b, w_v, w_c]
+            adj_weights = _apply_query_type_combmnz_weights(
+                base_weights,
+                use_bm25=True,
+                use_vector=True,
+                use_contrastive=True,
+                query_type=query_type,
+                settings=settings,
+            )
             combined = _combmnz_merge_n(
                 [bm25_scores, vector_results, contrastive_results],
-                weights=[w_b, w_v, w_c],
+                weights=adj_weights,
                 norm_mode=getattr(settings, "RAG_COMBMNZ_NORM_MODE", "minmax"),
                 zero_mode=getattr(settings, "RAG_COMBMNZ_ZERO_MODE", "topn"),
                 zero_threshold=getattr(settings, "RAG_COMBMNZ_ZERO_THRESHOLD", 0.0),
@@ -1016,15 +1086,6 @@ def hybrid_retrieve(
                 [bm25_scores, vector_results, hyde_results],
                 weights=[w_b, w_v, w_hyde],
             )
-        elif fusion_method == "combmnz":
-            combined = _combmnz_merge_n(
-                [bm25_scores, vector_results, hyde_results],
-                weights=[w_b, w_v, w_hyde],
-                norm_mode=getattr(settings, "RAG_COMBMNZ_NORM_MODE", "minmax"),
-                zero_mode=getattr(settings, "RAG_COMBMNZ_ZERO_MODE", "topn"),
-                zero_threshold=getattr(settings, "RAG_COMBMNZ_ZERO_THRESHOLD", 0.0),
-                rank_exponent=getattr(settings, "RAG_COMBMNZ_RANK_EXPONENT", 1.0),
-            )
         else:
             combined = _rrf_merge_3(
                 bm25_scores, vector_results, hyde_results,
@@ -1035,15 +1096,6 @@ def hybrid_retrieve(
             combined = _linear_merge(bm25_scores, vector_results, w_bm25=w_bm25, w_vector=w_vector)
         elif fusion_method == "combsum":
             combined = _combsum_merge_n([bm25_scores, vector_results], weights=[w_bm25, w_vector])
-        elif fusion_method == "combmnz":
-            combined = _combmnz_merge_n(
-                [bm25_scores, vector_results],
-                weights=[w_bm25, w_vector],
-                norm_mode=getattr(settings, "RAG_COMBMNZ_NORM_MODE", "minmax"),
-                zero_mode=getattr(settings, "RAG_COMBMNZ_ZERO_MODE", "topn"),
-                zero_threshold=getattr(settings, "RAG_COMBMNZ_ZERO_THRESHOLD", 0.0),
-                rank_exponent=getattr(settings, "RAG_COMBMNZ_RANK_EXPONENT", 1.0),
-            )
         else:
             combined = _rrf_merge(bm25_scores, vector_results, w_bm25=w_bm25, w_vector=w_vector, rrf_k=rrf_k)
     candidates = combined[: top_n * 2]
