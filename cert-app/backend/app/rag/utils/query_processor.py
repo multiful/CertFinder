@@ -99,6 +99,8 @@ for key, values in SYNONYM_DICT.items():
 # failure 기반 추가: cert_name_included(같이준비, 준비하면), major/job/purpose(전산, 취업용, 소프트웨어학과 등), keyword(직무, DB).
 RECOMMENDATION_QUERY_MAP = {
     # 직무 표현
+    # 보안: 토큰 "직무"와 함께 쓰일 때 범용 IT 확장이 섞이지 않도록 expand 단계에서 '직무' 스킵 조건과 병행
+    "보안": "정보보안기사 정보보안산업기사 네트워크관리사 정보보호 산업보안관리사 침해사고",
     "정보처리": "정보처리 IT 개발 시스템 데이터베이스 소프트웨어 자격증",
     "정보처리관련": "정보처리 IT 개발 시스템 자격증",
     "정보처리직무": "정보처리 IT직무 개발직무 시스템운영 전산 자격증",
@@ -239,6 +241,39 @@ _NORMALIZED_RECOM = {}
 for key, value in RECOMMENDATION_QUERY_MAP.items():
     k = _norm_reco_key(key)
     _NORMALIZED_RECOM[k] = value.split()
+
+
+def _skip_generic_reco_job_expansion(tokens: List[str]) -> bool:
+    """
+    RECOMMENDATION_QUERY_MAP['직무']는 '개발 정보처리 데이터 … IT' 범용어를 붙인다.
+    보안·데이터 분석 등 다른 도메인이 이미 있으면 이 확장은 노이즈만 유발하므로 생략.
+    """
+    c = "".join(tokens).lower()
+    c = re.sub(r"\s+", "", c)
+    if not c:
+        return False
+    security = (
+        "보안", "정보보호", "사이버", "해킹", "모의해킹", "침해", "취약점",
+        "security", "isms", "암호", "시큐어", "개인정보",
+    )
+    if any(s in c for s in security):
+        return True
+    if "데이터" in c and ("분석" in c or "빅데이터" in c or "sqld" in c or "adsp" in c or "sqlp" in c):
+        return True
+    if "빅데이터" in c or "머신러닝" in c or "딥러닝" in c or "데이터사이언스" in c:
+        return True
+    return False
+
+
+# 구어 2-gram이 SQL·정보처리 등 범용 IT 토큰을 붙임. 보안·데이터직무 문맥이면 스킵.
+_RECO_PHRASE_SKIP_WHEN_DOMAIN_FOCUSED = frozenset({
+    "하고싶어",
+    "일하고싶어",
+    "가고싶어",
+    "가려면",
+    "준비하고있어",
+    "취업하고싶어",
+})
 
 # 2-2: RECOMMENDATION_QUERY_MAP 근거 기반 관리. 변경 시 failure case, 적용 이유, 기대 효과, 과확장 리스크 필수 기록.
 # 키 = RECOMMENDATION_QUERY_MAP 키와 동일. 값 = reason, example_queries(failure case), recall_before/after, over_expansion.
@@ -425,6 +460,8 @@ def expand_query_single_string(
             key = _norm_reco_key(token)
             if key in skip_reco_keys:
                 continue
+            if key == "직무" and _skip_generic_reco_job_expansion(tokens):
+                continue
             if key in _NORMALIZED_RECOM:
                 for term in _NORMALIZED_RECOM[key]:
                     if term and term.lower() not in seen:
@@ -434,6 +471,8 @@ def expand_query_single_string(
             phrase_norm = _norm_reco_key(tokens[i] + tokens[i + 1])
             if phrase_norm in skip_reco_keys:
                 continue
+            if phrase_norm in _RECO_PHRASE_SKIP_WHEN_DOMAIN_FOCUSED and _skip_generic_reco_job_expansion(tokens):
+                continue
             if phrase_norm in _NORMALIZED_RECOM:
                 for term in _NORMALIZED_RECOM[phrase_norm]:
                     if term and term.lower() not in seen:
@@ -442,6 +481,8 @@ def expand_query_single_string(
         for i in range(len(tokens) - 2):
             phrase_norm = _norm_reco_key(tokens[i] + tokens[i + 1] + tokens[i + 2])
             if phrase_norm in skip_reco_keys:
+                continue
+            if phrase_norm in _RECO_PHRASE_SKIP_WHEN_DOMAIN_FOCUSED and _skip_generic_reco_job_expansion(tokens):
                 continue
             if phrase_norm in _NORMALIZED_RECOM:
                 for term in _NORMALIZED_RECOM[phrase_norm]:
@@ -476,6 +517,7 @@ def expand_query_single_string(
             and for_recommendation
             and query_type not in CERT_CENTRIC_QUERY_TYPES
             and not has_non_it
+            and not _skip_generic_reco_job_expansion(tokens)
         ):
             # 8개: S@4/Hit@4/MRR 최고점. 관광·언어 등 IT·디지털 집중 신호 없는 질의에는 IT 베이스라인 미추가.
             _baseline_terms = ["자격증", "정보처리", "SQLD", "ADsP", "IT", "취업", "실무", "로드맵"]

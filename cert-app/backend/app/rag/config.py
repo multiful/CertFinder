@@ -273,6 +273,7 @@ class RAGSettings(BaseSettings):
     # - RAG_CONTRASTIVE_ALLOWED_QUERY_TYPES: contrastive arm을 사용할 query_type 목록 (comma-separated)
     #   fallback query_type 은 keyword|natural|mixed 만. 짧은 키워드는 hybrid에서 별도로 contrastive 비활성.
     RAG_CONTRASTIVE_ALLOWED_QUERY_TYPES: str = "keyword,natural,mixed"
+    # 노이즈(짧은 진로 문장이 SQL·빅데이터로 새는 경우): Contrastive 소폭↓ + BM25 소폭↑ 실험. 질의유형별는 hybrid.QUERY_TYPE_RRF_WEIGHTS.
     RAG_RRF_W_BM25: float = 0.6
     RAG_RRF_W_DENSE1536: float = 0.55
     # 오프라인 골든 A/B(19_clean, retrieval-only)에서 0.92 대비 복합(2*R@5_qual+MRR_qual) 개선 → 1.05. 전체 골든 재검증 권장.

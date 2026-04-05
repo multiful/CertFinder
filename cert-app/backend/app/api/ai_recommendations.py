@@ -249,7 +249,7 @@ async def hybrid_recommendation(
         description="User's major. 로그인 사용자는 프로필 전공(detail_major)을 자동 사용하며, 비로그인은 직접 입력해야 합니다.",
     ),
     interest: Optional[str] = Query(None, max_length=500, description="Specific interests or career goals"),
-    limit: int = Query(5, ge=1, le=20),
+    limit: int = Query(15, ge=1, le=30),
     db: Session = Depends(get_db_session),
     _: None = Depends(check_rate_limit),
     user_id: Optional[str] = Depends(get_optional_user),
@@ -982,9 +982,10 @@ async def hybrid_recommendation(
             )
         final_results = fallback
 
-    # LLM re-ranking 후보로 최대 20개를 준비 (로그인 사용자) / 게스트는 그대로 잘라냄
+    # LLM re-ranking 후보 풀 (로그인): limit+여유만큼 확보 / 게스트는 그대로 잘라냄
     rrf_sorted = sorted(final_results, key=lambda x: x["hybrid_score"], reverse=True)
-    rerank_pool = rrf_sorted[:20] if user_id else rrf_sorted[:effective_limit]
+    rerank_cap = max(25, effective_limit + 5) if user_id else effective_limit
+    rerank_pool = rrf_sorted[:rerank_cap]
     sorted_results = rerank_pool[:effective_limit]  # 기본값 (폴백용)
     # 캐시 공유·타입 불일치 등으로 취득 자격증이 남는 경우 최종 차단
     if acq_qual_ids:
@@ -993,6 +994,26 @@ async def hybrid_recommendation(
             for c in sorted_results
             if int(c["qual_id"]) not in acq_qual_ids
         ]
+
+    # --- 8-1) UI 관심도 일치 막대: 최종 노출 목록 안에서만 min-max 재정규화 ----------
+    # 풀 전체 대비 max-normalize된 semantic_score_normalized는 상위 추천만 모아도 모두 ~1에 몰려
+    # 막대가 전부 100%로 보이는 현상을 막는다. 값이 동일하면 순위로 펼친다.
+    n_disp = len(sorted_results)
+    if n_disp:
+        vals = [
+            max(0.0, min(1.0, float(c.get("semantic_score_normalized") or 0.0)))
+            for c in sorted_results
+        ]
+        lo, hi = min(vals), max(vals)
+        span = hi - lo
+        for idx, c in enumerate(sorted_results):
+            sn = max(0.0, min(1.0, float(c.get("semantic_score_normalized") or 0.0)))
+            if span > 1e-6:
+                c["semantic_score_normalized"] = (sn - lo) / span
+            elif n_disp > 1:
+                c["semantic_score_normalized"] = float(n_disp - 1 - idx) / float(n_disp - 1)
+            else:
+                c["semantic_score_normalized"] = 1.0
 
     # --- 9) 규칙 기반 reason 생성 --------------------------
     def _fallback_reason(c: dict, diff: Optional[float]) -> str:
