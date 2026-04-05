@@ -323,6 +323,11 @@ def _query_suggests_it_domain(slots: Dict[str, str], original: str) -> bool:
     from app.rag.utils.domain_tokens import get_it_tokens, get_non_it_tokens
     it_tokens = get_it_tokens()
     non_it_tokens = get_non_it_tokens()
+    # 전공명만 보고 '데이터'가 IT로 잡히는 경우를 줄이기 위해, 원문·희망직무의 비IT 신호를 먼저 본다.
+    job_query = " ".join([str(slots.get("희망직무", "")), original or ""]).strip()
+    for t in non_it_tokens:
+        if t in job_query:
+            return False
     combined = " ".join([str(slots.get("전공", "")), str(slots.get("희망직무", "")), original or ""])
     combined = (combined or "").strip()
     for t in non_it_tokens:

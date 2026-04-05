@@ -155,9 +155,13 @@ LINEAR_QT_WEIGHTS_LONG: Tuple[float, float, float] = (
 )
 
 
-def _three_way_weights_by_query_type(query: str, query_type: str, settings: Any) -> Tuple[float, float, float]:
+def _three_way_weights_by_query_type(
+    query: str, query_type: str, settings: Any, user_profile: Any = None
+) -> Tuple[float, float, float]:
     """3-way RRF용 query_type·도메인 반영 가중치 (RAG_QUERY_TYPE_WEIGHTS_ENABLE 시). (w_bm25, w_dense, w_contrastive)."""
-    if getattr(settings, "RAG_DOMAIN_AWARE_WEIGHTS_ENABLE", False) and not _query_suggests_it(query):
+    if getattr(settings, "RAG_DOMAIN_AWARE_WEIGHTS_ENABLE", False) and not _query_suggests_it(
+        query, user_profile
+    ):
         b_ratio, v_ratio = NON_IT_RRF_WEIGHTS
     else:
         b_ratio, v_ratio = QUERY_TYPE_RRF_WEIGHTS.get(query_type, (0.30, 0.70))
@@ -172,11 +176,12 @@ def _three_way_weights_by_query_type(query: str, query_type: str, settings: Any)
     return (w_b, w_v, w_c)
 
 
-def _query_suggests_it(query: str) -> bool:
+def _query_suggests_it(query: str, user_profile: Any = None) -> bool:
     """쿼리가 IT 도메인으로 보이면 True. 도메인 가중치/도메인 불일치 감점에 사용."""
     try:
         from app.rag.utils.dense_query_rewrite import extract_slots_for_dense, _query_suggests_it_domain
-        slots = extract_slots_for_dense(query)
+
+        slots = extract_slots_for_dense(query, profile=user_profile)
         return _query_suggests_it_domain(slots, query)
     except Exception:
         return True  # 실패 시 IT로 간주(기존 동작 유지)
@@ -1353,7 +1358,9 @@ def hybrid_retrieve(
     # Query Routing + Weighted fusion (쿼리 타입별·도메인별 가중치, 짧은 쿼리 시 Vector 게이팅)
     if use_query_weights or (alpha is None and getattr(settings, "RAG_ENHANCED_ALPHA", None) is None):
         if getattr(settings, "RAG_QUERY_TYPE_WEIGHTS_ENABLE", False):
-            if getattr(settings, "RAG_DOMAIN_AWARE_WEIGHTS_ENABLE", False) and not _query_suggests_it(query):
+            if getattr(settings, "RAG_DOMAIN_AWARE_WEIGHTS_ENABLE", False) and not _query_suggests_it(
+                query, user_profile
+            ):
                 w_bm25, w_vector = NON_IT_RRF_WEIGHTS  # 비IT: BM25 강화
             else:
                 w_bm25, w_vector = _query_weights_by_type(query)
@@ -1608,7 +1615,11 @@ def hybrid_retrieve(
                     soft_config["domain_mismatch_penalty"] = getattr(
                         settings, "RAG_METADATA_DOMAIN_MISMATCH_PENALTY", -0.35
                     )
-                query_is_it = _query_suggests_it(query) if getattr(settings, "RAG_METADATA_DOMAIN_MISMATCH_ENABLE", False) else None
+                query_is_it = (
+                    _query_suggests_it(query, user_profile)
+                    if getattr(settings, "RAG_METADATA_DOMAIN_MISMATCH_ENABLE", False)
+                    else None
+                )
                 scored = []
                 for cid, base_score in candidates:
                     qid = int(cid.split(":")[0]) if ":" in cid else None

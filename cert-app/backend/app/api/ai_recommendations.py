@@ -31,6 +31,7 @@ from app.schemas import (
 from app.crud import favorite_crud, acquired_cert_crud, get_qualification_aggregated_stats_bulk
 from app.redis_client import redis_client
 from app.rag.utils.dense_query_rewrite import UserProfile
+from app.rag.utils.hybrid_recommend_query import build_expanded_interest_for_hybrid
 
 router = APIRouter(prefix="/recommendations/ai", tags=["ai-recommendations"])
 logger = logging.getLogger(__name__)
@@ -291,15 +292,7 @@ async def hybrid_recommendation(
         )
 
     # 프로필로 전공이 채워진 뒤에만 검색 질의·캐시 키를 만든다 (이전엔 expanded_interest가 빈 전공으로 고정되는 버그 있음)
-    if interest:
-        # 관심사(질의)를 앞·중심에 두어 벡터/BM25가 사용자 의도에 더 잘 맞도록 함 (전공만 앞에 두면 희석됨).
-        expanded_interest = (
-            f"{interest}\n"
-            f"(전공·배경: {major})\n"
-            f"위 관심·진로에 맞는 국가기술자격·자격증"
-        ).strip()
-    else:
-        expanded_interest = major
+    expanded_interest = build_expanded_interest_for_hybrid(major, interest)
 
     # Redis: v1은 tier=guest|user 만 구분해 로그인 사용자끼리 캐시를 공유 → 취득 제외·개인화가 깨질 수 있음. v2는 user(또는 guest) 단위.
     cache_key = redis_client.make_cache_key(

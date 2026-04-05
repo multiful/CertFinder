@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Set
 from sqlalchemy.orm import Session
 
 from app.rag.eval.reco_golden import normalize_reco_golden
+from app.rag.utils.hybrid_recommend_query import build_expanded_interest_for_hybrid
 from app.rag.eval.retrieval_metrics import (
     recall_at_k,
     hit_count_at_k,
@@ -21,6 +22,16 @@ from app.rag.eval.retrieval_metrics import (
 # 표준 k 값: 회수 품질(20) / 노출 품질(4)
 DEFAULT_K_RECALL = [5, 10, 20]
 DEFAULT_K_TOP = 4
+
+
+def build_reco_eval_rag_query(row: Dict[str, Any]) -> str:
+    """
+    hybrid-recommendation API와 동일한 RAG 입력 문자열.
+    profile-aware 골든 행(query_text + major) 평가 시 프로덕션과 질의 형식을 맞춘다.
+    """
+    major = (row.get("major") or "").strip()
+    qtext = (row.get("query_text") or row.get("question") or "").strip()
+    return build_expanded_interest_for_hybrid(major, qtext or None)
 
 
 def normalize_gold_labels(
