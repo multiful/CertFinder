@@ -63,6 +63,12 @@ def _run_enhanced_rag_sync(
 
     db = SessionLocal()
     try:
+        acq_set: set[int] = set()
+        for x in acq_qual_ids or []:
+            try:
+                acq_set.add(int(x))
+            except (TypeError, ValueError):
+                continue
         pre_trace: Dict[str, Any] = {}
         rag_list = hybrid_retrieve(
             db,
@@ -84,7 +90,7 @@ def _run_enhanced_rag_sync(
             part = (chunk_id or "").split(":")
             if len(part) >= 1 and part[0].isdigit():
                 qid = int(part[0])
-                if qid in acq_qual_ids:
+                if qid in acq_set:
                     continue
                 hybrid_rrf_scores[qid] = hybrid_rrf_scores.get(qid, 0.0) + float(score)
         hybrid_qual_names = {}
@@ -197,37 +203,10 @@ async def hybrid_recommendation(
     interest = interest.strip() if interest else None
     interest_provided = bool(interest and interest.strip())
 
-    # --- 0) Redis 캐시 조회 ----------------------------------------------------
-    # 전공·관심사·사용자 티어(guest/user) 조합으로 캐시 키를 만들어
-    # 동일한 입력에 대해서는 DB/LLM 파이프라인을 재사용해 속도를 높인다.
-    user_tier = "guest" if not user_id else "user"
-    cache_key = redis_client.make_cache_key(
-        "ai:hybrid:v1",
-        major=major,
-        interest=interest,
-        tier=user_tier,
-    )
-    cached = redis_client.get(cache_key)
-    if cached:
-        try:
-            return HybridRecommendationResponse(**cached)
-        except Exception:
-            logger.warning("hybrid_recommendation: failed to parse cache for key %s", cache_key)
-
     # user_id가 UUID 형식이 아닌 경우(예: 구버전 username) 비로그인으로 처리
     if user_id and not _is_valid_uuid(user_id):
         logger.warning("hybrid_recommendation: non-UUID user_id ignored: %r", user_id)
         user_id = None
-
-    # 쿼리 확장 LLM 호출은 제거하고, 전공/관심사를 단순 결합한 텍스트를 사용한다.
-    # 이렇게 하면 OpenAI Chat 호출을 없애고 임베딩만 사용해 속도를 크게 개선한다.
-    if interest:
-        expanded_interest = f"{major} {interest}"
-    else:
-        expanded_interest = major
-
-    # 처리 시간 측정을 위한 타이머 시작 (메트릭 수집용)
-    start_time = time.perf_counter()
 
     # --- 1) 사용자 맥락 수집 (학년, 프로필 전공, 북마크/취득 자격증 난이도) -----------------
     grade_year: Optional[int] = None
@@ -251,6 +230,30 @@ async def hybrid_recommendation(
             detail="전공 정보가 필요합니다. 전공을 입력하거나 프로필에서 설정해 주세요.",
         )
 
+    # 프로필로 전공이 채워진 뒤에만 검색 질의·캐시 키를 만든다 (이전엔 expanded_interest가 빈 전공으로 고정되는 버그 있음)
+    if interest:
+        expanded_interest = f"{major} {interest}".strip()
+    else:
+        expanded_interest = major
+
+    # Redis: v1은 tier=guest|user 만 구분해 로그인 사용자끼리 캐시를 공유 → 취득 제외·개인화가 깨질 수 있음. v2는 user(또는 guest) 단위.
+    cache_key = redis_client.make_cache_key(
+        "ai:hybrid:v2",
+        major=major,
+        interest=interest or "",
+        user=user_id or "guest",
+        limit=str(limit),
+    )
+    cached = redis_client.get(cache_key)
+    if cached:
+        try:
+            return HybridRecommendationResponse(**cached)
+        except Exception:
+            logger.warning("hybrid_recommendation: failed to parse cache for key %s", cache_key)
+
+    # 처리 시간 측정 (캐시 미스 이후)
+    start_time = time.perf_counter()
+
     if profile_row and profile_row.get("grade_year") is not None:
         try:
             grade_year = int(profile_row["grade_year"])
@@ -269,8 +272,24 @@ async def hybrid_recommendation(
             if grade_year is not None:
                 profile["grade_level"] = grade_year
 
-            fav_ids = [f.qual_id for f in fav_items if getattr(f, "qual_id", None)]
-            acq_ids = [a.qual_id for a in acq_items if getattr(a, "qual_id", None)]
+            fav_ids: List[int] = []
+            for f in fav_items:
+                q = getattr(f, "qual_id", None)
+                if q is None:
+                    continue
+                try:
+                    fav_ids.append(int(q))
+                except (TypeError, ValueError):
+                    continue
+            acq_ids = []
+            for a in acq_items:
+                q = getattr(a, "qual_id", None)
+                if q is None:
+                    continue
+                try:
+                    acq_ids.append(int(q))
+                except (TypeError, ValueError):
+                    continue
 
             if acq_ids:
                 profile["acquired_qual_ids"] = list(dict.fromkeys(acq_ids))[:50]
@@ -354,9 +373,17 @@ async def hybrid_recommendation(
             if target_difficulty < 6.0:
                 target_difficulty = 6.0
 
-    # 이미 취득한 자격증은 DB 레벨에서 검색 제외 (Exclusion Logic)
-    acq_qual_ids: set[int] = {a.qual_id for a in acq_items}
-    exclude_ids_list: List[int] = list(acq_qual_ids) if acq_qual_ids else []
+    # 이미 취득한 자격증은 DB·후보 통합·응답 전 단계에서 제외 (qual_id 타입 불일치 방지 위해 int 정규화)
+    acq_qual_ids: set[int] = set()
+    for a in acq_items:
+        q = getattr(a, "qual_id", None)
+        if q is None:
+            continue
+        try:
+            acq_qual_ids.add(int(q))
+        except (TypeError, ValueError):
+            continue
+    exclude_ids_list: List[int] = sorted(acq_qual_ids)
 
     RRF_K = 60
 
@@ -481,33 +508,66 @@ async def hybrid_recommendation(
 
     # --- 2) 후보 생성: Major Map + Hybrid RAG (certificates_vectors) --------------------------
     try:
-        major_sql = text("""
-            SELECT q.qual_id, q.qual_name, q.qual_type, q.main_field,
-                   mq.score AS mapping_score, mq.weight AS mapping_weight, mq.reason
-            FROM qualification q
-            JOIN major_qualification_map mq ON q.qual_id = mq.qual_id
-            WHERE mq.major = :major
-            ORDER BY mq.score DESC
-            LIMIT 60
-        """)
-        major_results = db.execute(major_sql, {"major": major}).fetchall()
+        if exclude_ids_list:
+            major_sql = text("""
+                SELECT q.qual_id, q.qual_name, q.qual_type, q.main_field,
+                       mq.score AS mapping_score, mq.weight AS mapping_weight, mq.reason
+                FROM qualification q
+                JOIN major_qualification_map mq ON q.qual_id = mq.qual_id
+                WHERE mq.major = :major
+                  AND q.qual_id != ALL(:exclude_ids)
+                ORDER BY mq.score DESC
+                LIMIT 60
+            """)
+            major_results = db.execute(
+                major_sql, {"major": major, "exclude_ids": exclude_ids_list}
+            ).fetchall()
+        else:
+            major_sql = text("""
+                SELECT q.qual_id, q.qual_name, q.qual_type, q.main_field,
+                       mq.score AS mapping_score, mq.weight AS mapping_weight, mq.reason
+                FROM qualification q
+                JOIN major_qualification_map mq ON q.qual_id = mq.qual_id
+                WHERE mq.major = :major
+                ORDER BY mq.score DESC
+                LIMIT 60
+            """)
+            major_results = db.execute(major_sql, {"major": major}).fetchall()
 
         if not major_results:
             try:
-                fuzzy_sql = text("""
-                    SELECT DISTINCT ON (q.qual_id)
-                           q.qual_id, q.qual_name, q.qual_type, q.main_field,
-                           mq.score AS mapping_score,
-                           mq.weight AS mapping_weight,
-                           mq.reason,
-                           similarity(mq.major, :major) AS fuzzy_sim
-                    FROM qualification q
-                    JOIN major_qualification_map mq ON q.qual_id = mq.qual_id
-                    WHERE similarity(mq.major, :major) > 0.35
-                    ORDER BY q.qual_id, mq.score DESC
-                    LIMIT 60
-                """)
-                major_results = db.execute(fuzzy_sql, {"major": major}).fetchall()
+                if exclude_ids_list:
+                    fuzzy_sql = text("""
+                        SELECT DISTINCT ON (q.qual_id)
+                               q.qual_id, q.qual_name, q.qual_type, q.main_field,
+                               mq.score AS mapping_score,
+                               mq.weight AS mapping_weight,
+                               mq.reason,
+                               similarity(mq.major, :major) AS fuzzy_sim
+                        FROM qualification q
+                        JOIN major_qualification_map mq ON q.qual_id = mq.qual_id
+                        WHERE similarity(mq.major, :major) > 0.35
+                          AND q.qual_id != ALL(:exclude_ids)
+                        ORDER BY q.qual_id, mq.score DESC
+                        LIMIT 60
+                    """)
+                    fuzzy_params = {"major": major, "exclude_ids": exclude_ids_list}
+                else:
+                    fuzzy_sql = text("""
+                        SELECT DISTINCT ON (q.qual_id)
+                               q.qual_id, q.qual_name, q.qual_type, q.main_field,
+                               mq.score AS mapping_score,
+                               mq.weight AS mapping_weight,
+                               mq.reason,
+                               similarity(mq.major, :major) AS fuzzy_sim
+                        FROM qualification q
+                        JOIN major_qualification_map mq ON q.qual_id = mq.qual_id
+                        WHERE similarity(mq.major, :major) > 0.35
+                        ORDER BY q.qual_id, mq.score DESC
+                        LIMIT 60
+                    """)
+                    fuzzy_params = {"major": major}
+                major_results = db.execute(fuzzy_sql, fuzzy_params).fetchall()
                 if major_results:
                     logger.info("fuzzy major match for %r: found %d certs (trgm fallback)", major, len(major_results))
             except Exception as fuzzy_err:
@@ -835,6 +895,13 @@ async def hybrid_recommendation(
     rrf_sorted = sorted(final_results, key=lambda x: x["hybrid_score"], reverse=True)
     rerank_pool = rrf_sorted[:20] if user_id else rrf_sorted[:effective_limit]
     sorted_results = rerank_pool[:effective_limit]  # 기본값 (폴백용)
+    # 캐시 공유·타입 불일치 등으로 취득 자격증이 남는 경우 최종 차단
+    if acq_qual_ids:
+        sorted_results = [
+            c
+            for c in sorted_results
+            if int(c["qual_id"]) not in acq_qual_ids
+        ]
 
     # --- 9) 규칙 기반 reason 생성 --------------------------
     def _fallback_reason(c: dict, diff: Optional[float]) -> str:
