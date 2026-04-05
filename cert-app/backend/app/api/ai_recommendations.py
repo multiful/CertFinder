@@ -21,7 +21,7 @@ def _is_valid_uuid(value: Optional[str]) -> bool:
     return bool(value and _UUID_RE.match(value))
 
 from app.api.deps import get_db_session, check_rate_limit, get_current_user, get_optional_user
-from app.utils.ai import get_embedding_async, get_embedding
+from app.utils.ai import get_embedding_async
 from app.schemas import (
     SemanticSearchResponse,
     SemanticSearchResultItem,
@@ -46,6 +46,73 @@ HYBRID_CANDIDATE_TRIM_LIMIT = 120    # major/semantic 통합 후 유지할 최�
 USE_ENHANCED_RAG = os.environ.get("USE_ENHANCED_RAG", "true").strip().lower() in ("1", "true", "yes")
 
 
+def _ai_recommend_rag_fast_enabled() -> bool:
+    """False면 골든·전역 RAG와 동일 후보 깊이(지연↑). 기본 True=추천 API만 약한 상한."""
+    return os.environ.get("AI_RECOMMEND_RAG_FAST", "1").strip().lower() not in ("0", "false", "no")
+
+
+def _ai_recommend_hybrid_retrieve_kwargs() -> Dict[str, Any]:
+    """
+    AI 하이브리드 추천 전용 hybrid_retrieve 인자. 채널·융합은 유지하고 후보만 소폭 축소.
+    환경변수로 상한 직접 지정 가능(비우면 아래 기본 cap 과 설정값의 min).
+    """
+    from app.rag.config import get_rag_settings
+
+    s = get_rag_settings()
+    top = int(getattr(s, "RAG_TOP_N_CANDIDATES", 136) or 136)
+    bm = int(getattr(s, "RAG_BM25_TOP_N", None) or top)
+    vt = int(getattr(s, "RAG_VECTOR_TOP_N_OVERRIDE", None) or top)
+    ct = int(getattr(s, "RAG_CONTRASTIVE_TOP_N", None) or top)
+
+    def _cap_env(name: str, default_cap: int) -> int:
+        raw = os.environ.get(name, "").strip()
+        if raw:
+            try:
+                return max(8, int(raw))
+            except ValueError:
+                pass
+        return default_cap
+
+    cap_top = _cap_env("AI_RECOMMEND_CAP_TOP_N", 102)
+    cap_bm = _cap_env("AI_RECOMMEND_CAP_BM25_N", 76)
+    cap_v = _cap_env("AI_RECOMMEND_CAP_VECTOR_N", 76)
+    cap_c = _cap_env("AI_RECOMMEND_CAP_CONTRASTIVE_N", 68)
+
+    return {
+        "top_n_candidates_override": min(top, cap_top),
+        "bm25_top_n_override": min(bm, cap_bm),
+        "vector_top_n_override": min(vt, cap_v),
+        "contrastive_top_n_override": min(ct, cap_c),
+    }
+
+
+def _major_sim_lookup_sync(major_vector: Any, qual_ids: List[int]) -> Dict[int, float]:
+    """전공 임베딩으로 qual_id 집합에 대한 major_sim 한 번에 조회 (별도 세션)."""
+    if not qual_ids or major_vector is None:
+        return {}
+    from app.database import SessionLocal
+
+    uniq = list(dict.fromkeys(int(x) for x in qual_ids if x is not None))
+    if not uniq:
+        return {}
+    db = SessionLocal()
+    try:
+        major_sim_sql = text("""
+            SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
+            FROM certificates_vectors
+            WHERE embedding IS NOT NULL
+              AND qual_id = ANY(:ids)
+            GROUP BY qual_id
+        """)
+        m_sims = db.execute(
+            major_sim_sql,
+            {"vec": str(major_vector), "ids": uniq},
+        ).fetchall()
+        return {r.qual_id: float(r.major_sim) for r in m_sims}
+    finally:
+        db.close()
+
+
 def _run_enhanced_rag_sync(
     major: str,
     expanded_interest: str,
@@ -53,9 +120,8 @@ def _run_enhanced_rag_sync(
     user_profile: Optional[UserProfile] = None,
 ) -> tuple:
     """
-    동기 고도화 RAG(hybrid_retrieve + 전공 유사도). 이벤트 루프 블로킹 방지를 위해
-    asyncio.to_thread에서 호출. 전용 DB 세션 사용.
-    성공 시 (global_results, major_sim_lookup), 실패 시 (None, None) 반환.
+    동기 고도화 RAG(hybrid_retrieve만). 전공 임베딩은 비동기 라우트에서 RAG와 병렬 호출.
+    성공 시 (global_results, rag_qual_ids_for_major_sim), 실패 시 (None, None).
     """
     from app.database import SessionLocal
     from app.rag.config import get_rag_settings
@@ -70,14 +136,23 @@ def _run_enhanced_rag_sync(
             except (TypeError, ValueError):
                 continue
         pre_trace: Dict[str, Any] = {}
+        hybrid_kw: Dict[str, Any] = {
+            "use_reranker": False,
+            "dedup_per_cert_override": True,
+            "user_profile": user_profile,
+            "pre_retrieval_trace_out": pre_trace,
+        }
+        if _ai_recommend_rag_fast_enabled():
+            hybrid_kw.update(_ai_recommend_hybrid_retrieve_kwargs())
+            rag_top_k = min(HYBRID_GLOBAL_RESULTS_LIMIT, 58)
+        else:
+            rag_top_k = HYBRID_GLOBAL_RESULTS_LIMIT
+
         rag_list = hybrid_retrieve(
             db,
             expanded_interest,
-            top_k=HYBRID_GLOBAL_RESULTS_LIMIT,
-            use_reranker=False,
-            dedup_per_cert_override=True,
-            user_profile=user_profile,
-            pre_retrieval_trace_out=pre_trace,
+            top_k=rag_top_k,
+            **hybrid_kw,
         )
         if getattr(get_rag_settings(), "RAG_PRE_RETRIEVAL_TRACE_ENABLE", False):
             logger.debug(
@@ -94,37 +169,22 @@ def _run_enhanced_rag_sync(
                     continue
                 hybrid_rrf_scores[qid] = hybrid_rrf_scores.get(qid, 0.0) + float(score)
         hybrid_qual_names = {}
+        rag_qual_ids = list(hybrid_rrf_scores.keys())
         if hybrid_rrf_scores:
-            qual_ids = list(hybrid_rrf_scores.keys())
             try:
                 name_rows = db.execute(
                     text("SELECT qual_id, qual_name FROM qualification WHERE qual_id = ANY(:ids)"),
-                    {"ids": qual_ids},
+                    {"ids": rag_qual_ids},
                 ).fetchall()
                 hybrid_qual_names = {r.qual_id: (r.qual_name or "").strip() for r in name_rows}
             except Exception:
                 pass
+        limit_out = rag_top_k
         global_results = [
             type("Row", (), {"qual_id": qid, "qual_name": hybrid_qual_names.get(qid, ""), "similarity": sc})()
-            for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:HYBRID_GLOBAL_RESULTS_LIMIT]
+            for qid, sc in sorted(hybrid_rrf_scores.items(), key=lambda x: -x[1])[:limit_out]
         ]
-        candidate_ids_for_sim = list(hybrid_rrf_scores.keys()) if hybrid_rrf_scores else []
-        major_sim_lookup = {}
-        if candidate_ids_for_sim:
-            major_vector = get_embedding(major)
-            major_sim_sql = text("""
-                SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
-                FROM certificates_vectors
-                WHERE embedding IS NOT NULL
-                  AND qual_id = ANY(:ids)
-                GROUP BY qual_id
-            """)
-            m_sims = db.execute(
-                major_sim_sql,
-                {"vec": str(major_vector), "ids": candidate_ids_for_sim},
-            ).fetchall()
-            major_sim_lookup = {r.qual_id: float(r.major_sim) for r in m_sims}
-        return (global_results, major_sim_lookup)
+        return (global_results, rag_qual_ids)
     except Exception as e:
         logger.warning("_run_enhanced_rag_sync failed: %s", e, exc_info=True)
         return (None, None)
@@ -232,7 +292,12 @@ async def hybrid_recommendation(
 
     # 프로필로 전공이 채워진 뒤에만 검색 질의·캐시 키를 만든다 (이전엔 expanded_interest가 빈 전공으로 고정되는 버그 있음)
     if interest:
-        expanded_interest = f"{major} {interest}".strip()
+        # 관심사(질의)를 앞·중심에 두어 벡터/BM25가 사용자 의도에 더 잘 맞도록 함 (전공만 앞에 두면 희석됨).
+        expanded_interest = (
+            f"{interest}\n"
+            f"(전공·배경: {major})\n"
+            f"위 관심·진로에 맞는 국가기술자격·자격증"
+        ).strip()
     else:
         expanded_interest = major
 
@@ -579,36 +644,58 @@ async def hybrid_recommendation(
         major_sim_lookup = {}
 
         if USE_ENHANCED_RAG:
-            # 고도화 RAG는 동기(임베딩·DB·Contrastive)이므로 스레드 풀에서 실행해 이벤트 루프 블로킹 방지
-            global_results_th, major_sim_lookup_th = await asyncio.to_thread(
-                _run_enhanced_rag_sync,
-                major,
-                expanded_interest,
-                list(acq_qual_ids),
-                user_profile,
-            )
+            # 전공 임베딩은 OpenAI RTT가 크므로 hybrid_retrieve(스레드)와 병렬 실행 → 이전 대비 1회 중복 호출 제거
+            maj_vec_task = asyncio.create_task(get_embedding_async(major))
+            global_results_th: Any = None
+            rag_qids_th: Any = None
+            try:
+                global_results_th, rag_qids_th = await asyncio.to_thread(
+                    _run_enhanced_rag_sync,
+                    major,
+                    expanded_interest,
+                    list(acq_qual_ids),
+                    user_profile,
+                )
+            finally:
+                if global_results_th is None:
+                    maj_vec_task.cancel()
+                    try:
+                        await maj_vec_task
+                    except asyncio.CancelledError:
+                        pass
+                    except Exception:
+                        pass
+
             if global_results_th is not None:
                 global_results = global_results_th
-                major_sim_lookup = dict(major_sim_lookup_th) if major_sim_lookup_th else {}
-                # major_results 쪽 qual_id에 대한 major_sim은 스레드에서 제외되어 있으므로 보강
+                try:
+                    major_vector = await maj_vec_task
+                except Exception as emb_e:
+                    logger.warning("hybrid_recommendation: major embedding failed: %s", emb_e)
+                    major_vector = None
+                need_sim: set[int] = set()
+                for q in rag_qids_th or []:
+                    try:
+                        need_sim.add(int(q))
+                    except (TypeError, ValueError):
+                        continue
                 if major_results:
-                    need_ids = [r.qual_id for r in major_results if r.qual_id not in major_sim_lookup]
-                    if need_ids:
-                        try:
-                            major_vector = await get_embedding_async(major)
-                            m_sims = db.execute(
-                                text("""
-                                    SELECT qual_id, MAX(1 - (embedding <=> :vec)) AS major_sim
-                                    FROM certificates_vectors
-                                    WHERE embedding IS NOT NULL AND qual_id = ANY(:ids)
-                                    GROUP BY qual_id
-                                """),
-                                {"vec": str(major_vector), "ids": need_ids},
-                            ).fetchall()
-                            for r in m_sims:
-                                major_sim_lookup[r.qual_id] = float(r.major_sim)
-                        except Exception as e:
-                            logger.debug("major_sim fallback for major_results failed: %s", e)
+                    for r in major_results:
+                        if r.qual_id is not None:
+                            try:
+                                need_sim.add(int(r.qual_id))
+                            except (TypeError, ValueError):
+                                continue
+                major_sim_lookup: Dict[int, float] = {}
+                if need_sim and major_vector is not None:
+                    try:
+                        major_sim_lookup = await asyncio.to_thread(
+                            _major_sim_lookup_sync,
+                            major_vector,
+                            list(need_sim),
+                        )
+                    except Exception as e:
+                        logger.debug("hybrid_recommendation: major_sim batch failed: %s", e)
                 use_enhanced_rag_result = True
                 logger.info(
                     "hybrid_recommendation: using enhanced RAG, candidates=%d",
@@ -720,11 +807,13 @@ async def hybrid_recommendation(
     # 후보 수가 너무 많을 경우(이론상 수백 개) 이후 단계 속도를 위해 상위 일부만 남긴다.
     initial_candidate_count = len(candidate_map)
     if len(candidate_map) > HYBRID_CANDIDATE_TRIM_LIMIT:
-        trimmed = sorted(
-            candidate_map.values(),
-            key=lambda c: (c["major_score"] * 0.6) + (c["semantic_similarity"] * 0.4),
-            reverse=True,
-        )[:HYBRID_CANDIDATE_TRIM_LIMIT]
+        if interest_provided:
+            trim_key = lambda c: (c["major_score"] * 0.35) + (c["semantic_similarity"] * 0.65)
+        else:
+            trim_key = lambda c: (c["major_score"] * 0.6) + (c["semantic_similarity"] * 0.4)
+        trimmed = sorted(candidate_map.values(), key=trim_key, reverse=True)[
+            :HYBRID_CANDIDATE_TRIM_LIMIT
+        ]
         candidate_map = {c["qual_id"]: c for c in trimmed}
 
     logger.debug(
@@ -765,8 +854,8 @@ async def hybrid_recommendation(
     semantic_rank_map = {cid: i + 1 for i, cid in enumerate(semantic_ranked)}
     major_sim_rank_map = {cid: i + 1 for i, cid in enumerate(major_sim_ranked)}
 
-    # interest 있으면 semantic 가중치 높임 (2배), 없으면 균등
-    w_sem = 2.0 if interest_provided else 1.0
+    # interest 있으면 semantic(RAG 순위) 가중치 높임, 없으면 균등
+    w_sem = 2.6 if interest_provided else 1.0
     w_maj = 1.0
     w_msim = 1.0
 
@@ -832,7 +921,7 @@ async def hybrid_recommendation(
 
         # 정합성 기본 점수: interest가 있을 때는 관심사(semantic)를 더 강하게 반영
         if interest_provided:
-            base_match = 0.3 * major_norm + 0.7 * sem_norm
+            base_match = 0.22 * major_norm + 0.78 * sem_norm
         else:
             base_match = 0.5 * major_norm + 0.5 * sem_norm
         base_match = max(0.0, min(1.0, base_match))

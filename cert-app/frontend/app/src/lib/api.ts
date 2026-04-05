@@ -233,7 +233,7 @@ export async function getTrendingCerts(
 export async function getHybridRecommendations(
   major: string,
   interest?: string,
-  limit: number = 10,
+  limit: number = 15,
   token?: string | null
 ): Promise<HybridRecommendationResponse> {
   const query = new URLSearchParams();

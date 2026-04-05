@@ -36,7 +36,7 @@ const sampleMajors = [
 
 const AI_CACHE_KEY = 'ai-rec-cache';
 /** 로그인 사용자 하이브리드 추천 API limit (백엔드 le=20). 늘려도 RAG 비용은 거의 동일. */
-const HYBRID_RECOMMEND_LIMIT = 10;
+const HYBRID_RECOMMEND_LIMIT = 15;
 
 const POPULAR_MAJORS = ['컴퓨터공학', '경영학', '전기공학', '간호학', '기계공학', '데이터사이언스'];
 
