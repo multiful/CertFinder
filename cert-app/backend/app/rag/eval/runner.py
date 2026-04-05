@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 
 from app.rag.eval.golden import load_golden
-from app.rag.eval.common import normalize_gold_labels
+from app.rag.eval.common import normalize_gold_labels, build_reco_eval_rag_query
 from app.rag.eval.retrieval_metrics import (
     recall_at_k,
     precision_at_k,
@@ -225,7 +225,9 @@ def run_eval_three_way(
         # qual_id 단위 정답 집합 (정합화 평가용)
         agg_qual = {pipe: {"recall5_qual": [], "recall10_qual": [], "mrr_qual": []} for pipe in pipelines}
         for row in golden:
-            q = row.get("question", "")
+            # 프로덕션 hybrid-recommendation 과 동일: major+query_text 확장 질의 (과거에는 raw query_text 만 사용해 API와 불일치)
+            q_raw = (row.get("question") or row.get("query_text") or "").strip()
+            q = build_reco_eval_rag_query(row) if (row.get("major") or "").strip() else q_raw
             gold_ids = set(row.get("gold_chunk_ids") or [])
             gold_qual_ids = set()
             for cid in gold_ids:
