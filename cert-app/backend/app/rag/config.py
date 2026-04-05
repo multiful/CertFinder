@@ -61,8 +61,9 @@ class RAGSettings(BaseSettings):
     RAG_HIERARCHICAL_RETRIEVAL_ENABLE: bool = True
     RAG_HIERARCHICAL_CHILD_TOP_N: int = 90
     RAG_HIERARCHICAL_BLEND_WEIGHT: float = 0.38
-    # 계층 BM25: 0이면 매 질의 COUNT로 무효화 확인(과거와 동일·랭킹 스냅샷 일치). >0이면 해당 초 동안 COUNT 생략(지연↓, 그 사이 DB 갱신은 child 인덱스에 반영 지연).
-    RAG_HIERARCHICAL_STAT_SKIP_SEC: float = 0.0
+    # 계층 BM25: 0이면 매 질의 COUNT로 무효화 확인(지연↑). >0이면 해당 초 동안 COUNT 생략·메모리 인덱스 신뢰(지연↓).
+    # 기본 45s: 운영에서 벡터 테이블이 초단위로 바뀌지 않는 전제. 재색인 직후 최대 해당 시간까지 child BM25가 구버전일 수 있음.
+    RAG_HIERARCHICAL_STAT_SKIP_SEC: float = 45.0
 
     # CombMNZ 전용 설정: 정규화/zero 판정 방식
     # - norm_mode: "minmax" (채널별 min-max 정규화; 기존 동작) 또는 "rank" (순위 기반 1/(k+rank)^p 점수화)

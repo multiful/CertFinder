@@ -200,10 +200,18 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 
 export async function getRecommendations(
   major: string,
-  limit: number = 10
+  limit: number = 10,
+  options?: { minScore?: number }
 ): Promise<RecommendationListResponse> {
   try {
-    return await apiRequest<RecommendationListResponse>(`/recommendations?major=${encodeURIComponent(major)}&limit=${limit}`);
+    const params = new URLSearchParams({
+      major,
+      limit: String(limit),
+    });
+    if (options?.minScore != null) {
+      params.set('min_score', String(options.minScore));
+    }
+    return await apiRequest<RecommendationListResponse>(`/recommendations?${params.toString()}`);
   } catch (error) {
     if (import.meta.env.PROD) throw error;
     console.warn('[api] getRecommendations mock fallback (dev only)', error);

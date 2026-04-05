@@ -33,7 +33,8 @@ export function RecommendationPage() {
 
   const { data: recommendations, loading, error } = useRecommendations(
     submitted ? major : '',
-    15
+    30,
+    5
   );
   const { majors: availableMajors } = useMajors();
   const { majors: popularMajorsFromApi, loading: popularMajorsLoading } = usePopularMajors(12);

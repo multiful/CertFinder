@@ -1,11 +1,15 @@
 """Recommendation API routes."""
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import text, or_
-import logging
+from __future__ import annotations
 
-from app.api.deps import get_db_session, check_rate_limit, get_current_user, get_optional_user
+import logging
+import math
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import or_, text
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_db_session, check_rate_limit, get_current_user
 from app.schemas import (
     RecommendationListResponse,
     RecommendationResponse,
@@ -13,7 +17,7 @@ from app.schemas import (
     RelatedJobResponse,
     AvailableMajorsResponse
 )
-from app.crud import major_map_crud, stats_crud
+from app.crud import major_map_crud
 from app.redis_client import redis_client
 from app.config import get_settings
 
@@ -26,6 +30,68 @@ router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 def get_cache_ttl() -> int:
     """Get cache TTL for recommendations."""
     return settings.CACHE_TTL_RECOMMENDATIONS
+
+
+def _recommendation_fetch_limit(requested_limit: int) -> int:
+    """DB에서 넉넉히 가져온 뒤 점수·min_score로 걸러 최대 requested_limit개까지 반환."""
+    return min(200, max(60, requested_limit * 4))
+
+
+def _compute_raw_recommendation_score(
+    mapping,
+    latest_stats: Optional[object],
+    grade_year: Optional[int],
+) -> float:
+    """통계·난이도·학년 보정을 반영한 원시 점수 (필터·정렬용, 상한 완화)."""
+    base_relevance = float(mapping.score)
+    if base_relevance <= 5:
+        base_relevance = base_relevance * 2
+
+    candidates = latest_stats.candidate_cnt if latest_stats and latest_stats.candidate_cnt else 0
+    demand_score = 0.0
+    if candidates > 0:
+        demand_score = min(10.0, math.log10(candidates) * 2)
+
+    pass_rate = latest_stats.pass_rate if latest_stats and latest_stats.pass_rate else 0.0
+    stability_score = (pass_rate / 100.0) * 10.0
+
+    diff = 5.0
+    if latest_stats and latest_stats.difficulty_score is not None:
+        diff = float(latest_stats.difficulty_score)
+
+    if latest_stats:
+        final_score = (base_relevance * 0.58) + (demand_score * 0.19) + (stability_score * 0.19)
+        final_score += (diff / 10.0) * 0.35
+        if grade_year is not None:
+            if grade_year <= 2:
+                if diff <= 6:
+                    final_score += 1.0
+            else:
+                if diff > 6:
+                    final_score += 1.0
+    else:
+        final_score = base_relevance
+
+    return float(min(11.0, max(0.0, final_score)))
+
+
+def _apply_display_score_spread(raw_values: list[float]) -> list[float]:
+    """
+    상위권이 한데 몰려 9.0처럼 보일 때, 순위는 유지한 채 표시 구간을 넓힌다.
+    """
+    if not raw_values:
+        return []
+    if len(raw_values) == 1:
+        return [min(9.9, max(5.0, raw_values[0]))]
+    lo, hi = min(raw_values), max(raw_values)
+    if hi - lo >= 0.85:
+        return [min(9.9, max(5.0, v)) for v in raw_values]
+    lo_d, hi_d = 5.5, 9.3
+    out: list[float] = []
+    for v in raw_values:
+        t = (v - lo) / (hi - lo) if hi > lo else 0.5
+        out.append(lo_d + t * (hi_d - lo_d))
+    return out
 
 
 def generate_recommendation_reason(
@@ -71,121 +137,106 @@ def generate_recommendation_reason(
 async def get_recommendations(
     major: str = Query(..., description="Major or field of study"),
     limit: int = Query(10, ge=1, le=50, description="Number of recommendations"),
+    min_score: float = Query(
+        0.0,
+        ge=0.0,
+        le=10.0,
+        description="원시 추천점수가 이 값 미만인 항목은 제외 (0이면 필터 없음)",
+    ),
     grade_year: Optional[int] = Query(None, description="Grade year (0-4)"),
     db: Session = Depends(get_db_session),
-    _: None = Depends(check_rate_limit)
+    _: None = Depends(check_rate_limit),
 ):
     """Get certification recommendations for a major."""
+    fetch_n = _recommendation_fetch_limit(limit)
     cache_key = redis_client.make_cache_key(
-        "recs:v6",
+        "recs:v7",
         major=major.lower().strip(),
         limit=limit,
-        grade=grade_year
+        min_score=round(min_score, 2),
+        grade=grade_year,
     )
-    
-    # Try cache
+
     try:
         cached = redis_client.get(cache_key)
         if cached and isinstance(cached, dict):
-            logger.debug(f"Cache hit for recommendations: {major}")
+            logger.debug("Cache hit for recommendations: %s", major)
             return RecommendationListResponse(**cached)
     except Exception as e:
-        logger.warning(f"Cache read failed for recommendations: {e}")
-    
-    # Get mappings from database
+        logger.warning("Cache read failed for recommendations: %s", e)
+
     search_major = major.strip()
-    mappings = major_map_crud.get_by_major_with_stats(db, search_major, limit)
-    
-    # 1. If no exact match, try stripping "학부", "학과", "공학부" and fuzzy matching
+    resolved_major = search_major
+    mappings = major_map_crud.get_by_major_with_stats(db, search_major, fetch_n)
+
     if not mappings:
-        # Clean major name to find core keyword
         clean_major = search_major
         for suffix in ["학부", "학과", "전공", "공학부"]:
             if clean_major.endswith(suffix):
-                clean_major = clean_major[:-len(suffix)]
+                clean_major = clean_major[: -len(suffix)]
                 break
-        
-        from app.models import MajorQualificationMap
-        # Find the first major in MajorQualificationMap that contains or is contained by the clean name
-        matched_map = db.query(MajorQualificationMap.major).filter(
-            or_(
-                MajorQualificationMap.major.ilike(f"%{clean_major}%"),
-                text(":major ILIKE '%' || major || '%'")
-            )
-        ).params(major=search_major).first()
 
-        # Extra fallback for things like "게임공학과" -> "게임공" -> no match -> "게임"
+        from app.models import MajorQualificationMap
+
+        matched_map = (
+            db.query(MajorQualificationMap.major)
+            .filter(
+                or_(
+                    MajorQualificationMap.major.ilike(f"%{clean_major}%"),
+                    text(":major ILIKE '%' || major || '%'"),
+                )
+            )
+            .params(major=search_major)
+            .first()
+        )
+
         if not matched_map and len(clean_major) >= 3:
             short_major = clean_major[:2]
-            matched_map = db.query(MajorQualificationMap.major).filter(
-                MajorQualificationMap.major.ilike(f"%{short_major}%")
-            ).first()
+            matched_map = (
+                db.query(MajorQualificationMap.major)
+                .filter(MajorQualificationMap.major.ilike(f"%{short_major}%"))
+                .first()
+            )
 
         if matched_map:
             matched_major = matched_map[0]
-            logger.info(f"Fuzzy match: '{search_major}' -> '{matched_major}'")
-            mappings = major_map_crud.get_by_major_with_stats(db, matched_major, limit)
-            major = matched_major
-    
-    # 2. Final safety: If STILL no results, return empty items with 200 OK, not error
+            logger.info("Fuzzy match: '%s' -> '%s'", search_major, matched_major)
+            mappings = major_map_crud.get_by_major_with_stats(db, matched_major, fetch_n)
+            resolved_major = matched_major
+
     if not mappings:
-        return RecommendationListResponse(
-            items=[],
-            major=search_major,
-            total=0
-        )
-    
-    # Build response
-    recommendations = []
+        return RecommendationListResponse(items=[], major=search_major, total=0)
+
+    rows: list[dict] = []
     for mapping in mappings:
         qual = mapping.qualification
         if not qual:
             continue
-        
-        # Get latest stats
         latest_stats = None
         if qual.stats:
             latest_stats = max(qual.stats, key=lambda s: (s.year, s.exam_round))
-        
-        # Calculate Dynamic Score
-        # 1. Relevance (Base) - Assume mapping.score is 0-10 or 1-5. If > 5, assume 0-10.
-        base_relevance = mapping.score
-        if base_relevance <= 5: 
-            base_relevance = base_relevance * 2 # Scale 1-5 to 2-10
-            
-        # 2. Demand (Candidates) - Log scale
-        import math
-        candidates = latest_stats.candidate_cnt if latest_stats and latest_stats.candidate_cnt else 0
-        demand_score = 0
-        if candidates > 0:
-            # log10(100) = 2, log10(1000) = 3, log10(10000) = 4, log10(100000) = 5
-            # Map 0-100k to 0-10 roughly
-            demand_score = min(10, math.log10(candidates) * 2)
-            
-        # 3. Stability (Pass Rate)
-        pass_rate = latest_stats.pass_rate if latest_stats and latest_stats.pass_rate else 0
-        stability_score = (pass_rate / 100) * 10
-        
-        # Weighted Final Score: Relevance 60%, Demand 20%, Stability 20%
-        # If no stats, rely 100% on relevance
-        if latest_stats:
-            final_score = (base_relevance * 0.6) + (demand_score * 0.2) + (stability_score * 0.2)
-            
-            # 4. Academic level adjustment (Difficulty based)
-            # None(0), 1, 2 -> weight up diff <= 6
-            # 3, 4 -> weight up diff > 6
-            if grade_year is not None:
-                diff = latest_stats.difficulty_score if latest_stats.difficulty_score else 5.0
-                if grade_year <= 2: 
-                    if diff <= 6: final_score += 1.5
-                else:
-                    if diff > 6: final_score += 1.5
-        else:
-            final_score = base_relevance
-            
-        # Cap at 9.9 to avoid 10.0 being too common or >10
-        final_score = min(9.9, final_score)
-        
+        raw = _compute_raw_recommendation_score(mapping, latest_stats, grade_year)
+        rows.append(
+            {
+                "mapping": mapping,
+                "qual": qual,
+                "latest_stats": latest_stats,
+                "raw": raw,
+            }
+        )
+
+    rows = [r for r in rows if r["raw"] + 1e-9 >= min_score]
+    rows.sort(key=lambda r: r["raw"], reverse=True)
+    rows = rows[:limit]
+
+    raws = [float(r["raw"]) for r in rows]
+    display_scores = _apply_display_score_spread(raws)
+
+    recommendations = []
+    for r, disp in zip(rows, display_scores, strict=True):
+        qual = r["qual"]
+        mapping = r["mapping"]
+        latest_stats = r["latest_stats"]
         recommendations.append(
             RecommendationResponse(
                 qual_id=qual.qual_id,
@@ -193,21 +244,20 @@ async def get_recommendations(
                 qual_type=qual.qual_type,
                 main_field=qual.main_field,
                 managing_body=qual.managing_body,
-                score=round(final_score, 1),
+                score=round(float(disp), 1),
                 reason=generate_recommendation_reason(mapping, latest_stats),
-                latest_pass_rate=latest_stats.pass_rate if latest_stats else None
+                latest_pass_rate=latest_stats.pass_rate if latest_stats else None,
             )
         )
-    
+
     response = RecommendationListResponse(
         items=recommendations,
-        major=major,
-        total=len(recommendations)
+        major=resolved_major,
+        total=len(recommendations),
     )
-    
-    # Cache the response
+
     redis_client.set(cache_key, response.model_dump(mode="json"), get_cache_ttl())
-    
+
     return response
 
 
@@ -219,9 +269,10 @@ async def get_recommendations(
 )
 async def get_my_recommendations(
     limit: int = Query(10, ge=1, le=50),
+    min_score: float = Query(0.0, ge=0.0, le=10.0),
     db: Session = Depends(get_db_session),
     user_id: str = Depends(get_current_user),
-    _: None = Depends(check_rate_limit)
+    _: None = Depends(check_rate_limit),
 ):
     """Get recommendations based on current user's profile major."""
     # 1. Get user's major and grade from profiles table
@@ -239,8 +290,14 @@ async def get_my_recommendations(
     major = row["detail_major"]
     grade_year = row["grade_year"]
     
-    # Use existing recommendation logic
-    return await get_recommendations(major=major, limit=limit, grade_year=grade_year, db=db, _=None)
+    return await get_recommendations(
+        major=major,
+        limit=limit,
+        min_score=min_score,
+        grade_year=grade_year,
+        db=db,
+        _=None,
+    )
 
 
 @router.get(

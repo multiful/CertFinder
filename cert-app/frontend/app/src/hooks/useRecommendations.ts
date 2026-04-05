@@ -13,15 +13,21 @@ interface UseRecommendationsReturn {
 
 export function useRecommendations(
   major: string,
-  limit: number = 10
+  limit: number = 10,
+  minScore?: number
 ): UseRecommendationsReturn {
   const {
     data,
     isLoading: loading,
     error,
   } = useQuery({
-    queryKey: recommendationKeys.byMajor(major, limit),
-    queryFn: () => getRecommendations(major, limit),
+    queryKey: recommendationKeys.byMajor(major, limit, minScore),
+    queryFn: () =>
+      getRecommendations(
+        major,
+        limit,
+        minScore != null ? { minScore } : undefined
+      ),
     enabled: major.trim().length > 0,
     staleTime: 10 * 60 * 1000, // 10분: 같은 전공 재요청 시 캐시
   });

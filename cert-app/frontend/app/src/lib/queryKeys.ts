@@ -28,8 +28,8 @@ export const certKeys = {
 /** 추천: 전공/인기 전공별 캐시 */
 export const recommendationKeys = {
   all: ['recommendations'] as const,
-  byMajor: (major: string, limit?: number) =>
-    ['recommendations', 'major', major, limit] as const,
+  byMajor: (major: string, limit?: number, minScore?: number) =>
+    ['recommendations', 'major', major, limit, minScore ?? 'none'] as const,
   majors: () => ['recommendations', 'majors'] as const,
   popularMajors: (limit?: number) =>
     ['recommendations', 'popularMajors', limit] as const,
