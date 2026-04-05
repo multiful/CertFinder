@@ -20,6 +20,7 @@ _UUID_RE = re.compile(
 def _is_valid_uuid(value: Optional[str]) -> bool:
     return bool(value and _UUID_RE.match(value))
 
+from app.config import get_settings
 from app.api.deps import get_db_session, check_rate_limit, get_current_user, get_optional_user
 from app.utils.ai import get_embedding_async
 from app.schemas import (
@@ -30,6 +31,7 @@ from app.schemas import (
 )
 from app.crud import favorite_crud, acquired_cert_crud, get_qualification_aggregated_stats_bulk
 from app.redis_client import redis_client
+from app.rag.config import get_rag_settings
 from app.rag.utils.dense_query_rewrite import UserProfile
 from app.rag.utils.hybrid_recommend_query import build_expanded_interest_for_hybrid
 
@@ -799,9 +801,11 @@ async def hybrid_recommendation(
 
     # 후보 수가 너무 많을 경우(이론상 수백 개) 이후 단계 속도를 위해 상위 일부만 남긴다.
     initial_candidate_count = len(candidate_map)
+    hybrid_s = get_settings()
     if len(candidate_map) > HYBRID_CANDIDATE_TRIM_LIMIT:
         if interest_provided:
-            trim_key = lambda c: (c["major_score"] * 0.35) + (c["semantic_similarity"] * 0.65)
+            tm = max(0.0, min(1.0, float(getattr(hybrid_s, "HYBRID_INTEREST_TRIM_MAJOR_BLEND", 0.35))))
+            trim_key = lambda c, _tm=tm: (c["major_score"] * _tm) + (c["semantic_similarity"] * (1.0 - _tm))
         else:
             trim_key = lambda c: (c["major_score"] * 0.6) + (c["semantic_similarity"] * 0.4)
         trimmed = sorted(candidate_map.values(), key=trim_key, reverse=True)[
@@ -847,8 +851,12 @@ async def hybrid_recommendation(
     semantic_rank_map = {cid: i + 1 for i, cid in enumerate(semantic_ranked)}
     major_sim_rank_map = {cid: i + 1 for i, cid in enumerate(major_sim_ranked)}
 
-    # interest 있으면 semantic(RAG 순위) 가중치 높임, 없으면 균등
-    w_sem = 2.6 if interest_provided else 1.0
+    # interest 있으면 semantic(RAG 순위) 가중치 높임, 없으면 균등 (과도 시 HYBRID_INTEREST_SEM_RRF_WEIGHT로 완화)
+    w_sem = (
+        max(0.1, float(getattr(hybrid_s, "HYBRID_INTEREST_SEM_RRF_WEIGHT", 2.6)))
+        if interest_provided
+        else 1.0
+    )
     w_maj = 1.0
     w_msim = 1.0
 
@@ -912,9 +920,10 @@ async def hybrid_recommendation(
         c["major_score_normalized"] = major_norm
         c["semantic_score_normalized"] = sem_norm
 
-        # 정합성 기본 점수: interest가 있을 때는 관심사(semantic)를 더 강하게 반영
+        # 정합성 기본 점수: interest가 있을 때는 관심사(semantic)를 더 강하게 반영 (비율은 HYBRID_INTEREST_BASE_MAJOR_BLEND)
         if interest_provided:
-            base_match = 0.22 * major_norm + 0.78 * sem_norm
+            bm = max(0.0, min(1.0, float(getattr(hybrid_s, "HYBRID_INTEREST_BASE_MAJOR_BLEND", 0.22))))
+            base_match = bm * major_norm + (1.0 - bm) * sem_norm
         else:
             base_match = 0.5 * major_norm + 0.5 * sem_norm
         base_match = max(0.0, min(1.0, base_match))
@@ -1048,6 +1057,13 @@ async def hybrid_recommendation(
             )
         )
 
+    fusion_tag = "linear"
+    if use_enhanced_rag_result:
+        try:
+            raw = (getattr(get_rag_settings(), "RAG_FUSION_METHOD", None) or "linear").strip().lower()
+            fusion_tag = "linear" if raw == "rrf" else raw
+        except Exception:
+            fusion_tag = "linear"
     response = HybridRecommendationResponse(
         mode="hybrid",
         major=major,
@@ -1055,7 +1071,9 @@ async def hybrid_recommendation(
         results=items,
         guest_limited=not bool(user_id),
         rag_mode="enhanced" if use_enhanced_rag_result else "current",
-        retrieval_pipeline="bm25_vector_contrastive_linear" if use_enhanced_rag_result else "vector_fulltext_linear",
+        retrieval_pipeline=(
+            f"bm25_vector_contrastive_{fusion_tag}" if use_enhanced_rag_result else "vector_fulltext_rrf"
+        ),
     )
 
     # 메트릭 로깅: 처리 시간, 후보 수, 점수 분포 등 (개인정보 제외)

@@ -38,6 +38,17 @@ const AI_CACHE_KEY = 'ai-rec-cache';
 /** 로그인 사용자 하이브리드 추천 API limit (백엔드 le=20). 늘려도 RAG 비용은 거의 동일. */
 const HYBRID_RECOMMEND_LIMIT = 15;
 
+/** 백엔드 retrieval_pipeline 접두사 `bm25_vector_contrastive_*` 에 맞춰 퓨전 방식 표기 */
+function enhancedRetrievalFusionLabel(pipeline?: string | null): string | null {
+    const prefix = 'bm25_vector_contrastive_';
+    if (!pipeline?.startsWith(prefix)) return null;
+    const s = pipeline.slice(prefix.length);
+    if (s === 'linear' || s === 'rrf') return 'Linear';
+    if (s === 'combmnz') return 'CombMNZ';
+    if (s === 'combsum') return 'CombSUM';
+    return s;
+}
+
 const POPULAR_MAJORS = ['컴퓨터공학', '경영학', '전기공학', '간호학', '기계공학', '데이터사이언스'];
 
 const AI_ENGINE_STATS = [
@@ -156,6 +167,11 @@ export function AiRecommendationPage() {
         if (!inputValue.trim()) return list.slice(0, 10);
         return list.filter(m => m.includes(inputValue)).slice(0, 10);
     }, [availableMajors, inputValue]);
+
+    const fusionPipelineLabel = useMemo(
+        () => enhancedRetrievalFusionLabel(results?.retrieval_pipeline ?? null),
+        [results?.retrieval_pipeline],
+    );
 
     const handleRecommend = async () => {
         if (!major) {
@@ -332,9 +348,9 @@ export function AiRecommendationPage() {
                             <h2 className="text-2xl font-bold text-white flex items-center gap-3 flex-wrap">
                                 <Sparkles className="w-6 h-6 text-yellow-500" />
                                 분석 결과
-                                {(results.retrieval_pipeline === 'bm25_vector_contrastive_linear' || results.retrieval_pipeline === 'bm25_vector_contrastive_rrf') && (
+                                {fusionPipelineLabel && (
                                     <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] font-normal">
-                                        BM25+Vector+Contrastive (Linear)
+                                        BM25+Vector+Contrastive ({fusionPipelineLabel})
                                     </Badge>
                                 )}
                             </h2>

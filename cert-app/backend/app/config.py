@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     # Trusted Host (쉼표 구분. 비어 있으면 Render + localhost)
     ALLOWED_HOSTS: str = ""
 
+    # ── /recommendations/ai/hybrid-recommendation (관심사 있을 때 전공 vs RAG 균형) ──
+    # RRF 3팔 계산 시 semantic( RAG 순위 ) 팔 가중. 최종 카드 순위는 hybrid_score 기준이라, 체감 순위에는 아래 TRIM·BASE 블렌드가 더 직접적임.
+    HYBRID_INTEREST_SEM_RRF_WEIGHT: float = 2.6
+    # 후보 trim(120개 자르기) 시 major_score vs semantic_similarity 비율. 전공 쪽을 키우면 맵 기반 후보가 더 살아남음.
+    HYBRID_INTEREST_TRIM_MAJOR_BLEND: float = 0.35
+    # 정합성(hybrid_score)·UI 바용 가중: major_norm vs sem_norm. 관심 문구만 쏠리면 전공 블렌드를 0.35~0.45 실험.
+    HYBRID_INTEREST_BASE_MAJOR_BLEND: float = 0.22
+
     # RAG: 유사도 임계값 (이하면 결과에서 제외). 0이면 미적용.
     # 3-way RAG 기본값.
     RAG_MATCH_THRESHOLD: float = 0.4
