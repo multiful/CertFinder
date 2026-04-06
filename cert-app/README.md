@@ -14,7 +14,7 @@
    - **pgvector & Supabase**: `certificates_vectors` 임베딩 검색, BM25·Vector·Contrastive **다채널 융합**(Linear 기본), 선택적 Cross-Encoder 리랭킹
    - **OpenAI API**: 임베딩·dense query rewrite·(옵션) HyDE/CoT 등 확장 경로
    - **RAG 파이프라인**: `app/rag` — `hybrid_retrieve`, 메타/개인화 soft, 계층 BM25, Redis 캐시, evidence-first 생성
-   - **기능 목록**: `backend/docs/RAG_FEATURES.md`
+   - **기능 목록**: `backend/docs/Final_RAG_FEATURES.md`
 3. **취득 자격증 & XP·레벨·티어 시스템**
    - **취득 자격증 (Acquired Certs)**: DB 검색으로 등록·관리 (`user_acquired_certs`), 마이페이지 취득 자격증·XP 요약
    - **난이도 기반 XP**: `app/utils/xp.py` — 난이도 구간별 가중치, 최소 0.5 XP
@@ -90,7 +90,7 @@ cert-app/
 │   │   ├── redis_client.py          # 캐시·레이트리밋·트렌딩·최근 본·RAG 캐시 키
 │   │   ├── redis_sync_worker.py     # cert_updates 구독 동기화 (선택)
 │   │   └── scheduler.py
-│   ├── docs/                        # RAG_FEATURES.md, 성능·RAG 검토 문서
+│   ├── docs/                        # Final_RAG_*.md, 성능·RAG 검토 문서
 │   ├── main.py
 │   ├── init.sql                     # 스키마·인덱스·샘플 데이터
 │   ├── vector_migration.sql         # pgvector·certificates_vectors
@@ -165,5 +165,5 @@ Redis 미연결 시 캐시·트렌딩·레이트리밋은 비활성화되고, DB
 - **JWT 검증**: `app/utils/auth.py`에서 Supabase `/auth/v1/user` REST API에 위임.
 - **시퀀스 중복**: 대량 import 후 `qualification` 등 SERIAL 시퀀스 꼬리면  
   `SELECT SETVAL(pg_get_serial_sequence('public.qualification','qual_id'), (SELECT MAX(qual_id) FROM qualification)+1);` 로 동기화.
-- **성능·캐시·RAG**: RAG 스위치·모듈 전체는 `backend/docs/RAG_FEATURES.md`. 인덱싱은 `backend/RAG_Indexing.md`.
+- **성능·캐시·RAG**: RAG 스위치·모듈 전체는 `backend/docs/Final_RAG_FEATURES.md`. 인덱싱은 `backend/RAG_Indexing.md`.
 - **배포**: Vercel(프론트)·Railway(백엔드)·Supabase·Redis Cloud·환경변수는 `.cursor/rules/deployment.mdc` 참고.

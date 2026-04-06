@@ -42,7 +42,7 @@ backend/
 │   │   ├── index/            # BM25·Vector 인덱스 빌드
 │   │   ├── eval/             # Recall@k, MRR, nDCG, 골든 로더
 │   │   └── utils/            # Dense rewrite, HyDE, CoT, domain_tokens, …
-│   ├── docs/                 # RAG_FEATURES.md 등
+│   ├── docs/                 # Final_RAG_*.md 등
 │   ├── services/
 │   │   ├── vector_service.py # OpenAI Embedding
 │   │   ├── fast_sync_service.py  # Redis 벌크 동기화
@@ -77,7 +77,7 @@ backend/
 
 ## 🔍 RAG 파이프라인 개요
 
-> **기능 전체 목록(표·모듈 맵)**: [`docs/RAG_FEATURES.md`](docs/RAG_FEATURES.md) — 구현된 `RAG_*` 스위치·채널·캐시·평가 CLI를 한곳에 정리.  
+> **기능 전체 목록(표·모듈 맵)**: [`docs/Final_RAG_FEATURES.md`](docs/Final_RAG_FEATURES.md) — 구현된 `RAG_*` 스위치·채널·캐시·평가 CLI를 한곳에 정리.  
 > **인덱싱·재색인**: `RAG_Indexing.md` · **E2E(ask)**: `data/rag_e2e_pipeline.md` · **개선 이력**: `RAG_IMPROVEMENT.md`
 
 1. **질의 처리**  
@@ -107,7 +107,7 @@ backend/
 
 ## 📑 RAG 기능 전체 목록 (문서)
 
-- **[`docs/RAG_FEATURES.md`](docs/RAG_FEATURES.md)**  
+- **[`docs/Final_RAG_FEATURES.md`](docs/Final_RAG_FEATURES.md)**  
   채널·융합·soft·캐시·실험 플래그·디렉터리 맵·자주 쓰는 스크립트를 표로 정리. 코드와 달라질 때는 `app/rag/config.py`를 기준으로 본 문서를 갱신한다.
 
 ---
@@ -273,8 +273,8 @@ RAG는 외부 API 호출(OpenAI, HF Space)과 대형 인덱스(FAISS, PostgreSQL
 
 ## 📚 참고 문서
 
-- **RAG 기법 요약서(프로젝트 종료본)**: [`docs/RAG_TECHNIQUES_SUMMARY.md`](docs/RAG_TECHNIQUES_SUMMARY.md)
-- **RAG 기능 카탈로그(표·모듈)**: [`docs/RAG_FEATURES.md`](docs/RAG_FEATURES.md)
+- **RAG 기법 요약서(프로젝트 종료본)**: [`docs/Final_RAG_TECHNIQUES_SUMMARY.md`](docs/Final_RAG_TECHNIQUES_SUMMARY.md)
+- **RAG 기능 카탈로그(표·모듈)**: [`docs/Final_RAG_FEATURES.md`](docs/Final_RAG_FEATURES.md)
 - **인덱싱**: `RAG_Indexing.md` · **E2E 파이프라인**: `data/rag_e2e_pipeline.md` · **개선 이력**: `RAG_IMPROVEMENT.md`
 - **Contrastive**: `app/rag/contrastive/README.md`, `data/contrastive_index/README.md`
 - **배포·CORS·환경변수**: `.cursor/rules/deployment.mdc`
