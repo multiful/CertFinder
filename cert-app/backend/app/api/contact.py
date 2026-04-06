@@ -120,13 +120,20 @@ def _send_contact_via_resend(
                 },
             )
             if r2.status_code >= 400:
-                logger.error("[Resend] 사용자 확인 메일 실패: %s %s", r2.status_code, r2.text)
-                raise ContactEmailError(
-                    status.HTTP_502_BAD_GATEWAY,
-                    "메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+                # Resend 테스트 모드(onboarding@): 계정 소유 메일로만 발송 가능 → 관리자 메일은 되고
+                # 폼에 적은 Gmail 등으로는 403. 문의는 관리자에게 전달됐으므로 접수는 성공 처리.
+                logger.warning(
+                    "[Resend] 자동 회신 메일만 실패(to=%s): %s %s — 관리자 수신은 성공. "
+                    "도메인 인증 후 RESEND_FROM_EMAIL 설정 시 임의 수신자로 발송 가능.",
+                    sender_email,
+                    r2.status_code,
+                    r2.text[:500],
                 )
+            else:
+                logger.info("[Resend] 발송 완료: admin(%s) + user(%s)", admin_email, sender_email)
+                return
 
-        logger.info("[Resend] 발송 완료: admin(%s) + user(%s)", admin_email, sender_email)
+        logger.info("[Resend] 발송 완료(관리자만): admin(%s) (자동 회신 생략)", admin_email)
     except ContactEmailError:
         raise
     except httpx.TimeoutException as e:
