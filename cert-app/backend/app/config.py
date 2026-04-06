@@ -82,7 +82,12 @@ class Settings(BaseSettings):
     # 문의 수신 이메일 (contact API)
     CONTACT_EMAIL: str = ""
 
-    # Email (SMTP)
+    # Resend HTTPS API — Railway 등에서 네이버 SMTP(587) 타임아웃일 때 사용. 설정 시 SMTP보다 우선.
+    RESEND_API_KEY: str = ""
+    # 예: CertFinder <noreply@yourdomain.com> (Resend에서 도메인 인증 후). 비우면 onboarding@resend.dev (테스트 제한 있음)
+    RESEND_FROM_EMAIL: str = ""
+
+    # Email (SMTP) — RESEND_API_KEY 없을 때만 사용
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     EMAIL_USER: str = ""
