@@ -377,10 +377,26 @@ export function AiRecommendationPage() {
 
             {/* Results Section */}
             {loading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                        <Skeleton key={i} className="h-64 rounded-2xl bg-slate-900/50" />
-                    ))}
+                <div className="space-y-6">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-4 text-center space-y-3">
+                        <p className="text-sm text-slate-300 font-medium">
+                            BM25 · 시맨틱 · Contrastive 하이브리드 검색과 합격률·난이도 통계를 합치는 중입니다.
+                        </p>
+                        <p className="text-xs text-slate-500">
+                            비로그인 미리보기는 후보 탐색을 가볍게 해 더 빠르게 응답합니다. 통상 약 5~25초입니다.
+                        </p>
+                        <div className="h-1.5 w-full max-w-md mx-auto rounded-full bg-slate-800 overflow-hidden">
+                            <div
+                                className="h-full w-1/2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 origin-left"
+                                style={{ animation: 'aiRecIndeterminate 1.2s ease-in-out infinite alternate' }}
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <Skeleton key={i} className="h-64 rounded-2xl bg-slate-900/50" />
+                        ))}
+                    </div>
                 </div>
             )}
 

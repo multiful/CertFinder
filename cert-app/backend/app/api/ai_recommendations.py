@@ -54,10 +54,10 @@ def _ai_recommend_rag_fast_enabled() -> bool:
     return os.environ.get("AI_RECOMMEND_RAG_FAST", "1").strip().lower() not in ("0", "false", "no")
 
 
-def _ai_recommend_hybrid_retrieve_kwargs() -> Dict[str, Any]:
+def _ai_recommend_hybrid_retrieve_kwargs(*, guest: bool = False) -> Dict[str, Any]:
     """
     AI 하이브리드 추천 전용 hybrid_retrieve 인자. 채널·융합은 유지하고 후보만 소폭 축소.
-    환경변수로 상한 직접 지정 가능(비우면 아래 기본 cap 과 설정값의 min).
+    guest=True: 비로그인(미리보기 3건) — 채널 상한을 더 낮춰 지연·비용 절감.
     """
     from app.rag.config import get_rag_settings
 
@@ -76,10 +76,16 @@ def _ai_recommend_hybrid_retrieve_kwargs() -> Dict[str, Any]:
                 pass
         return default_cap
 
-    cap_top = _cap_env("AI_RECOMMEND_CAP_TOP_N", 102)
-    cap_bm = _cap_env("AI_RECOMMEND_CAP_BM25_N", 76)
-    cap_v = _cap_env("AI_RECOMMEND_CAP_VECTOR_N", 76)
-    cap_c = _cap_env("AI_RECOMMEND_CAP_CONTRASTIVE_N", 68)
+    if guest:
+        cap_top = _cap_env("AI_RECOMMEND_GUEST_CAP_TOP_N", 76)
+        cap_bm = _cap_env("AI_RECOMMEND_GUEST_CAP_BM25_N", 64)
+        cap_v = _cap_env("AI_RECOMMEND_GUEST_CAP_VECTOR_N", 64)
+        cap_c = _cap_env("AI_RECOMMEND_GUEST_CAP_CONTRASTIVE_N", 56)
+    else:
+        cap_top = _cap_env("AI_RECOMMEND_CAP_TOP_N", 102)
+        cap_bm = _cap_env("AI_RECOMMEND_CAP_BM25_N", 76)
+        cap_v = _cap_env("AI_RECOMMEND_CAP_VECTOR_N", 76)
+        cap_c = _cap_env("AI_RECOMMEND_CAP_CONTRASTIVE_N", 68)
 
     return {
         "top_n_candidates_override": min(top, cap_top),
@@ -121,15 +127,18 @@ def _run_enhanced_rag_sync(
     expanded_interest: str,
     acq_qual_ids: List[int],
     user_profile: Optional[UserProfile] = None,
+    guest_mode: int = 0,
 ) -> tuple:
     """
     동기 고도화 RAG(hybrid_retrieve만). 전공 임베딩은 비동기 라우트에서 RAG와 병렬 호출.
+    guest_mode=1: 비로그인 — 채널 cap·rag_top_k 축소로 응답 시간 단축(상위 3건 미리보기에 맞춤).
     성공 시 (global_results, rag_qual_ids_for_major_sim), 실패 시 (None, None).
     """
     from app.database import SessionLocal
     from app.rag.config import get_rag_settings
     from app.rag.retrieve.hybrid import hybrid_retrieve
 
+    guest = bool(guest_mode)
     db = SessionLocal()
     try:
         acq_set: set[int] = set()
@@ -146,8 +155,12 @@ def _run_enhanced_rag_sync(
             "pre_retrieval_trace_out": pre_trace,
         }
         if _ai_recommend_rag_fast_enabled():
-            hybrid_kw.update(_ai_recommend_hybrid_retrieve_kwargs())
-            rag_top_k = min(HYBRID_GLOBAL_RESULTS_LIMIT, 58)
+            hybrid_kw.update(_ai_recommend_hybrid_retrieve_kwargs(guest=guest))
+            if guest:
+                cap_k = int(os.environ.get("AI_RECOMMEND_GUEST_ENHANCED_TOP_K", "32") or "32")
+            else:
+                cap_k = int(os.environ.get("AI_RECOMMEND_ENHANCED_TOP_K", "56") or "56")
+            rag_top_k = max(18, min(HYBRID_GLOBAL_RESULTS_LIMIT, cap_k))
         else:
             rag_top_k = HYBRID_GLOBAL_RESULTS_LIMIT
 
@@ -650,6 +663,7 @@ async def hybrid_recommendation(
                     expanded_interest,
                     list(acq_qual_ids),
                     user_profile,
+                    1 if not user_id else 0,
                 )
             finally:
                 if global_results_th is None:

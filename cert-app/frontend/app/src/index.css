@@ -113,6 +113,16 @@
   }
 }
 
+@keyframes aiRecIndeterminate {
+  0% {
+    transform: scaleX(0.35) translateX(0%);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scaleX(0.85) translateX(40%);
+    opacity: 1;
+  }
+}
 
 .glass {
   background: rgba(15, 23, 42, 0.4);

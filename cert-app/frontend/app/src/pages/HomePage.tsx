@@ -132,10 +132,16 @@ export function HomePage() {
                   <input
                     id="home-cert-search"
                     name="q"
-                    type="text"
+                    type="search"
+                    enterKeyHint="search"
                     placeholder="관심 있는 자격증을 검색하세요..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter') return;
+                      e.preventDefault();
+                      handleSearch(e as unknown as React.FormEvent);
+                    }}
                     className="w-full h-14 pl-12 pr-4 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
