@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 import requests
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 
 from app.database import get_db
 from app.config import get_settings
@@ -33,22 +33,118 @@ def _admin_headers():
         "Content-Type": "application/json"
     }
 
-def _admin_get_user_by_email(email: str):
+
+def _auth_users_lookup_by_userid(db: Session, userid: str) -> Optional[Tuple[str, str]]:
+    """같은 Postgres(Supabase)의 auth.users에서 custom userid로 id·email 조회. 전체 Admin 목록 대비 병목 제거."""
+    uid = (userid or "").strip()
+    if not uid:
+        return None
     try:
-        res = requests.get(
-            f"{settings.SUPABASE_URL}/auth/v1/admin/users",
-            headers=_admin_headers(),
-            timeout=10
-        )
-        if res.status_code >= 400:
+        row = db.execute(
+            text(
+                """
+                SELECT id::text AS id, email
+                FROM auth.users
+                WHERE TRIM(COALESCE(raw_user_meta_data->>'userid', '')) = :uid
+                LIMIT 1
+                """
+            ),
+            {"uid": uid},
+        ).mappings().first()
+        if not row or not row.get("email"):
             return None
-        users = res.json().get("users", [])
-        for u in users:
-            if u.get("email") == email:
-                return u
-    except Exception:
-        pass
+        return (str(row["id"]), str(row["email"]))
+    except Exception as e:
+        logger.warning("auth.users lookup by userid unavailable: %s", e)
+        return None
+
+
+def _auth_users_lookup_user_id_by_email(db: Session, email: str) -> Optional[str]:
+    """auth.users에서 이메일로 Supabase user id(UUID 문자열)만 조회."""
+    em = (email or "").strip()
+    if not em:
+        return None
+    try:
+        row = db.execute(
+            text(
+                """
+                SELECT id::text AS id FROM auth.users
+                WHERE LOWER(email) = LOWER(:email)
+                LIMIT 1
+                """
+            ),
+            {"email": em},
+        ).mappings().first()
+        return str(row["id"]) if row and row.get("id") else None
+    except Exception as e:
+        logger.warning("auth.users lookup by email unavailable: %s", e)
+        return None
+
+
+def _admin_paged_find_user_by_meta_userid(userid: str) -> Optional[Tuple[str, str]]:
+    """DB에서 못 찾았을 때만: Admin API 페이지 순회(기능 유지·한 번에 전체 로드 방지)."""
+    uid = (userid or "").strip()
+    if not uid:
+        return None
+    for page in range(1, 26):
+        try:
+            res = requests.get(
+                f"{settings.SUPABASE_URL}/auth/v1/admin/users",
+                headers=_admin_headers(),
+                params={"page": str(page), "per_page": "200"},
+                timeout=15,
+            )
+            if res.status_code != 200:
+                return None
+            users = res.json().get("users") or []
+            if not users:
+                return None
+            for u in users:
+                meta_uid = (u.get("user_metadata") or {}).get("userid")
+                if meta_uid is not None and str(meta_uid).strip() == uid:
+                    e = u.get("email")
+                    if not e:
+                        return None
+                    return (str(u.get("id")), str(e))
+        except Exception as e:
+            logger.error("admin users paged scan (userid) page=%s: %s", page, e)
+            return None
     return None
+
+
+def _admin_paged_find_user_by_email(email: str) -> Optional[dict]:
+    """이메일 매칭 폴백(페이지 순회)."""
+    em = (email or "").strip().lower()
+    if not em:
+        return None
+    for page in range(1, 26):
+        try:
+            res = requests.get(
+                f"{settings.SUPABASE_URL}/auth/v1/admin/users",
+                headers=_admin_headers(),
+                params={"page": str(page), "per_page": "200"},
+                timeout=15,
+            )
+            if res.status_code != 200:
+                return None
+            users = res.json().get("users") or []
+            if not users:
+                return None
+            for u in users:
+                if (u.get("email") or "").lower() == em:
+                    return u
+        except Exception as e:
+            logger.error("admin users paged scan (email) page=%s: %s", page, e)
+            return None
+    return None
+
+
+def _admin_get_user_by_email(db: Session, email: str) -> Optional[dict]:
+    """가입 완료 단계: 기존 Supabase 유저 여부 확인. DB(auth.users) 우선 → Admin 페이지 폴백."""
+    uid = _auth_users_lookup_user_id_by_email(db, email)
+    if uid:
+        return {"id": uid, "email": email.strip()}
+    return _admin_paged_find_user_by_email(email)
 
 def _admin_delete_user(user_id: str):
     try:
@@ -227,7 +323,7 @@ async def signup_complete(
     is_new_user = False
 
     # Check if user already exists in Supabase (from Step 1/2)
-    target = _admin_get_user_by_email(payload.email)
+    target = _admin_get_user_by_email(db, payload.email)
 
     try:
         if target:
@@ -344,43 +440,44 @@ async def login(
     _: None = Depends(check_auth_rate_limit),
 ):
     """Login with userid and password."""
-    # 1) Get email from local DB
+    # 1) Get email from local DB (공백 무시 — 입력·저장 불일치 시에도 매칭)
     row = db.execute(
-        text("SELECT email FROM profiles WHERE userid = :uid"),
-        {"uid": payload.userid}
+        text("SELECT email FROM profiles WHERE TRIM(userid) = TRIM(:uid)"),
+        {"uid": payload.userid or ""},
     ).mappings().first()
 
     email = None
     user_id = None
     
     if not row:
-        # Fallback: Check Supabase Admin API to see if user exists but profile isn't synced
-        logger.info(f"Userid {payload.userid} not found in local DB. Checking Supabase Admin...")
-        try:
-            res_admin = requests.get(
-                f"{settings.SUPABASE_URL}/auth/v1/admin/users",
-                headers=_admin_headers(),
-                timeout=10
-            )
-            if res_admin.status_code == 200:
-                users = res_admin.json().get("users", [])
-                for u in users:
-                    if u.get("user_metadata", {}).get("userid") == payload.userid:
-                        email = u.get("email")
-                        user_id = u.get("id")
-                        # Sync to local DB
-                        db.execute(
-                            text("INSERT INTO profiles (id, email, userid) VALUES (:id, :email, :uid) ON CONFLICT (id) DO NOTHING"),
-                            {"id": user_id, "email": email, "uid": payload.userid}
-                        )
-                        db.commit()
-                        logger.info(f"Synced user {payload.userid} to local profiles.")
-                        break
-        except Exception as e:
-            logger.error(f"Supabase admin check failed: {e}")
-
+        # profiles 누락: 동일 DB의 auth.users에서 userid → email (빠름) → 실패 시 Admin API 페이지 순회
+        logger.info("Userid %s not in profiles; resolving via auth.users or paged Admin API", payload.userid)
+        resolved = _auth_users_lookup_by_userid(db, payload.userid)
+        if not resolved:
+            resolved = _admin_paged_find_user_by_meta_userid(payload.userid)
+        if not resolved:
+            raise HTTPException(status_code=400, detail="존재하지 않는 아이디입니다.")
+        user_id, email = resolved
         if not email:
             raise HTTPException(status_code=400, detail="존재하지 않는 아이디입니다.")
+        try:
+            db.execute(
+                text(
+                    """
+                    INSERT INTO profiles (id, email, userid) VALUES (:id, :email, :uid)
+                    ON CONFLICT (id) DO UPDATE SET
+                        email = COALESCE(profiles.email, EXCLUDED.email),
+                        userid = COALESCE(profiles.userid, EXCLUDED.userid)
+                    """
+                ),
+                {"id": user_id, "email": email, "uid": payload.userid.strip()},
+            )
+            db.commit()
+            logger.info("Synced user %s to profiles after auth resolution.", payload.userid)
+        except Exception as e:
+            db.rollback()
+            logger.error("Profile sync after auth resolution failed: %s", e)
+            raise HTTPException(status_code=500, detail="프로필 동기화 중 오류가 발생했습니다.")
     else:
         email = row["email"]
 
