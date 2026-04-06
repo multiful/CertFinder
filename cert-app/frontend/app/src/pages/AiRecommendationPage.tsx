@@ -386,12 +386,12 @@ export function AiRecommendationPage() {
                             비로그인 미리보기는 후보 탐색을 가볍게 해 더 빠르게 응답합니다. 통상 약 5~25초입니다.
                         </p>
                         <div className="relative h-1.5 w-full max-w-md mx-auto rounded-full bg-slate-800 overflow-hidden">
-                            {/* 막대 너비 f를 바꾸면 index.css @keyframes aiRecIndeterminate 끝 translateX% = (1-f)/f×100 (막대 기준) 로 맞출 것 */}
+                            {/* 막대 너비 f를 바꾸면 index.css @keyframes aiRecIndeterminate 100% translateX% = (1-f)/f×100 (막대 기준) 로 맞출 것 */}
                             <div
                                 className="absolute left-0 top-0 h-full w-[36%] rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 will-change-transform"
                                 style={{
                                     animation:
-                                        'aiRecIndeterminate 1.35s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate',
+                                        'aiRecIndeterminate 1.35s linear infinite alternate',
                                 }}
                             />
                         </div>

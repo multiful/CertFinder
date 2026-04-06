@@ -114,19 +114,18 @@
 }
 
 /*
- * AI 추천 로딩 바: 트랙 전체를 스캔 (왕복은 animation-direction: alternate)
+ * AI 추천 로딩 바: 트랙 안에서만 왕복 (alternate + 대칭 easing)
  * 막대 너비 = 트랙의 f(예: 36%)일 때, translateX % 는 막대 자기 너비 기준.
- * 오른쪽 끝 맞춤: 막대 왼쪽 끝이 (1-f)·트랙너비 → 이동거리 (1-f)·T / (f·T) = (1-f)/f.
+ * 왼쪽 끝: translateX(0) → 오른쪽 끝: 막대 왼쪽이 (1-f)·T 가 되도록 (1-f)/f×100%.
+ * (-100%로 트랙 밖에서 시작하면 왼쪽에 시간·시각이 몰려 보임)
  * 예: f=0.36 → (1-0.36)/0.36 ≈ 177.78%
  */
 @keyframes aiRecIndeterminate {
   0% {
-    transform: translateX(-100%);
-    opacity: 0.9;
+    transform: translateX(0);
   }
   100% {
     transform: translateX(177.78%);
-    opacity: 1;
   }
 }
 

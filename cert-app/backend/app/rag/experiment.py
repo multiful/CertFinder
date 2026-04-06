@@ -21,10 +21,8 @@ logger = logging.getLogger(__name__)
 
 # 레거시 단일 challenger 호환 (eval 스크립트·온라인 A/B 공통)
 RAG_CONTROL_PRESET: Dict[str, Any] = {}
-# 온라인 A/B challenger: 기본값(코드) 대비 검증할 축. 승자 반영 후에는 다음 가설만 남김.
-RAG_CHALLENGER_PRESET: Dict[str, Any] = {
-    "RAG_DENSE_USE_QUERY_REWRITE": "false",
-}
+# 온라인 A/B challenger: 오프라인 골든 통과 후만 비워두지 말고 채운다. (rewrite off 는 §6.1.6에서 악화 확인됨)
+RAG_CHALLENGER_PRESET: Dict[str, Any] = {}
 
 # eval / random_search 가 os.environ에서 제거 후 캐시 클리어할 때 쓰는 키(교차 검증: RAGSettings 필드명).
 RAG_EVAL_PRESET_ENV_KEYS: Tuple[str, ...] = (
@@ -45,37 +43,56 @@ RAG_EVAL_PRESET_ENV_KEYS: Tuple[str, ...] = (
     "RAG_METADATA_DOMAIN_MISMATCH_PENALTY",
     "RAG_FUSION_METHOD",
     "RAG_DENSE_USE_QUERY_REWRITE",
+    "RAG_LINEAR_BM25_RANK_PRIOR",
+    "RAG_POST_METADATA_BM25_RANK_PRIOR",
+    "RAG_RRF_EXPONENT",
+    "RAG_METADATA_SOFT_SCORE_ENABLE",
+    "RAG_HIERARCHICAL_RETRIEVAL_ENABLE",
+    "RAG_DEDUP_PER_CERT",
 )
 
-# 다중 오프라인 A/B (이름, env 조각). Wave A=메타, B=풀·RRF, C=질의 재작성
+# 다중 오프라인 A/B (이름, env 조각).
+# Wave A~C 결과는 RAG_IMPROVEMENT.md §6.1.6. Wave D = 미세 fusion·계층·메타·RRF 지수 등 추가 가설.
 RAG_AB_CHALLENGERS: List[Tuple[str, Dict[str, Any]]] = [
     (
-        "wave_a_meta_no_mainfield_job",
-        {"RAG_METADATA_SOFT_MAIN_FIELD_IN_JOB_MATCH": "false"},
+        "wave_d_linear_bm25_prior_up",
+        {"RAG_LINEAR_BM25_RANK_PRIOR": "0.012"},
     ),
     (
-        "wave_a_meta_no_domain_mismatch",
-        {"RAG_METADATA_DOMAIN_MISMATCH_ENABLE": "false"},
+        "wave_d_linear_bm25_prior_down",
+        {"RAG_LINEAR_BM25_RANK_PRIOR": "0.006"},
     ),
     (
-        "wave_a_meta_domain_penalty_mild",
-        {"RAG_METADATA_DOMAIN_MISMATCH_PENALTY": "-0.15"},
+        "wave_d_rrf_bm25_up",
+        {"RAG_RRF_W_BM25": "0.92"},
     ),
     (
-        "wave_b_pool_top_n_plus_20",
-        {"RAG_TOP_N_CANDIDATES": "156"},
+        "wave_d_rrf_dense_up",
+        {"RAG_RRF_W_DENSE1536": "0.58"},
     ),
     (
-        "wave_b_pool_top_n_minus_20",
-        {"RAG_TOP_N_CANDIDATES": "116"},
+        "wave_d_rrf_exponent_115",
+        {"RAG_RRF_EXPONENT": "1.15"},
     ),
     (
-        "wave_b_rrf_contrastive_up",
-        {"RAG_RRF_W_CONTRASTIVE768": "1.05"},
+        "wave_d_vector_threshold_0088",
+        {"RAG_VECTOR_THRESHOLD": "0.0088"},
     ),
     (
-        "wave_c_dense_rewrite_off",
-        {"RAG_DENSE_USE_QUERY_REWRITE": "false"},
+        "wave_d_hierarchical_blend_down",
+        {"RAG_HIERARCHICAL_BLEND_WEIGHT": "0.22"},
+    ),
+    (
+        "wave_d_hierarchical_blend_up",
+        {"RAG_HIERARCHICAL_BLEND_WEIGHT": "0.34"},
+    ),
+    (
+        "wave_d_metadata_soft_on",
+        {"RAG_METADATA_SOFT_SCORE_ENABLE": "true"},
+    ),
+    (
+        "wave_d_hierarchical_off",
+        {"RAG_HIERARCHICAL_RETRIEVAL_ENABLE": "false"},
     ),
 ]
 
