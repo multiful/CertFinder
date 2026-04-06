@@ -62,7 +62,7 @@ def _ai_recommend_hybrid_retrieve_kwargs() -> Dict[str, Any]:
     from app.rag.config import get_rag_settings
 
     s = get_rag_settings()
-    top = int(getattr(s, "RAG_TOP_N_CANDIDATES", 136) or 136)
+    top = int(getattr(s, "RAG_TOP_N_CANDIDATES", 88) or 88)
     bm = int(getattr(s, "RAG_BM25_TOP_N", None) or top)
     vt = int(getattr(s, "RAG_VECTOR_TOP_N_OVERRIDE", None) or top)
     ct = int(getattr(s, "RAG_CONTRASTIVE_TOP_N", None) or top)

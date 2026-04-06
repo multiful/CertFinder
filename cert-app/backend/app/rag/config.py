@@ -28,9 +28,9 @@ class RAGSettings(BaseSettings):
     # `app.rag.eval.runner.run_eval_three_way` 전용: 평가 시 실제로 상위 몇 개까지 반환할지.
     # 과거 top_k=4 고정이면 Recall@5/10·MRR_qual 이름과 불일치(최대 4슬롯만 관측)하므로 기본 10.
     RAG_EVAL_TOP_K: int = 10
-    # 기본값: 전체 골든(54) 오프라인 A/B에서 control(레거시)이 Recall/MRR/Hit 기준 우세.
+    # 기본값: 전체 골든(56) hybrid A/B에서 96 대비 R@5/MRR 소폭 개선·지연 감소 → 88.
     # 튜닝 후보는 RAG_CHALLENGER_PRESET + .env / scripts/eval_retrieval_ab_compare.py 로 검증 후 반영.
-    RAG_TOP_N_CANDIDATES: int = 136
+    RAG_TOP_N_CANDIDATES: int = 88
     RAG_RRF_K: int = 60
     RAG_RRF_EXPONENT: float = 1.0  # RRF 지수 p. 1=표준 1/(k+rank), >1이면 상위 순위 강조 1/(k+rank)^p. 2~3 실험 권장.
     # "linear" | "combsum" | "combmnz". (rrf 설정 시 코드에서 linear로 취급)

@@ -69,7 +69,6 @@ async function apiRequest<T>(
 
   try {
     const response = await fetch(`${BASE_URL}${path}`, init);
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const detail = await getErrorDetail(response);
@@ -79,7 +78,6 @@ async function apiRequest<T>(
     }
     return await response.json();
   } catch (error: any) {
-    clearTimeout(timeoutId);
     // 타임아웃(AbortError)마다 재시도하면 동일 요청이 3배로 길어져 문의 폼이 "무한 로딩"처럼 보임
     if (error?.name === 'AbortError') {
       throw new Error('요청 시간이 초과되었습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.');
@@ -99,6 +97,8 @@ async function apiRequest<T>(
       console.error(`API Request failed for ${path}:`, error);
     }
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -537,14 +537,14 @@ export async function checkUserId(userid: string): Promise<{ available: boolean,
 
 // ============== Contact / Feedback ==============
 export async function sendContactEmail(data: { name: string; email: string; subject: string; message: string }): Promise<void> {
-  // SMTP·TLS 지연 대비. 재시도 횟수 0 — 타임아웃 시 곧바로 실패 처리(삼중 재시도로 로딩이 길어지지 않게)
+  // SMTP·TLS 지연 대비. 재시도 0. 백엔드 SMTP 상한(~32s) + 여유
   await apiRequest(
     '/contact',
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-      timeoutMs: 45000,
+      timeoutMs: 40000,
     },
     0
   );

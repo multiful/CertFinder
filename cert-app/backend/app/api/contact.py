@@ -87,9 +87,9 @@ def send_contact_emails_sync(name: str, sender_email: str, subject: str, message
 
     try:
         if settings.SMTP_PORT == 465:
-            server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20)
+            server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
         else:
-            server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20)
+            server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
             server.ehlo()
             server.starttls()
             server.ehlo()
@@ -155,6 +155,10 @@ def send_contact_emails_sync(name: str, sender_email: str, subject: str, message
         ) from e
 
 
+# SMTP·네트워크가 멈추면 워커가 오래 점유되지 않도록 전체 상한(클라이언트 fetch 타임아웃과 맞출 것)
+_CONTACT_SEND_TIMEOUT_SEC = 32.0
+
+
 @router.post("")
 async def submit_contact(
     request: ContactRequest,
@@ -162,13 +166,25 @@ async def submit_contact(
 ):
     """문의 접수 — SMTP 전송이 끝난 뒤에만 성공 응답(실패 시 502/503)."""
     try:
-        await asyncio.to_thread(
-            send_contact_emails_sync,
-            request.name,
-            str(request.email),
-            request.subject,
-            request.message,
+        await asyncio.wait_for(
+            asyncio.to_thread(
+                send_contact_emails_sync,
+                request.name,
+                str(request.email),
+                request.subject,
+                request.message,
+            ),
+            timeout=_CONTACT_SEND_TIMEOUT_SEC,
         )
+    except asyncio.TimeoutError:
+        logger.error(
+            "[SMTP] 전체 발송 시간 초과 (%.1fs 초과) — 연결/메일서버 지연 가능",
+            _CONTACT_SEND_TIMEOUT_SEC,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="메일 발송 처리 시간이 초과되었습니다. 네트워크를 확인한 뒤 잠시 후 다시 시도해 주세요.",
+        ) from None
     except ContactEmailError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail) from e
 
