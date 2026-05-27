@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
-// Inactivity timeout in milliseconds (1 hour = 3600000ms)
-const INACTIVITY_TIMEOUT = 3600 * 1000;
+// Inactivity timeout in milliseconds (3 hours)
+const INACTIVITY_TIMEOUT = 3 * 3600 * 1000;
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
