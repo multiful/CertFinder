@@ -183,7 +183,7 @@ export function CertListPage() {
       }
     }
     loadFavorites();
-  }, [user, token]);
+  }, [user?.id]); // token은 user.id와 함께 바뀌므로 의존성에서 제외 (토큰 갱신 시 중복 호출 방지)
 
   // 취득 자격증 ID 로드 (로그인 사용자 전용)
   useEffect(() => {
@@ -191,7 +191,7 @@ export function CertListPage() {
     getAcquiredCerts(token, 1, 200)
       .then(res => setAcquiredIds(res.items.map((a: any) => a.qual_id)))
       .catch(() => setAcquiredIds([]));
-  }, [user, token]);
+  }, [user?.id]); // 위와 동일한 이유로 user?.id만 의존
 
   const toggleFavorite = async (e: React.MouseEvent, cert: any) => {
     e.stopPropagation(); // Card 클릭 방지

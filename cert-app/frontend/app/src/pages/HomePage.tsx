@@ -120,8 +120,8 @@ export function HomePage() {
 
             <p className="text-slate-400 text-lg lg:text-xl max-w-xl mx-auto lg:mx-0 leading-relaxed">
               합격률·난이도·직무 매칭은 DB 통계로, 전공·관심사 맞춤 추천은{' '}
-              <span className="text-slate-300 font-semibold">BM25·시맨틱·Contrastive 하이브리드 RAG</span>
-              로 제공합니다.
+              <span className="text-slate-300 font-semibold">AI 분석 엔진</span>
+              으로 제공합니다.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
@@ -160,7 +160,7 @@ export function HomePage() {
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {certCatalogTotal.toLocaleString('ko-KR')}개 자격증 데이터
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> AI 추천: 3채널 하이브리드 검색
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> AI 분석 기반 맞춤 추천
               </div>
             </div>
           </div>
@@ -195,11 +195,11 @@ export function HomePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
                     <p className="text-xs text-slate-500 mb-1">AI 추천 검색</p>
-                    <p className="text-lg font-bold text-emerald-400 leading-tight">BM25 + 벡터 + Contrastive</p>
+                    <p className="text-lg font-bold text-emerald-400 leading-tight">전공·관심사 AI 분석</p>
                   </div>
                   <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-                    <p className="text-xs text-slate-500 mb-1">순위 융합</p>
-                    <p className="text-lg font-bold text-blue-400 leading-tight">Linear · 조건부 리랭커</p>
+                    <p className="text-xs text-slate-500 mb-1">결과 정렬</p>
+                    <p className="text-lg font-bold text-blue-400 leading-tight">맞춤 점수 기반 정렬</p>
                   </div>
                 </div>
               </div>
@@ -227,7 +227,7 @@ export function HomePage() {
           {[
             {
               title: "맞춤형 추천 시스템",
-              desc: "전공–자격증 DB 매핑과 시험 통계로 목록을 구성합니다. 시맨틱·RAG 기반 추천은 상단 메뉴의 AI 추천에서 이용하세요.",
+              desc: "전공–자격증 DB 매핑과 시험 통계로 목록을 구성합니다. AI 기반 맞춤 추천은 상단 메뉴의 AI 추천에서 이용하세요.",
               icon: Target,
               color: "text-blue-400",
               bg: "bg-blue-400/5",
@@ -372,13 +372,13 @@ export function HomePage() {
       {/* CTA Section */}
       <section className="container mx-auto px-6">
         <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 p-12 md:p-20 text-center">
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+          <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`}} />
           <div className="relative z-10 space-y-8 max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight">
               커리어의 다음 단계를<br />지금 바로 설계해 보세요
             </h2>
             <p className="text-blue-100 text-lg opacity-80">
-              DB 통계 기반 전공 추천과 하이브리드 RAG AI 추천을 함께 쓸 수 있습니다.
+              DB 통계 기반 전공 추천과 AI 맞춤 추천을 함께 쓸 수 있습니다.
               회원가입 없이 대부분의 기능을 무료로 이용할 수 있습니다.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4 flex-wrap">
@@ -394,7 +394,7 @@ export function HomePage() {
                 size="lg"
                 className="bg-indigo-500/90 text-white hover:bg-indigo-400 text-lg font-bold rounded-xl h-14 px-10 shadow-xl border border-white/20"
               >
-                AI 추천 (하이브리드 RAG)
+                AI 자격증 추천
               </Button>
               <Button
                 onClick={() => router.navigate('/jobs')}
