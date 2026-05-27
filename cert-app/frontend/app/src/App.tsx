@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Layout } from '@/components/layout/Layout';
 import { Toaster } from '@/components/ui/sonner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -148,6 +149,7 @@ function App() {
         </div>
         <Toaster />
       </Layout>
+      <SpeedInsights />
     </ErrorBoundary>
   );
 }

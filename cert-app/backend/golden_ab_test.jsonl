@@ -1,0 +1,25 @@
+{"id": "q001", "query_type": "keyword", "query_text": "정보처리기사", "expected_certs": ["정보처리기사"]}
+{"id": "q002", "query_type": "keyword", "query_text": "정처기", "expected_certs": ["정보처리기사"]}
+{"id": "q003", "query_type": "keyword", "query_text": "SQLD", "expected_certs": ["SQL개발자(SQLD)"]}
+{"id": "q004", "query_type": "keyword", "query_text": "SQL 개발자 자격증", "expected_certs": ["SQL개발자(SQLD)", "SQL전문가(SQLP)"]}
+{"id": "q005", "query_type": "keyword", "query_text": "빅데이터분석기사", "expected_certs": ["빅데이터분석기사"]}
+{"id": "q006", "query_type": "keyword", "query_text": "빅분기", "expected_certs": ["빅데이터분석기사"]}
+{"id": "q007", "query_type": "keyword", "query_text": "ADsP 데이터분석 자격증", "expected_certs": ["데이터분석준전문가(ADsP)", "데이터분석전문가(ADP)"]}
+{"id": "q008", "query_type": "keyword", "query_text": "정보보안기사", "expected_certs": ["정보보안기사"]}
+{"id": "q009", "query_type": "keyword", "query_text": "전기기사", "expected_certs": ["전기기사"]}
+{"id": "q010", "query_type": "keyword", "query_text": "네트워크관리사", "expected_certs": ["네트워크관리사"]}
+{"id": "q011", "query_type": "keyword", "query_text": "컴퓨터활용능력", "expected_certs": ["컴퓨터활용능력 1급", "컴퓨터활용능력 2급"]}
+{"id": "q012", "query_type": "keyword", "query_text": "컴활", "expected_certs": ["컴퓨터활용능력 1급", "컴퓨터활용능력 2급"]}
+{"id": "q013", "query_type": "keyword", "query_text": "리눅스마스터", "expected_certs": ["리눅스마스터 1급", "리눅스마스터 2급"]}
+{"id": "q014", "query_type": "natural", "query_text": "데이터 분석 직무로 취업하고 싶어", "expected_certs": ["데이터분석준전문가(ADsP)", "SQL개발자(SQLD)", "빅데이터분석기사", "데이터분석전문가(ADP)"]}
+{"id": "q015", "query_type": "natural", "query_text": "백엔드 개발자 되려면 뭐 따야 해", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "정보처리산업기사"]}
+{"id": "q016", "query_type": "natural", "query_text": "IT 취업용 자격증 추천해줘", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "데이터분석준전문가(ADsP)", "컴퓨터활용능력 1급"]}
+{"id": "q017", "query_type": "roadmap", "query_text": "정처기 다음으로 준비할 만한 자격증", "expected_certs": ["SQL개발자(SQLD)", "데이터분석준전문가(ADsP)", "빅데이터분석기사"]}
+{"id": "q018", "query_type": "comparison", "query_text": "컴활 말고 다른 IT 자격증", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "데이터분석준전문가(ADsP)"]}
+{"id": "q019", "query_type": "major_job", "query_text": "컴퓨터공학 전공자 취업 자격증", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "정보보안기사", "데이터분석준전문가(ADsP)"]}
+{"id": "q020", "query_type": "natural", "query_text": "1학년인데 자격증 미리 준비하고 싶어", "expected_certs": ["컴퓨터활용능력 1급", "컴퓨터활용능력 2급", "정보처리기능사"]}
+{"id": "q021", "query_type": "keyword", "query_text": "데이터베이스 SQL 자격증", "expected_certs": ["SQL개발자(SQLD)", "SQL전문가(SQLP)"]}
+{"id": "q022", "query_type": "natural", "query_text": "전산 직무 자격증 추천", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "정보처리산업기사"]}
+{"id": "q023", "query_type": "natural", "query_text": "보안 관련 직무 자격증", "expected_certs": ["정보보안기사", "정보보안산업기사", "네트워크관리사"]}
+{"id": "q024", "query_type": "natural", "query_text": "4학년인데 취업용으로 실무 쪽 자격증", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "데이터분석준전문가(ADsP)", "빅데이터분석기사"]}
+{"id": "q025", "query_type": "roadmap", "query_text": "컴활 땄는데 다음으로 뭘 따면 좋을까", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "데이터분석준전문가(ADsP)"]}

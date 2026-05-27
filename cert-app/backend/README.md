@@ -222,6 +222,69 @@ RAG는 외부 API 호출(OpenAI, HF Space)과 대형 인덱스(FAISS, PostgreSQL
 
 ---
 
+## 🆕 최근 변경사항 (2026-05-27)
+
+### RAG 품질 개선 (4개 이슈)
+
+| # | 파일 | 변경 내용 |
+|---|------|-----------|
+| 1 | `app/utils/rag_hybrid.py` | `classify_query_and_expand`: 3-case 하드코딩 → `expand_query_single_string` 호출. 60+ 동의어·직무·전공·구어 패턴 전체 활성화. |
+| 2 | `app/utils/rag_hybrid.py` | `_sparse_rank_map_for_query(use_or=True)` 추가. 확장된 긴 쿼리에 `to_tsquery` OR 검색 적용 — AND 시 매칭 0건 문제 해결. |
+| 3 | `main.py` | `_background_bm25_prebuild()`: 서버 기동 25초 후 `bm25.pkl` 없으면 DB에서 자동 빌드 (Render 재배포 후 ephemeral storage 대응). |
+| 4 | `main.py` | Contrastive pre-warm 실패 시 `logger.debug` → `logger.warning` + `diagnose_contrastive_status()` 상세 원인 출력. |
+
+### 보안 패치
+
+| 취약점 | 위치 | 조치 |
+|--------|------|------|
+| JWT 알고리즘 혼동 공격 | `app/api/deps.py` | `SUPABASE_JWT_ALGORITHM` 설정 시 토큰 alg 강제 일치 검증. 현행: `ES256`. |
+| 이메일 열거(find-userid) | `app/api/auth.py` | 미가입 이메일에도 200 반환 — 가입 여부 구분 불가. |
+| 사용자 ID 노출 | `app/api/auth.py` | 회원가입 충돌 에러 메시지에서 userid 제거. |
+
+### 데이터 품질 패치
+
+- 트렌딩 자격증 쿼리에 `is_active = TRUE` 필터 추가 (`app/api/certs.py`)
+- 전공 기반 추천 쿼리에 `is_active = TRUE` 필터 추가 (`app/crud.py`)
+
+### A/B 테스트 결과 (2026-05-27)
+
+골든셋: 25개 질의 (`golden_ab_test.jsonl`) — 키워드·자연어·로드맵·전공직무 혼합.
+
+#### 1) baseline vs current (vs 벡터 단독)
+결과 상세: `eval_ab_hybrid_rag_20260527.md`
+
+| 지표 | baseline (벡터만) | current (Hybrid RAG) | 개선율 |
+|------|-------------------|----------------------|--------|
+| Recall@5 | 0.567 | **0.647** | +14.1% |
+| Recall@10 | 0.587 | **0.687** | +17.0% |
+| **MRR** | 0.521 | **0.707** | **+35.7%** |
+| NDCG@5 | 0.512 | **0.644** | +25.8% |
+| MAP | 0.487 | **0.626** | +28.5% |
+| Hit@10 | 0.640 | **0.760** | +18.8% |
+| avg latency | 423ms | **164ms** | **-61%** |
+
+#### 2) current vs enhanced_reranker (배포된 3-way RAG)
+결과 상세: `eval_current_vs_deployed_20260527.md` · `ab_vs_deployed_20260527_161653.csv`
+
+| 지표 | current (2채널+쿼리확장) | enhanced_reranker (3-way) | 차이 |
+|------|--------------------------|---------------------------|------|
+| Recall@5 | 0.647 | **0.750** | +15.9% |
+| Recall@10 | 0.687 | **0.810** | +17.9% |
+| MRR | 0.707 | **0.766** | +8.3% |
+| NDCG@10 | 0.664 | **0.755** | +13.7% |
+| Hit@10 | 0.760 | **0.960** | +26.3% |
+| avg latency | **133ms** | 1363ms | current 10배 빠름 |
+
+> **결론**: 3-way(`enhanced_reranker`)가 품질 전지표 우위. `current`는 10배 빠른 저지연 경로.  
+> AI 추천 엔드포인트를 `hybrid_retrieve`로 마이그레이션하면 Hit@10 +26.3%, MRR +8.3% 기대.
+
+### RLS 보안 패치 (2026-05-27)
+
+ML/참조 데이터 테이블 3개에 RLS 활성화 + public SELECT 정책 추가:
+- `query_type_labels`, `certificates_vectors_contextual`, `intent_labels`
+
+---
+
 ## 🛠 실행 방법
 
 1. **환경**  

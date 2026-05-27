@@ -7,6 +7,7 @@ from app.api.deps import get_db_session, get_current_user, check_rate_limit
 from app.schemas import UserAcquiredCertListResponse, UserAcquiredCertResponse, QualificationListItemResponse
 from app.crud import acquired_cert_crud, qualification_crud
 from app.crud import get_qualification_aggregated_stats_bulk
+from app.redis_client import redis_client
 from app.utils.xp import (
     calculate_cert_xp,
     get_level_from_xp,
@@ -164,6 +165,8 @@ async def add_acquired_cert(
         all_stats = get_qualification_aggregated_stats_bulk(db, [qual_id])
     except Exception:
         pass
+    # Invalidate AI recommendation cache — acquired certs affect personalized ranking
+    redis_client.delete_pattern(f"ai:hybrid:v2:*:user:{user_id}")
     return _enrich_item(acq, all_stats)
 
 
@@ -181,4 +184,5 @@ async def remove_acquired_cert(
     ok = acquired_cert_crud.remove(db, user_id, qual_id)
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Acquired cert not found")
+    redis_client.delete_pattern(f"ai:hybrid:v2:*:user:{user_id}")
     return {"message": "Removed"}

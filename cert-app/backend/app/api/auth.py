@@ -1,7 +1,8 @@
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-import requests
+import httpx
 import logging
 import hmac
 import hashlib
@@ -118,7 +119,7 @@ def _admin_paged_find_user_by_meta_userid(userid: str) -> Optional[Tuple[str, st
         return None
     for page in range(1, 26):
         try:
-            res = requests.get(
+            res = httpx.get(
                 f"{settings.SUPABASE_URL}/auth/v1/admin/users",
                 headers=_admin_headers(),
                 params={"page": str(page), "per_page": "200"},
@@ -149,7 +150,7 @@ def _admin_paged_find_user_by_email(email: str) -> Optional[dict]:
         return None
     for page in range(1, 26):
         try:
-            res = requests.get(
+            res = httpx.get(
                 f"{settings.SUPABASE_URL}/auth/v1/admin/users",
                 headers=_admin_headers(),
                 params={"page": str(page), "per_page": "200"},
@@ -178,7 +179,7 @@ def _admin_get_user_by_email(db: Session, email: str) -> Optional[dict]:
 
 def _admin_delete_user(user_id: str):
     try:
-        requests.delete(
+        httpx.delete(
             f"{settings.SUPABASE_URL}/auth/v1/admin/users/{user_id}",
             headers=_admin_headers(),
             timeout=10
@@ -209,7 +210,7 @@ async def send_email_code(
 
     try:
         # 2. Supabase OTP - This sends the "Magic Link" template
-        res = requests.post(
+        res = httpx.post(
             f"{settings.SUPABASE_URL}/auth/v1/otp",
             headers={"apikey": settings.SUPABASE_ANON_KEY, "Content-Type": "application/json"},
             json={"email": payload.email, "create_user": True},
@@ -240,7 +241,7 @@ async def find_userid_send_code(
         # 이메일 존재 여부를 노출하지 않기 위해 동일한 200 응답 반환
         return {"message": "인증 코드가 발송되었습니다. 메일함(또는 스팸함)을 확인해 주세요."}
     try:
-        res = requests.post(
+        res = httpx.post(
             f"{settings.SUPABASE_URL}/auth/v1/otp",
             headers={"apikey": settings.SUPABASE_ANON_KEY, "Content-Type": "application/json"},
             json={"email": payload.email, "create_user": False},
@@ -265,7 +266,7 @@ async def find_userid_verify(
 ):
     """[아이디 찾기 2단계] 인증 코드 검증 후 아이디 반환. 이메일 소유자만 아이디 확인 가능."""
     try:
-        res = requests.post(
+        res = httpx.post(
             f"{settings.SUPABASE_URL}/auth/v1/verify",
             headers={"apikey": settings.SUPABASE_ANON_KEY, "Content-Type": "application/json"},
             json={"type": "email", "email": payload.email, "token": payload.code},
@@ -293,7 +294,7 @@ async def verify_email_code(
 ):
     """[Sign-up Step 2] Verify OTP code."""
     try:
-        res = requests.post(
+        res = httpx.post(
             f"{settings.SUPABASE_URL}/auth/v1/verify",
             headers={"apikey": settings.SUPABASE_ANON_KEY, "Content-Type": "application/json"},
             json={
@@ -353,65 +354,47 @@ async def signup_complete(
     user_id = None
     is_new_user = False
 
-    # Check if user already exists in Supabase (from Step 1/2)
-    target = _admin_get_user_by_email(db, payload.email)
+    # Supabase Admin API: lookup + create/update run as one sync block in a thread
+    # to avoid blocking the event loop (httpx calls are synchronous here)
+    def _supabase_signup_sync() -> tuple:
+        t = _admin_get_user_by_email(db, payload.email)
+        meta = {
+            "name": payload.name,
+            "full_name": payload.name,
+            "userid": payload.userid,
+            "nickname": payload.userid,
+            "birth_date": payload.birth_date,
+            "detail_major": payload.detail_major,
+        }
+        if t:
+            res = httpx.put(
+                f"{settings.SUPABASE_URL}/auth/v1/admin/users/{t['id']}",
+                headers=_admin_headers(),
+                json={"password": payload.password, "email_confirm": True, "user_metadata": meta},
+                timeout=10,
+            )
+            if res.status_code >= 400:
+                raise ValueError(f"Supabase update failed: {res.status_code}")
+            return t["id"], False
+        res = httpx.post(
+            f"{settings.SUPABASE_URL}/auth/v1/admin/users",
+            headers=_admin_headers(),
+            json={"email": payload.email, "password": payload.password, "email_confirm": True, "user_metadata": meta},
+            timeout=10,
+        )
+        if res.status_code >= 400:
+            raise ValueError(f"Supabase create failed: {res.status_code}")
+        data = res.json()
+        uid = data.get("id") or data.get("user", {}).get("id")
+        return uid, True
 
     try:
-        if target:
-            user_id = target["id"]
-            # Update password and metadata via Admin API
-            up_res = requests.put(
-                f"{settings.SUPABASE_URL}/auth/v1/admin/users/{user_id}",
-                headers=_admin_headers(),
-                json={
-                    "password": payload.password,
-                    "email_confirm": True,
-                    "user_metadata": {
-                        "name": payload.name,
-                        "full_name": payload.name,
-                        "userid": payload.userid,
-                        "nickname": payload.userid,
-                        "birth_date": payload.birth_date,
-                        "detail_major": payload.detail_major
-                    }
-                },
-                timeout=10
-            )
-            if up_res.status_code >= 400:
-                logger.error("Supabase profile update failed: status=%s", up_res.status_code)
-                raise HTTPException(status_code=400, detail="Supabase 업데이트 실패")
-        else:
-            # Create user via Admin API
-            create_res = requests.post(
-                f"{settings.SUPABASE_URL}/auth/v1/admin/users",
-                headers=_admin_headers(),
-                json={
-                    "email": payload.email,
-                    "password": payload.password,
-                    "email_confirm": True,
-                    "user_metadata": {
-                        "name": payload.name,
-                        "full_name": payload.name,
-                        "userid": payload.userid,
-                        "nickname": payload.userid,
-                        "birth_date": payload.birth_date,
-                        "detail_major": payload.detail_major
-                    }
-                },
-                timeout=10
-            )
-            if create_res.status_code >= 400:
-                logger.error("Supabase user create failed: status=%s", create_res.status_code)
-                raise HTTPException(status_code=400, detail="Supabase 생성 실패")
-            
-            data = create_res.json()
-            user_id = data.get("id") or data.get("user", {}).get("id")
-            is_new_user = True
-
-    except HTTPException:
-        raise
+        user_id, is_new_user = await asyncio.to_thread(_supabase_signup_sync)
+    except ValueError as e:
+        logger.error("Supabase signup error: %s", e)
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Supabase signup integration error: {e}")
+        logger.error("Supabase signup integration error: %s", e)
         raise HTTPException(status_code=502, detail="Supabase 연동 중 오류가 발생했습니다.")
 
     if not user_id:
@@ -514,7 +497,7 @@ async def login(
 
     # 2) Authenticate with Supabase
     try:
-        res = requests.post(
+        res = httpx.post(
             f"{settings.SUPABASE_URL}/auth/v1/token?grant_type=password",
             headers={
                 "apikey": settings.SUPABASE_ANON_KEY,
@@ -561,7 +544,7 @@ async def request_password_reset(
 ):
     """Request password reset via Supabase (이메일 링크 방식, 레거시)."""
     try:
-        res = requests.post(
+        res = httpx.post(
             f"{settings.SUPABASE_URL}/auth/v1/recover",
             headers={
                 "apikey": settings.SUPABASE_ANON_KEY,
@@ -617,7 +600,7 @@ async def reset_password_direct(
         raise HTTPException(status_code=400, detail="아이디와 이메일이 일치하는 회원이 없습니다.")
     user_id = row["id"]
     try:
-        res = requests.put(
+        res = httpx.put(
             f"{settings.SUPABASE_URL}/auth/v1/admin/users/{user_id}",
             headers=_admin_headers(),
             json={"password": payload.new_password},
@@ -712,7 +695,7 @@ async def update_profile(
     # 3. Update Supabase metadata (Merge instead of replace)
     try:
         # First, fetch current user to get existing metadata
-        user_res = requests.get(
+        user_res = httpx.get(
             f"{settings.SUPABASE_URL}/auth/v1/admin/users/{user_id}",
             headers=_admin_headers(),
             timeout=10
@@ -721,7 +704,7 @@ async def update_profile(
             current_metadata = user_res.json().get("user_metadata", {})
             merged_metadata = {**current_metadata, **updates}
             
-            requests.put(
+            httpx.put(
                 f"{settings.SUPABASE_URL}/auth/v1/admin/users/{user_id}",
                 headers=_admin_headers(),
                 json={"user_metadata": merged_metadata},

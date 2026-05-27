@@ -20,10 +20,13 @@
    - **난이도 기반 XP**: `app/utils/xp.py` — 난이도 구간별 가중치, 최소 0.5 XP
    - **9단계 레벨·티어**: Lv1~2 Bronze → Lv9 Diamond (solved.ac 스타일), 레벨 게이지바 시각화
 4. **인증 및 보안 (Auth & Security)**
-   - **비활동 세션 관리**: 1시간 이상 비활동 시 자동 로그아웃
+   - **JWT 알고리즘 고정**: `SUPABASE_JWT_ALGORITHM=ES256` 설정으로 알고리즘 혼동 공격(HS256 위조) 방지
+   - **이메일 열거 방지**: 회원 여부와 무관하게 동일 응답 반환 (find-userid 엔드포인트)
+   - **비활동 세션 관리**: 3시간 이상 비활동 시 자동 로그아웃 (하드 만료 3시간)
    - **Supabase Auth**: JWT 세션, OTP·이메일/비밀번호, 프로필·전공·학년
 5. **모던 UI/UX (Frontend)**
    - **React + Vite**, TailwindCSS + Shadcn UI
+   - **Vercel Speed Insights**: Core Web Vitals (LCP·FID·CLS) 자동 수집
    - **TanStack Query (React Query)**: 자격증 목록/상세/통계·필터 옵션 캐시(staleTime 10분·1시간)
    - 마이페이지: 취득 자격증, XP·티어, 관심·최근 본·전공 맞춤 추천, 세션/캐시 복원
 
@@ -37,6 +40,7 @@
 - **State & Server State**: Context, TanStack Query (`useCerts`, `useCertDetail`, `useFilterOptions` 등), Custom Hooks (`useAuth`, `useRecommendations`, `useMajors`, `usePopularMajors`)
 - **API Client**: Fetch + `src/lib/api.ts` (재시도, Mock Fallback)
 - **Routing**: Client-side Router (`src/lib/router.tsx`)
+- **성능 모니터링**: Vercel Speed Insights (`@vercel/speed-insights/react`)
 
 ### **Backend**
 - **Framework**: FastAPI (Async)

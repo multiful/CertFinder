@@ -722,10 +722,20 @@ async def hybrid_recommendation(
             # 응답 속도와 결과 일관성을 위해, 현재는 확장 질의를 1개만 사용한다.
             multi_queries = [expanded_interest]
             try:
+                # major 임베딩은 자주 반복 → Redis 캐시 (24h)
+                async def _get_major_vector() -> list:
+                    _key = f"emb:major:v1:{major}"
+                    _cached = redis_client.get(_key)
+                    if _cached and isinstance(_cached, list):
+                        return _cached
+                    v = await get_embedding_async(major)
+                    redis_client.set(_key, v, ttl=86400)
+                    return v
+
                 # 임베딩 2회를 병렬 호출해 지연 절감 (query + major)
                 query_vectors, major_vector = await asyncio.gather(
                     asyncio.gather(*[get_embedding_async(q) for q in multi_queries]),
-                    get_embedding_async(major),
+                    _get_major_vector(),
                 )
             except Exception as emb_err:
                 logger.exception("hybrid_recommendation embedding failed")

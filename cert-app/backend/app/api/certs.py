@@ -17,7 +17,7 @@ from app.schemas import (
 )
 from sqlalchemy import text, func
 from datetime import date
-from app.crud import qualification_crud, stats_crud, get_qualification_aggregated_stats
+from app.crud import qualification_crud, stats_crud, get_qualification_aggregated_stats, get_qualification_aggregated_stats_bulk
 from app.redis_client import redis_client
 from app.config import get_settings
 
@@ -261,9 +261,10 @@ async def get_cert_detail(
     if user_id:
         redis_client.push_recent(f"user:{user_id}:recent_certs", str(qual_id))
     
-    # Get aggregated stats
-    from app.crud import get_qualification_aggregated_stats
-    aggregated_stats = get_qualification_aggregated_stats(db, qual_id)
+    # Get aggregated stats (bulk function: 3 queries total vs 3 per-ID queries in the single-item version)
+    aggregated_stats = get_qualification_aggregated_stats_bulk(db, [qual_id]).get(
+        qual_id, {"latest_pass_rate": None, "avg_difficulty": None, "total_candidates": None}
+    )
     
     response = QualificationDetailResponse(
         qual_id=qual.qual_id,
@@ -473,7 +474,7 @@ async def get_trending_certs(
         top_quals = db.query(
             Qualification,
             func.sum(QualificationStats.candidate_cnt).label("total_cands")
-        ).join(QualificationStats).group_by(Qualification.qual_id).order_by(text("total_cands DESC")).limit(limit).all()
+        ).join(QualificationStats).filter(Qualification.is_active == True).group_by(Qualification.qual_id).order_by(text("total_cands DESC")).limit(limit).all()
         
         items = []
         for qual, total_cands in top_quals:
@@ -490,7 +491,7 @@ async def get_trending_certs(
 
     qual_ids = [int(qid) for qid, _ in trending_data]
     rows = db.execute(
-        text("SELECT qual_id, qual_name, qual_type, main_field FROM qualification WHERE qual_id = ANY(:ids)"),
+        text("SELECT qual_id, qual_name, qual_type, main_field FROM qualification WHERE qual_id = ANY(:ids) AND is_active = TRUE"),
         {"ids": qual_ids},
     ).fetchall()
     qual_map = {r.qual_id: r for r in rows}
@@ -600,10 +601,13 @@ async def get_recent_viewed(
     ).fetchall()
     qual_map = {r.qual_id: r for r in rows}
 
+    # Bulk stats fetch — 1 query instead of N
+    bulk_stats = get_qualification_aggregated_stats_bulk(db, int_ids)
+
     for qid in int_ids:
         if qid in qual_map:
             r = qual_map[qid]
-            stats = get_qualification_aggregated_stats(db, r.qual_id)
+            stats = bulk_stats.get(qid, {"latest_pass_rate": None, "avg_difficulty": None, "total_candidates": None})
             response_items.append(
                 QualificationListItemResponse(
                     qual_id=r.qual_id,

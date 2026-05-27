@@ -161,7 +161,14 @@ async def lifespan(app: FastAPI):
             if ok:
                 logger.info("Contrastive index pre-warm completed.")
             else:
-                logger.debug("Contrastive pre-warm skipped or failed (see contrastive logs).")
+                from app.rag.retrieve.contrastive_retriever import diagnose_contrastive_status
+                diag = diagnose_contrastive_status()
+                logger.warning(
+                    "Contrastive pre-warm failed (step=%s): %s — "
+                    "FAISS 인덱스를 RAG_CONTRASTIVE_INDEX_DIR에 배치하거나 RAG_CONTRASTIVE_ENABLE=False로 설정하세요.",
+                    diag.get("step", "?"),
+                    diag.get("reason", "unknown"),
+                )
         except Exception as e:
             logger.warning("Contrastive pre-warm task failed: %s", e)
 
@@ -187,6 +194,32 @@ async def lifespan(app: FastAPI):
             logger.warning("Hierarchical pre-warm task failed: %s", e)
 
     asyncio.create_task(_background_hierarchical_prewarm())
+
+    async def _background_bm25_prebuild():
+        """BM25 인덱스 파일 없으면 DB에서 자동 빌드 — Render 재배포 후 ephemeral storage 재구성."""
+        await asyncio.sleep(25)
+        try:
+            from pathlib import Path
+            from app.rag.config import get_rag_index_dir
+            index_dir = get_rag_index_dir()
+            bm25_path = Path(index_dir) / "bm25.pkl"
+            if bm25_path.exists():
+                logger.info("BM25 index found at %s — skipping auto-build.", bm25_path)
+                return
+            logger.info("BM25 index not found at %s — building from DB in background...", bm25_path)
+            from app.rag.index.builder import build_bm25_from_db
+            from app.database import SessionLocal
+            loop = asyncio.get_running_loop()
+            db = SessionLocal()
+            try:
+                await loop.run_in_executor(None, build_bm25_from_db, db)
+            finally:
+                db.close()
+            logger.info("BM25 index auto-build complete: %s", bm25_path)
+        except Exception as e:
+            logger.warning("BM25 auto-build failed: %s", e)
+
+    asyncio.create_task(_background_bm25_prebuild())
 
     yield
     

@@ -15,6 +15,11 @@ from typing import List
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+import re as _re
+
+# PostgreSQL to_tsquery 특수문자(파이프·앤퍼샌드 등) 제거용
+_NON_TSQUERY_CHAR = _re.compile(r"[^a-zA-Z0-9가-힣]")
+
 TOP_PER_QUERY = 30
 RRF_K = 60
 RRF_K_SPARSE_INTERNAL = 30
@@ -31,13 +36,17 @@ def classify_query_and_expand(query: str) -> tuple[float, float, str]:
     - 그 외: w_d=1.3, w_s=0.7
     """
     q = (query or "").strip()
-    base = q
-    if "정보처리기사" in q:
-        base = "정보처리기사 정보처리"
-    elif q.upper() == "SQL" or "SQL" in q:
-        base = "SQL 데이터베이스"
-    elif "간호" in q:
-        base = "간호사 간호"
+    try:
+        from app.rag.utils.query_processor import expand_query_single_string
+        base = expand_query_single_string(q, for_recommendation=True)
+    except Exception:
+        base = q
+        if "정보처리기사" in q:
+            base = "정보처리기사 정보처리"
+        elif q.upper() == "SQL" or "SQL" in q:
+            base = "SQL 데이터베이스"
+        elif "간호" in q:
+            base = "간호사 간호"
 
     tokens = q.split()
     is_short = len(tokens) <= 2 and len(q) <= 8
@@ -51,19 +60,53 @@ def classify_query_and_expand(query: str) -> tuple[float, float, str]:
     return w_d, w_s, base
 
 
-def _sparse_rank_map_for_query(db: Session, q: str, limit: int) -> dict[int, int]:
-    """풀텍스트 검색으로 qual_id -> rank(1-based) 맵 반환. 매칭 없으면 빈 dict."""
+def _build_or_tsquery_str(q: str, max_tokens: int = 20) -> str:
+    """공백 구분 질의 토큰을 PostgreSQL to_tsquery() OR 문자열로 변환 (길게 확장된 쿼리 대응)."""
+    seen: set = set()
+    tokens: list = []
+    for t in q.split():
+        safe = _NON_TSQUERY_CHAR.sub("", t)
+        sl = safe.lower()
+        if sl and len(safe) >= 2 and sl not in seen:
+            seen.add(sl)
+            tokens.append(safe)
+        if len(tokens) >= max_tokens:
+            break
+    if not tokens:
+        parts = q.strip().split()
+        return parts[0] if parts else "자격증"
+    return " | ".join(tokens)
+
+
+def _sparse_rank_map_for_query(db: Session, q: str, limit: int, use_or: bool = False) -> dict[int, int]:
+    """풀텍스트 검색으로 qual_id -> rank(1-based) 맵 반환. 매칭 없으면 빈 dict.
+    use_or=True: expand_query_single_string으로 확장된 긴 문자열에 OR 검색 (to_tsquery)
+    use_or=False: 짧은 원문 질의에 AND 검색 (plainto_tsquery, 기본값)
+    """
     try:
-        ft_sql = text(
+        if use_or:
+            tsq = _build_or_tsquery_str(q)
+            ft_sql = text(
+                """
+                SELECT qual_id, name
+                FROM certificates_vectors
+                WHERE content_tsv @@ to_tsquery('simple', :tsq)
+                ORDER BY ts_rank_cd(content_tsv, to_tsquery('simple', :tsq)) DESC
+                LIMIT :limit
             """
-            SELECT qual_id, name
-            FROM certificates_vectors
-            WHERE content_tsv @@ plainto_tsquery('simple', :q)
-            ORDER BY ts_rank_cd(content_tsv, plainto_tsquery('simple', :q)) DESC
-            LIMIT :limit
-        """
-        )
-        ft_rows = db.execute(ft_sql, {"q": q, "limit": limit}).fetchall()
+            )
+            ft_rows = db.execute(ft_sql, {"tsq": tsq, "limit": limit}).fetchall()
+        else:
+            ft_sql = text(
+                """
+                SELECT qual_id, name
+                FROM certificates_vectors
+                WHERE content_tsv @@ plainto_tsquery('simple', :q)
+                ORDER BY ts_rank_cd(content_tsv, plainto_tsquery('simple', :q)) DESC
+                LIMIT :limit
+            """
+            )
+            ft_rows = db.execute(ft_sql, {"q": q, "limit": limit}).fetchall()
         seen = set()
         rank_list: list[int] = []
         for r in ft_rows:
@@ -147,23 +190,19 @@ def enhanced_rag_03_hybrid(
     max_dist = 1.0 - enhanced_vector_threshold
     if w_d_override is not None and w_s_override is not None:
         w_d, w_s = w_d_override, w_s_override
-        expanded_q = (query or "").strip()
-        if "정보처리기사" in expanded_q:
-            expanded_q = "정보처리기사 정보처리"
-        elif expanded_q.upper() == "SQL" or "SQL" in expanded_q:
-            expanded_q = "SQL 데이터베이스"
-        elif "간호" in expanded_q:
-            expanded_q = "간호사 간호"
+        try:
+            from app.rag.utils.query_processor import expand_query_single_string
+            expanded_q = expand_query_single_string((query or "").strip(), for_recommendation=True)
+        except Exception:
+            expanded_q = (query or "").strip()
     elif getattr(get_rag_settings(), "RAG_CURRENT_W_D", None) is not None and getattr(get_rag_settings(), "RAG_CURRENT_W_S", None) is not None:
         w_d = get_rag_settings().RAG_CURRENT_W_D
         w_s = get_rag_settings().RAG_CURRENT_W_S
-        expanded_q = (query or "").strip()
-        if "정보처리기사" in expanded_q:
-            expanded_q = "정보처리기사 정보처리"
-        elif expanded_q.upper() == "SQL" or "SQL" in expanded_q:
-            expanded_q = "SQL 데이터베이스"
-        elif "간호" in expanded_q:
-            expanded_q = "간호사 간호"
+        try:
+            from app.rag.utils.query_processor import expand_query_single_string
+            expanded_q = expand_query_single_string((query or "").strip(), for_recommendation=True)
+        except Exception:
+            expanded_q = (query or "").strip()
     else:
         w_d, w_s, expanded_q = classify_query_and_expand(query)
 
@@ -191,7 +230,8 @@ def enhanced_rag_03_hybrid(
     vec_rank_map = {qid: i + 1 for i, qid in enumerate(vec_rank_list)}
 
     # ----- Sparse 채널: 다중 질의(expanded_q + 원문) RRF 병합 -----
-    sparse_map_exp = _sparse_rank_map_for_query(db, expanded_q, TOP_PER_QUERY)
+    # expanded_q는 expand_query_single_string으로 확장된 긴 문자열 → OR 검색으로 Recall 확보
+    sparse_map_exp = _sparse_rank_map_for_query(db, expanded_q, TOP_PER_QUERY, use_or=True)
     sparse_map_orig = (
         _sparse_rank_map_for_query(db, query.strip(), TOP_PER_QUERY)
         if query.strip() != expanded_q

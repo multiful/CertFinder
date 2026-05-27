@@ -153,14 +153,24 @@ def _send_contact_via_resend(
 def send_contact_emails_sync(name: str, sender_email: str, subject: str, message: str) -> None:
     """
     관리자·발신자에게 메일 전송. 실패 시 ContactEmailError.
-    RESEND_API_KEY 가 있으면 Resend(HTTPS), 없으면 SMTP.
+    RESEND_API_KEY 가 있으면 Resend(HTTPS) 우선 시도 → 실패 시 SMTP 폴백.
     (동기 함수 — 엔드포인트에서 asyncio.to_thread로 실행)
     """
     settings = get_settings()
 
     if (settings.RESEND_API_KEY or "").strip():
-        _send_contact_via_resend(settings, name, sender_email, subject, message)
-        return
+        try:
+            _send_contact_via_resend(settings, name, sender_email, subject, message)
+            return
+        except ContactEmailError as e:
+            # Resend 실패 시 SMTP로 폴백 (from 도메인 미인증, 수신자 미인증 등)
+            if settings.EMAIL_USER and settings.EMAIL_PASSWORD:
+                logger.warning(
+                    "[contact] Resend 실패(%s) — SMTP 폴백 시도: %s",
+                    e.status_code, e.detail,
+                )
+            else:
+                raise
 
     if not settings.EMAIL_USER or not settings.EMAIL_PASSWORD:
         logger.error(

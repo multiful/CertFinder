@@ -309,8 +309,9 @@ class MajorQualificationMapCRUD:
         """Get qualification mappings with qualification stats."""
         return db.query(MajorQualificationMap).options(
             joinedload(MajorQualificationMap.qualification).joinedload(Qualification.stats)
-        ).filter(
-            MajorQualificationMap.major == major
+        ).join(MajorQualificationMap.qualification).filter(
+            MajorQualificationMap.major == major,
+            Qualification.is_active == True,
         ).order_by(
             desc(MajorQualificationMap.score)
         ).limit(limit).all()
