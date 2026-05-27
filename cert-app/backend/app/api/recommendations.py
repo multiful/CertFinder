@@ -167,6 +167,7 @@ async def get_recommendations(
 
     search_major = major.strip()
     resolved_major = search_major  # 항상 원본 입력값으로 표시 (정규화 풀어서 표시)
+    mappings: list = []
 
     # Step 1: major_category 정규화 → 같은 카테고리의 모든 major_name UNION
     # 예) "컴퓨터공학부" → category "컴퓨터공학과" → 93개 변형 major_name 전체 자격증 합산
