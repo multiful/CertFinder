@@ -3,8 +3,13 @@ Allow: /
 Allow: /certs/
 Allow: /jobs/
 Allow: /recommendations/
+Allow: /ai-recommendations/
 Disallow: /admin/
 Disallow: /me/
 Disallow: /auth/
+Disallow: /mypage/
+
+User-agent: Yeti
+Allow: /
 
 Sitemap: https://certfinder.cloud/sitemap.xml
