@@ -100,7 +100,7 @@ export function AiRecommendationPage() {
     const [majorError, setMajorError] = useState<string | null>(null);
     const [, setError] = useState<Error | null>(null);
     const { navigate } = useRouter();
-    const { token, user } = useAuth();
+    const { token, user, loading: authLoading } = useAuth();
     const profileMajor = (user as any)?.user_metadata?.detail_major as string | undefined;
 
     const [availableMajors, setAvailableMajors] = useState<string[]>([]);
@@ -133,7 +133,9 @@ export function AiRecommendationPage() {
     };
 
     // sessionStorage 복원은 user.id(로그인 전환) 기준만 — 매 입력마다 돌면 캐시가 입력을 덮어씀
+    // authLoading 중에는 실행하지 않음 — 로드 전에 user=null로 캐시를 잘못 삭제하는 버그 방지
     useEffect(() => {
+        if (authLoading) return;
         const currentUid = user?.id ?? null;
         let payload: AiRecCachePayload | null = null;
         try {
@@ -194,9 +196,9 @@ export function AiRecommendationPage() {
             if (i) setInterest(i);
             if (r) setResults(r);
         }
-        // invalid 분기에서 profileMajor 참조 — 의도적으로 [user?.id]만 의존 (profileMajor 넣으면 캐시 재복원 위험)
+        // invalid 분기에서 profileMajor 참조 — 의도적으로 [user?.id, authLoading]만 의존 (profileMajor 넣으면 캐시 재복원 위험)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id]);
+    }, [user?.id, authLoading]);
 
     // 로그인 + JWT에 전공이 늦게 붙는 경우·캐시 없이 진입 시 전공 칸만 자동 채움 (이미 입력 있으면 유지)
     useEffect(() => {
