@@ -102,6 +102,9 @@ class BM25Index:
         self._bm25 = BM25Okapi(tokenized, k1=k1, b=b)
         self._use_korean_ngram = use_korean_ngram
         self._k1, self._b = k1, b
+        # BM25Okapi 내부에 이미 토크나이즈된 코퍼스가 있으므로 원본 텍스트는 해제
+        # (save() 호출 경로에서만 재구성 필요 — 런타임 서치엔 불필요)
+        self._corpus = []
 
     def search(self, query: str, k: int = 10) -> List[Tuple[str, float]]:
         """(chunk_id, score) 리스트 반환."""

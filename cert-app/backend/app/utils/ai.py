@@ -86,7 +86,7 @@ class EmbeddingCache:
             }
 
 
-_embedding_cache = EmbeddingCache(max_size=5000, ttl_seconds=3600)
+_embedding_cache = EmbeddingCache(max_size=500, ttl_seconds=3600)
 
 
 def _log_embedding_usage(model: str, latency_ms: float, usage: object | None) -> None:

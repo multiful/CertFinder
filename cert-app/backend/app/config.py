@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_WINDOW: int = 60  # seconds
     AUTH_RATE_LIMIT_REQUESTS: int = 5  # Auth 전용: 분당 횟수 (send_code, login 등)
     AUTH_RATE_LIMIT_WINDOW: int = 60  # seconds
+    # AI 엔드포인트 전용 (OpenAI API 호출 비용 보호): 분당 20회
+    AI_RATE_LIMIT_REQUESTS: int = 20
+    AI_RATE_LIMIT_WINDOW: int = 60  # seconds
 
     # CORS (쉼표 구분. 비어 있으면 기본값 사용)
     CORS_ORIGINS: str = ""

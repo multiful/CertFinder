@@ -58,7 +58,7 @@ class RAGSettings(BaseSettings):
     RAG_CONTRASTIVE_TOP_N: Optional[int] = 76
     # Hierarchical retrieval: child(문단/섹션) BM25 검색 후 parent(qual_id)로 환원해 BM25 채널과 병합.
     # certificates_vectors.content가 채워진 행이 있을 때 recall 개선. 첫 빌드 시 메모리 BM25 구축 비용 있음.
-    RAG_HIERARCHICAL_RETRIEVAL_ENABLE: bool = True
+    RAG_HIERARCHICAL_RETRIEVAL_ENABLE: bool = False  # 메모리 절감: 전체 content를 RAM에 올리므로 기본 비활성. 필요 시 env로 true
     RAG_HIERARCHICAL_CHILD_TOP_N: int = 90
     RAG_HIERARCHICAL_BLEND_WEIGHT: float = 0.38
     # 계층 BM25: 0이면 매 질의 COUNT로 무효화 확인(지연↑). >0이면 해당 초 동안 COUNT 생략·메모리 인덱스 신뢰(지연↓).

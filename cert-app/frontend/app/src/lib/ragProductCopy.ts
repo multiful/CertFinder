@@ -6,8 +6,8 @@ export const PRODUCT_FOOTER_LINE =
 
 /** AI 추천 로딩·설명용 한 줄 */
 export const RAG_RETRIEVAL_LOADING_LINE =
-  'BM25·시맨틱(pgvector)·Contrastive 3채널 하이브리드 검색, 합격률·난이도·프로필 보정을 합치는 중입니다.';
+  '적절한 자격증을 추출하는 중입니다.';
 
 /** 스펙 패널·툴팁용 */
 export const RAG_RETRIEVAL_DETAIL_LINE =
-  '로컬 BM25 + pgvector + Contrastive(768)를 Linear 융합하고, 설정·질의에 따라 계층 BM25·메타 보정·Cross-Encoder 리랭킹 경로가 붙습니다.';
+  '전공·관심사를 여러 방식으로 분석해 가장 잘 맞는 자격증을 추려냅니다. 합격률과 난이도도 함께 반영됩니다.';

@@ -46,16 +46,6 @@ type AiRecCachePayload = {
 /** 로그인 사용자 하이브리드 추천 API limit (백엔드 le=20). 늘려도 RAG 비용은 거의 동일. */
 const HYBRID_RECOMMEND_LIMIT = 15;
 
-/** 백엔드 retrieval_pipeline 접두사 `bm25_vector_contrastive_*` 에 맞춰 퓨전 방식 표기 */
-function enhancedRetrievalFusionLabel(pipeline?: string | null): string | null {
-    const prefix = 'bm25_vector_contrastive_';
-    if (!pipeline?.startsWith(prefix)) return null;
-    const s = pipeline.slice(prefix.length);
-    if (s === 'linear' || s === 'rrf') return 'Linear';
-    if (s === 'combmnz') return 'CombMNZ';
-    if (s === 'combsum') return 'CombSUM';
-    return s;
-}
 
 const POPULAR_MAJORS = ['컴퓨터공학', '경영학', '전기공학', '간호학', '기계공학', '데이터사이언스'];
 
@@ -66,31 +56,31 @@ const AI_ENGINE_STATS = [
         unit: '개',
         icon: Database,
         color: 'blue' as const,
-        desc: '국가 자격증 카탈로그(검색·임베딩 대상)',
+        desc: '검색 대상 국가 자격증 수',
         descSmall: false,
     },
     {
-        label: '검색 파이프라인',
-        value: '3-way Hybrid',
+        label: '분석 방식',
+        value: '다중 검색',
         unit: '',
         icon: GitMerge,
         color: 'purple' as const,
-        desc: '(keyword · semantic · contrastive)',
+        desc: '키워드·의미·맥락을 함께 분석합니다',
         descSmall: true,
     },
     {
-        label: '순위 융합·리랭킹',
-        value: 'Hybrid (+조건부 리랭커)',
+        label: '결과 정렬',
+        value: 'AI 점수순',
         unit: '',
         icon: Layers,
         color: 'indigo' as const,
-        desc: '설정·질의에 따라 Cross-Encoder 생략 가능',
+        desc: '전공·관심사 적합도 기준으로 자동 정렬',
         descSmall: true,
     },
     {
-        label: '검색·품질',
-        value: 'Recall',
-        unit: ' · MRR',
+        label: '추천 품질',
+        value: '지속 개선',
+        unit: '',
         icon: TrendingUp,
         color: 'green' as const,
         desc: '전공·관심사에 맞는 후보 순위를 유지합니다',
@@ -231,11 +221,6 @@ export function AiRecommendationPage() {
         return list.filter(m => m.includes(t));
     }, [availableMajors, inputValue, majorExactMode]);
 
-    const fusionPipelineLabel = useMemo(
-        () => enhancedRetrievalFusionLabel(results?.retrieval_pipeline ?? null),
-        [results?.retrieval_pipeline],
-    );
-
     const handleRecommend = async () => {
         if (!major) {
             setMajorError('전공을 선택하거나 입력해주세요.');
@@ -308,7 +293,7 @@ export function AiRecommendationPage() {
                     <div className="flex-1 space-y-6">
                         <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-3 py-1">
                             <BrainCircuit className="w-4 h-4 mr-2" />
-                            AI 추천 · 하이브리드 검색
+                            AI 자격증 추천
                         </Badge>
                         <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight">
                             관심사와 전공을 <br />
@@ -320,7 +305,7 @@ export function AiRecommendationPage() {
                             전공·관심사·프로필을 반영해 자격 후보를 고릅니다.
                             <br />
                             <span className="text-slate-500 text-base">
-                                검색층은 BM25·시맨틱(pgvector)·Contrastive 3채널 하이브리드입니다.
+                                전공과 관심사를 바탕으로 딱 맞는 자격증을 찾아드립니다.
                             </span>
                         </p>
                     </div>
@@ -479,11 +464,9 @@ export function AiRecommendationPage() {
                             <h2 className="text-2xl font-bold text-white flex items-center gap-3 flex-wrap">
                                 <Sparkles className="w-6 h-6 text-yellow-500" />
                                 분석 결과
-                                {fusionPipelineLabel && (
-                                    <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] font-normal">
-                                        BM25+Vector+Contrastive ({fusionPipelineLabel})
-                                    </Badge>
-                                )}
+                                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] font-normal">
+                                    AI 분석 완료
+                                </Badge>
                             </h2>
                             <p className="text-slate-400">
                                 {results.major} 전공과 {results.interest ? `"${results.interest}"` : "시스템 데이터"}를 결합한 추천입니다.
@@ -722,19 +705,19 @@ export function AiRecommendationPage() {
                             })}
                         </div>
 
-                        {/* 정합성 점수 구성 바 — BM25 + Vector + Contrastive 파이프라인 */}
+                        {/* 추천 점수 구성 */}
                         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 space-y-4">
                             <div className="flex items-center justify-between flex-wrap gap-2">
                                 <p className="text-sm font-bold text-slate-300 flex items-center gap-2">
                                     <GitMerge className="w-4 h-4 text-purple-400" />
-                                    정합성 점수 구성 (Hybrid Score)
+                                    추천 점수 구성
                                 </p>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px]">
-                                        절대 매칭도
+                                        전공 연관성
                                     </Badge>
                                     <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">
-                                        BM25+Vector+Contrastive
+                                        관심사 일치도
                                     </Badge>
                                 </div>
                             </div>
@@ -764,13 +747,12 @@ export function AiRecommendationPage() {
                                         <div className="h-full w-[60%] bg-gradient-to-r from-purple-600 to-indigo-400 rounded-full" />
                                     </div>
                                     <p className="text-[11px] text-slate-600">
-                                        BM25 + Vector(Dense) + Contrastive 융합 점수 비중은 관심사 입력 여부 등에 따라 달라집니다.
+                                        관심사를 입력할수록 더 정확하게 맞춰집니다.
                                     </p>
                                 </div>
                             </div>
                             <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-800 leading-relaxed">
-                                {RAG_RETRIEVAL_DETAIL_LINE} 정합성 점수는 전공·융합 신호에 합격률·난이도 보정을 곱한 형태로
-                                표시됩니다.
+                                {RAG_RETRIEVAL_DETAIL_LINE}
                             </p>
                             <p className="text-[10px] text-slate-600 leading-relaxed">
                                 막대 길이·표시 비율은 이해를 돕는 예시이며, 실제 서버 가중치·분기와 수치가 일치하지 않을 수 있습니다.

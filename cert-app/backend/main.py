@@ -65,13 +65,11 @@ def _get_allowed_origins() -> list[str]:
         base.extend(["http://localhost:5173", "http://127.0.0.1:5173"])
     return base
 
-# Trusted Host 허용 호스트 (환경변수 없으면 Railway + 레거시 Render + localhost)
+# Trusted Host 허용 호스트 (환경변수 없으면 Render + localhost)
 def _get_allowed_hosts() -> list[str]:
     if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS.strip():
         return [h.strip() for h in settings.ALLOWED_HOSTS.split(",") if h.strip()]
-    # 기본값: Railway(현재) + Render(레거시) + 로컬. ALLOWED_HOSTS 환경변수가 있으면 우선.
     return [
-        "certfinder-production.up.railway.app",
         "certweb-xzpx.onrender.com",
         "localhost",
         "127.0.0.1",
@@ -364,15 +362,23 @@ app.include_router(contact.router, prefix=v1_prefix)
 
 # ============== Health Check ==============
 
+_health_cache: dict = {"db_ok": True, "ts": 0.0}
+_HEALTH_DB_CHECK_INTERVAL = 30.0  # 플랫폼 헬스체크 주기(30s)와 맞춰 실제 DB 쿼리 횟수를 최소화
+
+
 @app.get("/health", tags=["health"])
 @app.head("/health")
 async def health_check():
     """Health check endpoint."""
-    db_status = "healthy" if check_database_connection() else "unhealthy"
+    now = time.time()
+    if now - _health_cache["ts"] >= _HEALTH_DB_CHECK_INTERVAL:
+        _health_cache["db_ok"] = check_database_connection()
+        _health_cache["ts"] = now
+
+    db_status = "healthy" if _health_cache["db_ok"] else "unhealthy"
     redis_status = "healthy" if redis_client.is_connected() else "unhealthy"
-    
-    overall_status = "healthy" if db_status == "healthy" else "degraded"
-    
+    overall_status = "healthy" if _health_cache["db_ok"] else "degraded"
+
     return {
         "status": overall_status,
         "database": db_status,

@@ -21,7 +21,7 @@ def _is_valid_uuid(value: Optional[str]) -> bool:
     return bool(value and _UUID_RE.match(value))
 
 from app.config import get_settings
-from app.api.deps import get_db_session, check_rate_limit, get_current_user, get_optional_user
+from app.api.deps import get_db_session, check_rate_limit, check_ai_rate_limit, get_current_user, get_optional_user
 from app.utils.ai import get_embedding_async
 from app.schemas import (
     SemanticSearchResponse,
@@ -215,6 +215,7 @@ async def semantic_search(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db_session),
     _: None = Depends(check_rate_limit),
+    _ai: None = Depends(check_ai_rate_limit),
     user_id: str = Depends(get_current_user),
 ) -> SemanticSearchResponse:
     """
@@ -266,6 +267,7 @@ async def hybrid_recommendation(
     limit: int = Query(15, ge=1, le=30),
     db: Session = Depends(get_db_session),
     _: None = Depends(check_rate_limit),
+    _ai: None = Depends(check_ai_rate_limit),
     user_id: Optional[str] = Depends(get_optional_user),
 ) -> HybridRecommendationResponse:
     """

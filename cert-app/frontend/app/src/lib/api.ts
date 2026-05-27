@@ -21,12 +21,12 @@ import { mockApi } from './mockApi';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (import.meta as any).env?.VITE_API_BASE_URL ||
   (import.meta as any).env?.NEXT_PUBLIC_API_URL ||
-  'https://certfinder-production.up.railway.app/api/v1';
+  'https://certweb-xzpx.onrender.com/api/v1';
 
-/** 요청 타임아웃 (ms). 실무에서는 15~30초 권장 */
+/** 요청 타임아웃 (ms). */
 const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
-/** AI 추천 등 무거운 API용 타임아웃 (cold start·embedding·LLM 고려) */
-const AI_RECOMMENDATION_TIMEOUT_MS = 45000;
+/** AI 추천 타임아웃 — Render 콜드스타트(최대 50s) + 처리 시간 고려 */
+const AI_RECOMMENDATION_TIMEOUT_MS = 70000;
 /** 재시도 횟수 (네트워크/5xx만). 4xx는 재시도 안 함 */
 const MAX_RETRIES = 2;
 /** 재시도 대기: 지수 백오프 (1초, 2초) */

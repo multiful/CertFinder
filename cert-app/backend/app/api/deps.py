@@ -79,6 +79,28 @@ def check_rate_limit(request: Request) -> None:
     request.state.rate_limit_remaining = remaining
 
 
+def check_ai_rate_limit(request: Request) -> None:
+    """AI 엔드포인트 전용 Rate Limit — OpenAI 호출이 포함된 경로에만 적용."""
+    client_ip = _extract_client_ip(request)
+    key = f"rate_limit_ai:{client_ip}"
+    allowed, remaining, reset_after = redis_client.check_rate_limit(
+        key,
+        settings.AI_RATE_LIMIT_REQUESTS,
+        settings.AI_RATE_LIMIT_WINDOW,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="AI 추천 요청 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.",
+            headers={
+                "X-RateLimit-Limit": str(settings.AI_RATE_LIMIT_REQUESTS),
+                "X-RateLimit-Remaining": "0",
+                "Retry-After": str(reset_after),
+            },
+        )
+    request.state.rate_limit_remaining = remaining
+
+
 def check_auth_rate_limit(request: Request) -> None:
     """Auth 전용 엄격 레이트 리밋 (send_code, login, password_reset 등). 분당 5회 등."""
     client_ip = _extract_client_ip(request)

@@ -13,9 +13,11 @@ logger = logging.getLogger(__name__)
 # Create engine
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_pre_ping=True,  # Verify connections before using
-    pool_size=5,
-    max_overflow=10,
+    pool_pre_ping=True,
+    pool_size=2,       # Render 무료 플랜: 유휴 커넥션 최소화
+    max_overflow=3,    # 순간 피크 허용치 (총 최대 5개)
+    pool_timeout=30,
+    pool_recycle=1800, # 30분마다 커넥션 재생성 (Supabase idle 끊김 방지)
     echo=settings.DEBUG,
 )
 
