@@ -17,7 +17,7 @@ from app.schemas import (
     RelatedJobResponse,
     AvailableMajorsResponse
 )
-from app.crud import major_map_crud
+from app.crud import major_map_crud, MajorQualificationMapCRUD
 from app.redis_client import redis_client
 from app.config import get_settings
 
@@ -166,9 +166,36 @@ async def get_recommendations(
         logger.warning("Cache read failed for recommendations: %s", e)
 
     search_major = major.strip()
-    resolved_major = search_major
-    mappings = major_map_crud.get_by_major_with_stats(db, search_major, fetch_n)
+    resolved_major = search_major  # 항상 원본 입력값으로 표시 (정규화 풀어서 표시)
 
+    # Step 1: major_category 정규화 → 같은 카테고리의 모든 major_name UNION
+    # 예) "컴퓨터공학부" → category "컴퓨터공학과" → 93개 변형 major_name 전체 자격증 합산
+    cat_row = db.execute(
+        text("SELECT major_category FROM major WHERE major_name = :name LIMIT 1"),
+        {"name": search_major},
+    ).first()
+    if cat_row and cat_row[0]:
+        cat_names = [
+            r[0]
+            for r in db.execute(
+                text("SELECT major_name FROM major WHERE major_category = :cat"),
+                {"cat": cat_row[0]},
+            ).fetchall()
+        ]
+        if cat_names:
+            mappings = MajorQualificationMapCRUD.get_by_major_list_with_stats(
+                db, cat_names, fetch_n
+            )
+            logger.debug(
+                "Category match: '%s' → '%s' (%d variants, %d certs)",
+                search_major, cat_row[0], len(cat_names), len(mappings),
+            )
+
+    # Step 2: category 조회 실패 시 직접 exact 매치
+    if not mappings:
+        mappings = major_map_crud.get_by_major_with_stats(db, search_major, fetch_n)
+
+    # Step 3: 기존 suffix 제거 + fuzzy 텍스트 매칭 (최종 fallback)
     if not mappings:
         clean_major = search_major
         for suffix in ["학부", "학과", "전공", "공학부"]:
@@ -200,9 +227,26 @@ async def get_recommendations(
 
         if matched_map:
             matched_major = matched_map[0]
-            logger.info("Fuzzy match: '%s' -> '%s'", search_major, matched_major)
-            mappings = major_map_crud.get_by_major_with_stats(db, matched_major, fetch_n)
-            resolved_major = matched_major
+            logger.info("Fuzzy match: '%s' → '%s' (표시는 원본 유지)", search_major, matched_major)
+            # fuzzy 매치된 major_name도 카테고리 기반으로 확장
+            fc_row = db.execute(
+                text("SELECT major_category FROM major WHERE major_name = :name LIMIT 1"),
+                {"name": matched_major},
+            ).first()
+            if fc_row and fc_row[0]:
+                fc_names = [
+                    r[0]
+                    for r in db.execute(
+                        text("SELECT major_name FROM major WHERE major_category = :cat"),
+                        {"cat": fc_row[0]},
+                    ).fetchall()
+                ]
+                mappings = MajorQualificationMapCRUD.get_by_major_list_with_stats(
+                    db, fc_names or [matched_major], fetch_n
+                )
+            else:
+                mappings = major_map_crud.get_by_major_with_stats(db, matched_major, fetch_n)
+            # resolved_major는 원본 유지 (정규화 풀어서 표시)
 
     if not mappings:
         return RecommendationListResponse(items=[], major=search_major, total=0)

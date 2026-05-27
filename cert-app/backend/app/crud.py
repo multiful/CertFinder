@@ -320,6 +320,47 @@ class MajorQualificationMapCRUD:
     def get_majors_list(db: Session) -> List[str]:
         """Get list of all majors from the dedicated Major table."""
         return [r[0] for r in db.query(Major.major_name).order_by(Major.major_name).all()]
+
+    @staticmethod
+    def get_by_major_list_with_stats(
+        db: Session,
+        major_names: List[str],
+        limit: int = 100,
+    ) -> List[MajorQualificationMap]:
+        """여러 major_name의 자격증 매핑을 qual_id 기준 UNION (최고 score 유지, 중복 제거).
+        major_category 정규화 후 같은 카테고리 전체 major_name에 대해 호출한다."""
+        if not major_names:
+            return []
+
+        # DISTINCT ON으로 qual_id당 최고 score 행의 map_id만 추출
+        rows = db.execute(
+            text("""
+                SELECT DISTINCT ON (qual_id) map_id
+                FROM major_qualification_map
+                WHERE major = ANY(:names)
+                ORDER BY qual_id, score DESC
+                LIMIT :lim
+            """),
+            {"names": major_names, "lim": limit},
+        ).fetchall()
+
+        if not rows:
+            return []
+
+        map_ids = [r[0] for r in rows]
+        return (
+            db.query(MajorQualificationMap)
+            .options(
+                joinedload(MajorQualificationMap.qualification).joinedload(Qualification.stats)
+            )
+            .join(MajorQualificationMap.qualification)
+            .filter(
+                MajorQualificationMap.map_id.in_(map_ids),
+                Qualification.is_active == True,
+            )
+            .order_by(desc(MajorQualificationMap.score))
+            .all()
+        )
     
     @staticmethod
     def create(db: Session, obj_in: MajorQualificationMapCreate) -> MajorQualificationMap:
