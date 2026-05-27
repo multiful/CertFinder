@@ -203,8 +203,8 @@ async def send_email_code(
     if row:
         # If user exists, we don't send OTP and inform them
         raise HTTPException(
-            status_code=400, 
-            detail=f"이미 가입된 이메일입니다. (아이디: {row['userid']})"
+            status_code=400,
+            detail="이미 가입된 이메일입니다. 로그인 또는 아이디/비밀번호 찾기를 이용해 주세요."
         )
 
     try:
