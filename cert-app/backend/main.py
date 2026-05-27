@@ -58,6 +58,8 @@ def _get_allowed_origins() -> list[str]:
     if settings.CORS_ORIGINS and settings.CORS_ORIGINS.strip():
         return [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
     base = [
+        "https://certfinder.cloud",
+        "https://www.certfinder.cloud",
         "https://cert-web-sand.vercel.app",
         "https://cert-web-multifuls-projects.vercel.app",
     ]
@@ -70,6 +72,7 @@ def _get_allowed_hosts() -> list[str]:
     if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS.strip():
         return [h.strip() for h in settings.ALLOWED_HOSTS.split(",") if h.strip()]
     return [
+        "api.certfinder.cloud",
         "certweb-xzpx.onrender.com",
         "localhost",
         "127.0.0.1",
@@ -120,7 +123,7 @@ async def lifespan(app: FastAPI):
     
     # Redis sync은 백그라운드로 실행 — yield 이전에 블로킹하면 헬스체크 타임아웃으로 배포 실패할 수 있음
     async def _background_redis_sync():
-        await asyncio.sleep(5)  # 서버 준비 후 시작
+        await asyncio.sleep(30)  # 첫 요청과 DB 경합 방지 — 충분히 늦게 시작
         try:
             if not redis_client.is_connected():
                 logger.warning("Redis not connected. Skipping background sync.")

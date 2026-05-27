@@ -30,9 +30,9 @@ class Settings(BaseSettings):
     INTENT_LABEL_LOOKUP_ENABLE: bool = False
     INTENT_LABEL_MIN_SIMILARITY: float = 0.75
     
-    # AI (OpenAI). OPENAI_TIMEOUT: 임베딩/채팅 API 호출 타임아웃(초). 미설정 시 60
+    # AI (OpenAI). OPENAI_TIMEOUT: 임베딩/채팅 API 호출 타임아웃(초).
     OPENAI_API_KEY: str = ""
-    OPENAI_TIMEOUT: float = 60.0
+    OPENAI_TIMEOUT: float = 20.0
     # metadata emb_model_version / 재색인 drift 추적용. 기본 text-embedding-3-small (1536차원)
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     
