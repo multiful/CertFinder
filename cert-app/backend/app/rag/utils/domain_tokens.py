@@ -3,6 +3,8 @@
 data/domain_tokens.json이 있으면 로드, 없으면 하드코딩 기본값 사용.
 넓은 도메인은 domain_tokens_new_cert_full.json(전 직종) 우선.
 """
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 

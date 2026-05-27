@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
     SUPABASE_JWT_SECRET: str = ""
+    # JWT 검증 알고리즘 고정 ("HS256" or "RS256"). 미설정 시 토큰 헤더 alg를 따름(취약) → 반드시 설정 권장
+    SUPABASE_JWT_ALGORITHM: str = ""
     # Supabase 벡터 intent 라벨 테이블 사용 여부 및 임계값
     INTENT_LABEL_LOOKUP_ENABLE: bool = False
     INTENT_LABEL_MIN_SIMILARITY: float = 0.75

@@ -237,7 +237,8 @@ async def find_userid_send_code(
         {"email": payload.email}
     ).mappings().first()
     if not row:
-        raise HTTPException(status_code=404, detail="해당 이메일로 등록된 계정이 없습니다.")
+        # 이메일 존재 여부를 노출하지 않기 위해 동일한 200 응답 반환
+        return {"message": "인증 코드가 발송되었습니다. 메일함(또는 스팸함)을 확인해 주세요."}
     try:
         res = requests.post(
             f"{settings.SUPABASE_URL}/auth/v1/otp",

@@ -2,6 +2,8 @@
 dataset/main_field_all.txt, dataset/ncs_large_all.txt 기반 허용 목록.
 필터 옵션( main_field, ncs_large ) 검증·제한, 슬롯 검증 등에 사용.
 """
+from __future__ import annotations
+
 from pathlib import Path
 from typing import FrozenSet
 

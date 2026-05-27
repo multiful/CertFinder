@@ -155,39 +155,53 @@ def _get_supabase_jwks(url: str) -> dict:
         return {}
 
 def _decode_supabase_token(token: str) -> dict:
-    """Helper to decode Supabase JWT token supporting HS256 (user/service) and RS256/ES256 (access tokens)."""
+    """Supabase JWT 검증. SUPABASE_JWT_ALGORITHM 설정 시 해당 알고리즘만 허용(알고리즘 혼동 공격 방지)."""
     try:
-        # Check header to determine algorithm
         header = jwt.get_unverified_header(token)
-        alg = header.get("alg")
-        
+        token_alg = header.get("alg")
+
+        # 설정된 알고리즘이 있으면 토큰 헤더 alg와 반드시 일치해야 함.
+        # 미설정 시 토큰 헤더 alg를 따르지만 경고 로그를 남긴다.
+        expected_alg = (settings.SUPABASE_JWT_ALGORITHM or "").strip().upper()
+        if expected_alg:
+            if token_alg != expected_alg:
+                raise Exception(
+                    f"JWT algorithm mismatch: token={token_alg}, expected={expected_alg}"
+                )
+            alg = expected_alg
+        else:
+            logger.debug(
+                "SUPABASE_JWT_ALGORITHM not set; trusting token alg=%s. "
+                "Set SUPABASE_JWT_ALGORITHM in .env to prevent algorithm substitution attacks.",
+                token_alg,
+            )
+            alg = token_alg
+
         if alg == "HS256":
-            # Symmetric key verification (classic Supabase)
             secret = settings.SUPABASE_JWT_SECRET
+            if not secret:
+                raise Exception("HS256 token received but SUPABASE_JWT_SECRET is not configured")
             if len(secret) > 20 and '=' in secret:
                 try:
                     decoded_secret = base64.b64decode(secret)
-                except:
+                except Exception:
                     decoded_secret = secret
             else:
                 decoded_secret = secret
-                
+
             return jwt.decode(
-                token, 
-                decoded_secret, 
-                algorithms=["HS256"], 
+                token,
+                decoded_secret,
+                algorithms=["HS256"],
                 options={"verify_aud": False}
             )
-            
+
         elif alg in ["RS256", "ES256"]:
-            # Asymmetric key verification (modern Supabase / Gotrue)
             if not settings.SUPABASE_URL:
-                 logger.warning("SUPABASE_URL not set, cannot fetch JWKS for RS256/ES256 token")
-                 raise Exception("SUPABASE_URL required for RS256/ES256 verification")
-                 
+                raise Exception("SUPABASE_URL required for RS256/ES256 verification")
+
             jwks_url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
             try:
-                # Add User-Agent to avoid blocking by some servers
                 jwks = _get_supabase_jwks(jwks_url)
             except Exception as e:
                 logger.error(f"JWKS fetch failed: {e}")
@@ -195,23 +209,19 @@ def _decode_supabase_token(token: str) -> dict:
 
             if not jwks or "keys" not in jwks:
                 raise Exception("Empty or invalid JWKS response")
-            
-            # Find matching key
+
             kid = header.get("kid")
             key_data = None
-            
             for k in jwks.get("keys", []):
                 if k.get("kid") == kid:
                     key_data = k
                     break
-            
             if not key_data:
-                # Fallback: try first key with matching alg if no kid match
                 for k in jwks.get("keys", []):
                     if k.get("alg") == alg:
                         key_data = k
                         break
-                
+
             if key_data:
                 try:
                     key = jwk.construct(key_data)
@@ -222,13 +232,13 @@ def _decode_supabase_token(token: str) -> dict:
                         options={"verify_aud": False}
                     )
                 except Exception as e:
-                     raise Exception(f"Token signature verification failed: {e}")
+                    raise Exception(f"Token signature verification failed: {e}")
             else:
                 raise Exception(f"No matching key found in JWKS for alg={alg} kid={kid}")
-        
+
         else:
             raise Exception(f"Unsupported algorithm: {alg}")
-            
+
     except Exception as e:
         logger.error(f"Token decode error: {e}")
         raise e

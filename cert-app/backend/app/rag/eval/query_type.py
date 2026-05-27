@@ -11,6 +11,8 @@
 - natural: 서술형/희망 표현이 있는 자연어 질의
 - mixed: 둘 다 애매하거나 규칙으로 분류하기 어려운 경우
 """
+from __future__ import annotations
+
 import re
 from typing import Optional
 

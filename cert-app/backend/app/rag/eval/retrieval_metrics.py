@@ -1,4 +1,6 @@
 """Retrieval 지표: Recall@k, Precision@k, MRR, nDCG@k. + qual_id 단위 버전."""
+from __future__ import annotations
+
 import math
 from typing import List, Set
 

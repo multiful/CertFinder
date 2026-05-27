@@ -2,6 +2,7 @@
 OpenAI Embedding 유틸. MLOps: 레이턴시·토큰 로깅, Sentry 연동을 위한 예외 분류.
 쿼리 임베딩 캐싱으로 반복 호출 시 API 비용/지연 절감.
 """
+from __future__ import annotations
 import asyncio
 import hashlib
 import json

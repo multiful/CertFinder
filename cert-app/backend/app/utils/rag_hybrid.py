@@ -8,6 +8,8 @@
 
 ragas_eval.py, compare_rag_three_way.py 에서 공통 사용.
 """
+from __future__ import annotations
+
 from typing import List
 
 from sqlalchemy import text

@@ -4,6 +4,8 @@
 cert_name → qual_id: (1) 별칭 리다이렉트 (2) DB qual_name 정확 일치 (3) 공백·구두점 무시 일치
 (4) 골든 문자열이 qual_name 부분문자열 (5) compact 키가 qual_name compact에 포함 (긴 키만).
 """
+from __future__ import annotations
+
 import re
 from typing import Any, Dict, List, Set
 
