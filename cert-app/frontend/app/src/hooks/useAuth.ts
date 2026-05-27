@@ -1,17 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
-// Inactivity timeout in milliseconds (3 hours)
-const INACTIVITY_TIMEOUT = 3 * 3600 * 1000;
+const SESSION_DURATION_MS = 3 * 3600 * 1000; // hard 3-hour limit from login
+const SESSION_START_KEY = 'auth_session_start';
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Effect 1: Handle Authentication Session
+    const signOut = async () => {
+        await supabase.auth.signOut();
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem(SESSION_START_KEY);
+    };
+
     useEffect(() => {
         let cancelled = false;
 
@@ -21,6 +26,10 @@ export function useAuth() {
                 const currentUser = session?.user ?? null;
                 setUser(currentUser);
                 setToken(session?.access_token ?? null);
+                if (session && !localStorage.getItem(SESSION_START_KEY)) {
+                    localStorage.setItem(SESSION_START_KEY, Date.now().toString());
+                }
+                if (!session) localStorage.removeItem(SESSION_START_KEY);
                 setLoading(false);
             })
             .catch((err: any) => {
@@ -31,6 +40,7 @@ export function useAuth() {
                     setUser(null);
                     setToken(null);
                 }
+                localStorage.removeItem(SESSION_START_KEY);
                 setLoading(false);
             });
 
@@ -39,6 +49,13 @@ export function useAuth() {
             const currentUser = session?.user ?? null;
             setUser(currentUser);
             setToken(session?.access_token ?? null);
+            if (session) {
+                if (!localStorage.getItem(SESSION_START_KEY)) {
+                    localStorage.setItem(SESSION_START_KEY, Date.now().toString());
+                }
+            } else {
+                localStorage.removeItem(SESSION_START_KEY);
+            }
             setLoading(false);
         });
 
@@ -46,43 +63,25 @@ export function useAuth() {
             cancelled = true;
             subscription.unsubscribe();
         };
-    }, []); // Run only on mount
+    }, []);
 
-    // Effect 2: Handle Inactivity Timer when user is authenticated
+    // Hard 3-hour session expiry — checked every minute, regardless of activity
     useEffect(() => {
         if (!user) return;
 
-        const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
-
-        const handleActivity = () => {
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
-            timeoutRef.current = setTimeout(() => {
-                console.warn('Inactivity timeout reached. Signing out...');
+        const checkExpiry = () => {
+            const startStr = localStorage.getItem(SESSION_START_KEY);
+            if (!startStr) return;
+            if (Date.now() - parseInt(startStr, 10) >= SESSION_DURATION_MS) {
                 signOut();
-            }, INACTIVITY_TIMEOUT);
+            }
         };
 
-        activityEvents.forEach(event => {
-            window.addEventListener(event, handleActivity);
-        });
-
-        // Initialize timer
-        handleActivity();
-
-        return () => {
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
-            activityEvents.forEach(event => {
-                window.removeEventListener(event, handleActivity);
-            });
-        };
-    }, [user?.id]); // Depend on user ID instead of object reference
-
-    const signOut = async () => {
-        await supabase.auth.signOut();
-        setUser(null);
-        setToken(null);
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
+        checkExpiry();
+        const interval = setInterval(checkExpiry, 60 * 1000);
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
 
     return { user, token, loading, signOut };
 }
