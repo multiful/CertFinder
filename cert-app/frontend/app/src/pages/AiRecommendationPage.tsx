@@ -289,7 +289,7 @@ export function AiRecommendationPage() {
             {/* Hero Section */}
             <div className="relative rounded-3xl bg-slate-900 border border-slate-800 p-8 md:p-12 shadow-2xl">
                 <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
-                <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]" />
+                <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px]" />
 
                 <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
                     <div className="flex-1 space-y-6">
@@ -299,12 +299,12 @@ export function AiRecommendationPage() {
                         </Badge>
                         <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight">
                             관심사와 전공을 <br />
-                            <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                            <span className="text-white">
                                 하나의 로드맵으로.
                             </span>
                         </h1>
                         <p className="text-slate-400 text-lg max-w-xl">
-                            전공·관심사·프로필을 반영해 자격 후보를 고릅니다.
+                            전공, 관심사, 프로필을 반영해 자격 후보를 고릅니다.
                             <br />
                             <span className="text-slate-500 text-base">
                                 전공과 관심사를 바탕으로 딱 맞는 자격증을 찾아드립니다.
@@ -390,7 +390,7 @@ export function AiRecommendationPage() {
                                         {!profileMajor && (
                                             <p className="px-4 py-2 text-[10px] text-slate-600 border-t border-slate-800 bg-slate-950/40">
                                                 {majorExactMode
-                                                    ? 'Esc: 포함 검색으로 · Enter로 확정한 전공만 표시 중'
+                                                    ? 'Esc: 포함 검색으로 / Enter로 확정한 전공만 표시 중'
                                                     : 'Enter: 목록을 정확히 일치하는 전공만으로 좁힙니다'}
                                             </p>
                                         )}
@@ -400,7 +400,7 @@ export function AiRecommendationPage() {
 
                             <div className="space-y-3">
                                 <label htmlFor="career-interest" className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                                    <MessageSquare className="w-4 h-4 text-purple-400" />
+                                    <MessageSquare className="w-4 h-4 text-blue-400" />
                                     어떤 일을 하고 싶나요? (커리어 목표)
                                 </label>
                                 <textarea
@@ -409,10 +409,10 @@ export function AiRecommendationPage() {
                                     placeholder="예: 클라우드 보안 환경에서 일하고 싶어요. 데이터 분석을 금융에 적용하고 싶습니다."
                                     value={interest}
                                     onChange={(e) => setInterest(e.target.value)}
-                                    className="w-full bg-slate-900/80 border-slate-700 rounded-lg p-3 text-sm h-28 focus:ring-purple-500/20 border outline-none text-white focus:border-purple-500 transition-all placeholder:text-slate-600 shadow-inner resize-none"
+                                    className="w-full bg-slate-900/80 border-slate-700 rounded-lg p-3 text-sm h-28 focus:ring-blue-500/20 border outline-none text-white focus:border-blue-500 transition-all placeholder:text-slate-600 shadow-inner resize-none"
                                 />
                                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                                    AI는 입력한 전공·커리어 목표뿐 아니라, 마이페이지에 저장된
+                                    AI는 입력한 전공, 커리어 목표뿐 아니라 마이페이지에 저장된
                                     <span className="font-semibold text-slate-300"> 학년, 학과, 관심 자격증, 취득 자격증, 난이도</span>
                                     를 함께 고려해 현재 레벨에 맞는 자격증 난이도를 추천합니다.
                                 </p>
@@ -474,7 +474,7 @@ export function AiRecommendationPage() {
                                 {results.major} 전공과 {results.interest ? `"${results.interest}"` : "시스템 데이터"}를 결합한 추천입니다.
                                 {results.guest_limited && (
                                     <span className="ml-2 text-amber-400 font-medium text-xs">
-                                        (비로그인 미리보기 — 상위 3개만 표시)
+                                        (비로그인 미리보기: 상위 3개만 표시)
                                     </span>
                                 )}
                             </p>
@@ -497,7 +497,7 @@ export function AiRecommendationPage() {
                                 onClick={() => navigateToCert(res.qual_id)}
                                 className="bg-slate-900/40 border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 transition-all cursor-pointer group rounded-2xl overflow-hidden shadow-sm hover:shadow-blue-500/10"
                             >
-                                <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-600 opacity-20 group-hover:opacity-100 transition-opacity" />
+                                <div className="h-2 bg-blue-600/20 group-hover:bg-blue-600 transition-colors" />
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
                                         <div className="w-10 h-10 rounded-lg bg-slate-950 flex items-center justify-center text-blue-400 font-bold border border-slate-800">
@@ -510,7 +510,7 @@ export function AiRecommendationPage() {
                                                 </Badge>
                                             )}
                                             <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">
-                                                정합성 {Math.min(100, Math.round((res.hybrid_score ?? 0) * 100))}%
+                                                AI 적합도 {Math.min(100, Math.round((res.hybrid_score ?? 0) * 100))}%
                                             </Badge>
                                         </div>
                                     </div>
@@ -540,16 +540,16 @@ export function AiRecommendationPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div
-                                        className="flex items-start gap-2 bg-slate-950/50 p-3 rounded-xl border border-slate-800 cursor-pointer hover:border-indigo-500/40 hover:bg-slate-950/80 transition-all"
+                                        className="flex items-start gap-2 bg-slate-950/50 p-3 rounded-xl border border-slate-800 cursor-pointer hover:border-blue-500/40 hover:bg-slate-950/80 transition-all"
                                         onClick={(e) => toggleReason(e, res.qual_id)}
                                         title="클릭하면 설명을 펼칩니다"
                                     >
-                                        <Info className="w-4 h-4 text-indigo-400 mt-0.5 flex-shrink-0" />
+                                        <Info className="w-4 h-4 text-blue-400/60 mt-0.5 flex-shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-sm text-slate-400 leading-relaxed italic ${expandedReasons.has(res.qual_id) ? '' : 'line-clamp-3'}`}>
                                                 {res.reason || "귀하의 전공 역량과 관심사를 고려하여 추천된 자격증입니다."}
                                             </p>
-                                            <span className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-indigo-400/70">
+                                            <span className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-slate-500">
                                                 {expandedReasons.has(res.qual_id) ? (
                                                     <>
                                                         <ChevronDown className="w-3 h-3 rotate-180" />
@@ -584,12 +584,12 @@ export function AiRecommendationPage() {
                                     </div>
                                     <div className="flex items-center justify-between text-xs font-bold text-slate-500">
                                         <span className="flex items-center gap-1">
-                                            <BrainCircuit className="w-3 h-3 text-purple-500" />
+                                            <BrainCircuit className="w-3 h-3 text-emerald-500" />
                                             관심도 일치
                                         </span>
                                         <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-purple-500 transition-all"
+                                                className="h-full bg-emerald-500 transition-all"
                                                 style={{
                                                     width: `${Math.min(100, (() => {
                                                         const norm = res.semantic_score_normalized ?? Math.min(1, Math.max(0, res.semantic_similarity ?? 0));
@@ -617,7 +617,7 @@ export function AiRecommendationPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-none select-none blur-sm opacity-40">
                                 {[4, 5, 6, 7].map(i => (
                                     <Card key={i} className="bg-slate-900/40 border-slate-800 rounded-2xl overflow-hidden">
-                                        <div className="h-2 bg-gradient-to-r from-blue-500 to-purple-600 opacity-30" />
+                                        <div className="h-2 bg-blue-600/30" />
                                         <CardHeader className="pb-2">
                                             <div className="flex justify-between items-start">
                                                 <div className="w-10 h-10 rounded-lg bg-slate-950 flex items-center justify-center text-blue-400 font-bold border border-slate-800">{i}</div>
@@ -645,7 +645,7 @@ export function AiRecommendationPage() {
                                         <p className="text-slate-400 text-sm leading-relaxed">
                                             로그인하면 맞춤형 추천 결과를 <br />
                                             <span className="text-blue-400 font-semibold">최대 {HYBRID_RECOMMEND_LIMIT}개</span>까지 확인할 수 있습니다.<br />
-                                            학년·취득 자격증 기반 난이도 조정도 지원됩니다.
+                                            학년, 취득 자격증 기반 난이도 조정도 지원됩니다.
                                         </p>
                                     </div>
                                     <Button
@@ -666,99 +666,36 @@ export function AiRecommendationPage() {
             {!results && !loading && (
                 <div className="space-y-10 pt-8 border-t border-slate-800/50">
 
-                    {/* ── 1. AI 알고리즘 스탯 카드 ── */}
+                    {/* ── 1. 입력 가이드 ── */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-blue-400" />
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">AI 엔진 스펙</h3>
+                            <MessageSquare className="w-4 h-4 text-blue-400" />
+                            <h3 className="text-sm font-bold text-slate-300">좋은 추천을 받으려면</h3>
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            {AI_ENGINE_STATS.map((stat) => {
-                                const Icon = stat.icon;
-                                const colorMap = {
-                                    blue: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
-                                    green: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-                                    purple: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
-                                    indigo: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
-                                } as const;
-                                const displayValue =
-                                    'valueFromApiTotal' in stat && stat.valueFromApiTotal
-                                        ? certCatalogTotal.toLocaleString('ko-KR')
-                                        : 'value' in stat
-                                            ? stat.value
-                                            : '';
-                                return (
-                                    <div key={stat.label} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 space-y-3">
-                                        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${colorMap[stat.color]}`}>
-                                            <Icon className="w-4 h-4" />
-                                        </div>
-                                        <div>
-                                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest break-words leading-tight">
-                                                {stat.label}
-                                            </p>
-                                            <p className="text-xl md:text-2xl font-black text-white mt-0.5 break-words leading-tight">
-                                                {displayValue}
-                                                {stat.unit && <span className="text-sm font-semibold text-slate-500 ml-1">{stat.unit}</span>}
-                                            </p>
-                                            <p className={`mt-1 text-slate-600 ${'descSmall' in stat && stat.descSmall ? 'text-[9px]' : 'text-[11px]'}`}>{stat.desc}</p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* 추천 점수 구성 */}
-                        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 space-y-4">
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                                <p className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                                    <GitMerge className="w-4 h-4 text-purple-400" />
-                                    추천 점수 구성
-                                </p>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                    <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px]">
-                                        전공 연관성
-                                    </Badge>
-                                    <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">
-                                        관심사 일치도
-                                    </Badge>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {([
+                                {
+                                    step: '01',
+                                    label: '전공명은 구체적으로',
+                                    desc: "'컴퓨터공학', '간호학'처럼 정확한 학과명을 입력할수록 관련 자격증이 더 정밀하게 매칭됩니다.",
+                                },
+                                {
+                                    step: '02',
+                                    label: '커리어 목표를 함께 입력',
+                                    desc: "관심사란에 '데이터 분석 취업 준비', '공무원 준비' 등 목표를 쓸수록 AI 적합도가 올라갑니다.",
+                                },
+                                {
+                                    step: '03',
+                                    label: '취득 자격증은 자동 제외',
+                                    desc: '로그인 후 마이페이지에서 취득 자격증을 등록하면 추천 목록에서 자동으로 빠집니다.',
+                                },
+                            ] as const).map((item) => (
+                                <div key={item.step} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 space-y-3">
+                                    <p className="text-2xl font-black text-slate-700">{item.step}</p>
+                                    <h4 className="text-sm font-bold text-white">{item.label}</h4>
+                                    <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
                                 </div>
-                            </div>
-                            <div className="space-y-3">
-                                <div className="space-y-1.5">
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-blue-400 font-semibold flex items-center gap-1.5">
-                                            <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
-                                            전공 연관성 (Major)
-                                        </span>
-                                        <span className="text-blue-400 font-bold">가변</span>
-                                    </div>
-                                    <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                                        <div className="h-full w-[40%] bg-gradient-to-r from-blue-600 to-blue-400 rounded-full" />
-                                    </div>
-                                    <p className="text-[11px] text-slate-600">전공 분야와 자격증 출제 범위 간 키워드·벡터 매칭 비중은 입력에 따라 달라집니다.</p>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <div className="flex items-center justify-between text-xs">
-                                        <span className="text-purple-400 font-semibold flex items-center gap-1.5">
-                                            <div className="w-2.5 h-2.5 rounded-sm bg-purple-500" />
-                                            관심도 일치
-                                        </span>
-                                        <span className="text-purple-400 font-bold">가변</span>
-                                    </div>
-                                    <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                                        <div className="h-full w-[60%] bg-gradient-to-r from-purple-600 to-indigo-400 rounded-full" />
-                                    </div>
-                                    <p className="text-[11px] text-slate-600">
-                                        관심사를 입력할수록 더 정확하게 맞춰집니다.
-                                    </p>
-                                </div>
-                            </div>
-                            <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-800 leading-relaxed">
-                                {RAG_RETRIEVAL_DETAIL_LINE}
-                            </p>
-                            <p className="text-[10px] text-slate-600 leading-relaxed">
-                                막대 길이·표시 비율은 이해를 돕는 예시이며, 실제 서버 가중치·분기와 수치가 일치하지 않을 수 있습니다.
-                            </p>
+                            ))}
                         </div>
                     </div>
 
@@ -767,7 +704,7 @@ export function AiRecommendationPage() {
                         <div className="flex items-center justify-between flex-wrap gap-3">
                             <div className="flex items-center gap-2">
                                 <Sparkles className="w-4 h-4 text-yellow-400" />
-                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">전공별 AI 추천 미리보기</h3>
+                                <h3 className="text-sm font-bold text-slate-400">전공별 AI 추천 미리보기</h3>
                             </div>
                             <p className="text-xs text-slate-600">탭을 클릭하면 실제 AI가 분석합니다</p>
                         </div>
@@ -823,7 +760,7 @@ export function AiRecommendationPage() {
                                                             {idx + 1}
                                                         </div>
                                                         <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]">
-                                                            정합성 {Math.min(100, Math.round((res.hybrid_score ?? 0) * 100))}%
+                                                            AI 적합도 {Math.min(100, Math.round((res.hybrid_score ?? 0) * 100))}%
                                                         </Badge>
                                                     </div>
                                                     <p className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
@@ -849,10 +786,10 @@ export function AiRecommendationPage() {
                                                             <span className="text-[10px] text-slate-600 w-8 shrink-0">전공</span>
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            <div className="w-2 h-2 rounded-sm bg-purple-500 shrink-0" />
+                                                            <div className="w-2 h-2 rounded-sm bg-emerald-500 shrink-0" />
                                                             <div className="h-1 flex-1 bg-slate-800 rounded-full overflow-hidden">
                                                                 <div
-                                                                    className="h-full bg-purple-500 rounded-full transition-all"
+                                                                    className="h-full bg-emerald-500 rounded-full transition-all"
                                                                     style={{
                                                                         width: `${Math.min(100, (res.semantic_score_normalized ?? Math.min(1, res.semantic_similarity ?? 0)) * 100)}%`,
                                                                     }}

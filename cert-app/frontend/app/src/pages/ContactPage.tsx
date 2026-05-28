@@ -70,7 +70,7 @@ export function ContactPage() {
                     </div>
                     <div className="space-y-2">
                         <h1 className="text-2xl font-black text-white">문의 접수 완료</h1>
-                        <p className="text-slate-400 leading-relaxed">
+                        <p className="text-slate-400 leading-relaxed font-medium">
                             소중한 의견 감사합니다. <br />
                             검토 후 <b>{CONTACT_EMAIL}</b>으로 <br />
                             빠른 시일 내에 답변 드리겠습니다.
@@ -108,7 +108,7 @@ export function ContactPage() {
                         <h1 className="text-4xl font-black text-white leading-tight">
                             도움이 필요하신가요?
                         </h1>
-                        <p className="text-slate-400 leading-relaxed">
+                        <p className="text-slate-400 leading-relaxed font-medium">
                             서비스 이용 중 불편한 점이나 제안하고 싶은 기능이 있다면 언제든 말씀해 주세요.
                             사용자 한 분 한 분의 소중한 의견을 경청합니다.
                         </p>
@@ -126,8 +126,8 @@ export function ContactPage() {
                         </div>
 
                         <div className="flex gap-4 items-start p-4 rounded-2xl bg-slate-900/40 border border-slate-800">
-                            <div className="p-3 bg-purple-600/10 rounded-xl border border-purple-500/20">
-                                <MessageSquare className="w-5 h-5 text-purple-400" />
+                            <div className="p-3 bg-blue-600/10 rounded-xl border border-blue-500/20">
+                                <MessageSquare className="w-5 h-5 text-blue-400" />
                             </div>
                             <div>
                                 <h4 className="font-bold text-slate-200">고객 지원 시간</h4>

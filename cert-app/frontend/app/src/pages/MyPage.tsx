@@ -362,7 +362,7 @@ export function MyPage() {
                 {/* 1. Header & Profile Summary */}
                 <div className="relative group p-8 rounded-[3rem] bg-gradient-to-br from-slate-900/60 to-slate-800/20 border border-slate-700/30 backdrop-blur-3xl overflow-x-hidden shadow-2xl">
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] -mr-64 -mt-64 transition-all group-hover:bg-blue-500/15 duration-1000" />
-                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] -ml-48 -mb-48" />
+                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] -ml-48 -mb-48" />
 
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-10 relative z-10">
                         {/* Avatar Section */}
@@ -381,12 +381,12 @@ export function MyPage() {
                         <div className="flex-1 space-y-6 text-center md:text-left">
                             <div className="space-y-2 pb-1">
                                 <div className="flex items-center justify-center md:justify-start gap-4 flex-wrap">
-                                    <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-white via-blue-50 to-slate-400 bg-clip-text text-transparent leading-[1.18] py-0.5">
+                                    <h1 className="text-5xl font-black tracking-tight text-white leading-[1.18] py-0.5">
                                         {profile?.nickname || user.user_metadata?.nickname || user.user_metadata?.userid || user.email?.split('@')[0]}
                                     </h1>
                                     <Dialog open={isSettingsOpen} onOpenChange={(open) => { setIsSettingsOpen(open); if (!open) setNicknameError(null); }}>
                                         <DialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-full transition-all">
+                                            <Button variant="ghost" size="icon" className="h-11 w-11 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-full transition-all" aria-label="프로필 설정">
                                                 <Settings className="w-5 h-5" />
                                             </Button>
                                         </DialogTrigger>
@@ -400,7 +400,7 @@ export function MyPage() {
                                             <form onSubmit={handleUpdateProfile} className="space-y-6 py-4">
                                                 <div className="space-y-4">
                                                     <div className="space-y-2">
-                                                        <Label htmlFor="nickname" className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">닉네임</Label>
+                                                        <Label htmlFor="nickname" className="text-xs font-bold text-slate-500 px-1">닉네임</Label>
                                                         <Input
                                                             id="nickname"
                                                             value={nickname}
@@ -416,7 +416,7 @@ export function MyPage() {
                                                         )}
                                                     </div>
                                                     <div className="space-y-2 relative">
-                                                        <Label htmlFor="major" className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">전공</Label>
+                                                        <Label htmlFor="major" className="text-xs font-bold text-slate-500 px-1">전공</Label>
                                                         <div className="relative">
                                                             <Input
                                                                 id="major"
@@ -454,7 +454,7 @@ export function MyPage() {
                                                         </div>
                                                         {/* 인기 전공 태그 */}
                                                         <div className="mt-3 space-y-1 px-1">
-                                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">인기 전공</p>
+                                                            <p className="text-[10px] text-slate-500 font-bold">인기 전공</p>
                                                             <div className="flex flex-wrap gap-2">
                                                                 {popularMajors.map((m) => (
                                                                     <button
@@ -473,7 +473,7 @@ export function MyPage() {
                                                         </div>
                                                     </div>
                                                     <div className="space-y-3">
-                                                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">학년 / 상태</Label>
+                                                        <Label className="text-xs font-bold text-slate-500 px-1">학년 / 상태</Label>
                                                         <div className="flex flex-wrap gap-2">
                                                             {[0, 1, 2, 3, 4].map((year) => (
                                                                 <button
@@ -509,16 +509,16 @@ export function MyPage() {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
                                 <div className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-md flex flex-col gap-1 group/item hover:bg-white/[0.05] hover:border-blue-500/30 transition-all duration-500">
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Major</p>
+                                    <p className="text-[10px] text-slate-500 font-black">전공</p>
                                     <div className="flex items-center gap-3">
                                         <School className="w-5 h-5 text-blue-400" />
                                         <p className="text-lg font-bold text-slate-200">{profile?.detail_major || user.user_metadata?.detail_major || '미설정'}</p>
                                     </div>
                                 </div>
-                                <div className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-md flex flex-col gap-1 group/item hover:bg-white/[0.05] hover:border-purple-500/30 transition-all duration-500">
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Academic Level</p>
+                                <div className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-md flex flex-col gap-1 group/item hover:bg-white/[0.05] hover:border-blue-500/30 transition-all duration-500">
+                                    <p className="text-[10px] text-slate-500 font-black">학년</p>
                                     <div className="flex items-center gap-3">
-                                        <Award className="w-5 h-5 text-purple-400" />
+                                        <Award className="w-5 h-5 text-blue-400" />
                                         <p className="text-lg font-bold text-slate-200">
                                             {(() => {
                                                 const gy = profile?.grade_year !== undefined ? profile.grade_year : user.user_metadata?.grade_year;
@@ -571,7 +571,7 @@ export function MyPage() {
                                                 DB 자격증 목록에서 검색해 취득한 자격증을 추가하세요.
                                                 {effectiveSummary && (
                                                     <span className="ml-2 font-bold" style={{ color: getTierMeta(effectiveSummary.tier).color }}>
-                                                        {getTierMeta(effectiveSummary.tier).gem} {effectiveSummary.tier} Lv.{effectiveSummary.level} · {Math.round(effectiveSummary.total_xp)} XP
+                                                        {getTierMeta(effectiveSummary.tier).gem} {effectiveSummary.tier} Lv.{effectiveSummary.level} / {Math.round(effectiveSummary.total_xp)} XP
                                                     </span>
                                                 )}
                                             </DialogDescription>
@@ -593,7 +593,7 @@ export function MyPage() {
                                                 {certSearchLoading && <p className="text-slate-500 text-sm">검색 중...</p>}
                                                 {certSearchQuery.trim() && certSearchResults.length > 0 && (
                                                     <div className="space-y-1">
-                                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">검색 결과에서 추가</p>
+                                                        <p className="text-[10px] font-bold text-slate-500">검색 결과에서 추가</p>
                                                         {certSearchResults.map((cert: any) => {
                                                             const already = acquiredCerts.some((a: any) => a.qual_id === cert.qual_id);
                                                             return (
@@ -623,7 +623,7 @@ export function MyPage() {
                                                     </div>
                                                 )}
                                                 <div className="space-y-1 pt-2 border-t border-slate-800">
-                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">내 취득 자격증 ({acquiredCerts.length})</p>
+                                                    <p className="text-[10px] font-bold text-slate-500">내 취득 자격증 ({acquiredCerts.length})</p>
                                                     {acquiredCerts.length === 0 ? (
                                                         <p className="text-slate-500 text-sm py-2">추가된 자격증이 없습니다. 위에서 검색해 추가하세요.</p>
                                                     ) : (
@@ -737,8 +737,8 @@ export function MyPage() {
                         <section className="space-y-6">
                             <div className="flex items-center justify-between px-2">
                                 <h2 className="text-2xl font-black text-slate-100 flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                                        <History className="w-5 h-5 text-indigo-400" />
+                                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                        <History className="w-5 h-5 text-blue-400" />
                                     </div>
                                     최근 본 자격증
                                 </h2>
@@ -752,20 +752,20 @@ export function MyPage() {
                                         <div
                                             key={cert.qual_id}
                                             onClick={() => router.navigate(`/certs/${cert.qual_id}`)}
-                                            className="group p-6 rounded-[2rem] bg-slate-900/40 border border-slate-800/50 hover:border-indigo-500/40 hover:bg-slate-800/60 transition-all duration-500 cursor-pointer flex items-center justify-between"
+                                            className="group p-6 rounded-[2rem] bg-slate-900/40 border border-slate-800/50 hover:border-blue-500/40 hover:bg-slate-800/60 transition-all duration-500 cursor-pointer flex items-center justify-between"
                                         >
                                             <div className="flex items-center gap-6">
-                                                <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-all">
+                                                <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-all">
                                                     <Search className="w-7 h-7" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-lg font-black text-slate-100 group-hover:text-indigo-400 transition-colors tracking-tight">{cert.qual_name}</h3>
-                                                    <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-tight opacity-70">{cert.main_field} · {cert.qual_type}</p>
+                                                    <h3 className="text-lg font-black text-slate-100 group-hover:text-blue-400 transition-colors tracking-tight">{cert.qual_name}</h3>
+                                                    <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-tight opacity-70">{cert.main_field}, {cert.qual_type}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4">
-                                                <Badge variant="outline" className="hidden sm:inline-flex text-[9px] border-slate-800 text-slate-600 font-black uppercase tracking-widest px-2 py-0.5">Retrieved</Badge>
-                                                <ChevronRight className="w-5 h-5 text-slate-700 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
+                                                <Badge variant="outline" className="hidden sm:inline-flex text-[9px] border-slate-800 text-slate-600 font-black px-2 py-0.5">열람함</Badge>
+                                                <ChevronRight className="w-5 h-5 text-slate-700 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
                                             </div>
                                         </div>
                                     ))
@@ -843,7 +843,7 @@ export function MyPage() {
 
                                     <Button
                                         onClick={() => router.navigate('/ai-recommendations')}
-                                        className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-3xl py-7 shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all uppercase tracking-widest text-[11px]"
+                                        className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-3xl py-7 shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all text-[11px]"
                                     >
                                         AI 심화 추천 받기
                                     </Button>
@@ -867,14 +867,14 @@ export function MyPage() {
                                                 <div>
                                                     <h3 className="text-white font-black tracking-tight text-base leading-tight">내가 취득한 자격증</h3>
                                                     <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: tierMeta.color }}>
-                                                        {effectiveSummary ? `${effectiveSummary.tier} · Lv.${effectiveSummary.level}` : 'Bronze · Lv.1'}
+                                                        {effectiveSummary ? `${effectiveSummary.tier} Lv.${effectiveSummary.level}` : 'Bronze Lv.1'}
                                                     </p>
                                                 </div>
                                             </div>
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
-                                                className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-white"
+                                                className="text-xs font-bold text-slate-500 hover:text-white"
                                                 onClick={() => setIsAcquiredDialogOpen(true)}
                                             >
                                                 관리 +
@@ -896,7 +896,7 @@ export function MyPage() {
                                                     />
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-[10px] text-slate-500 font-bold">총 {Math.round(effectiveSummary.total_xp)} XP · {effectiveSummary.cert_count}개</span>
+                                                    <span className="text-[10px] text-slate-500 font-bold">총 {Math.round(effectiveSummary.total_xp)} XP, {effectiveSummary.cert_count}개</span>
                                                     <span className="text-[10px] font-bold" style={{ color: tierMeta.color }}>
                                                         {effectiveSummary.next_level_xp == null ? 'MAX LEVEL' : `다음 Lv: ${effectiveSummary.next_level_xp} XP`}
                                                     </span>

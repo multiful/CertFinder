@@ -149,15 +149,15 @@ export function JobListPage() {
                 <div className="relative z-10 max-w-2xl space-y-8">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-600/10 border border-blue-500/20 text-blue-400 text-sm font-bold tracking-wide">
                         <Star className="w-4 h-4 fill-blue-400" />
-                        <span>CAREER ANALYTICS ENGINE</span>
+                        <span>직무 분석 엔진</span>
                     </div>
 
                     <div className="space-y-4">
                         <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.2]">
                             커리어를 넘어서,<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">당신의 가치</span>를 발견하세요
+                            <span className="text-blue-400">당신의 가치</span>를 발견하세요
                         </h1>
-                        <p className="text-slate-400 text-lg leading-relaxed max-w-lg">
+                        <p className="text-slate-400 text-lg leading-relaxed font-medium max-w-lg">
                             관심 직무의 전망, 초임 연봉, 그리고 핵심 직무 역량 데이터를
                             정밀 분석 차트와 함께 제공합니다.
                         </p>
@@ -191,7 +191,7 @@ export function JobListPage() {
                         {/* Suggestions Dropdown */}
                         {showSuggestions && inputValue.length >= 1 && jobList.length > 0 && (
                             <div className="absolute top-full left-0 right-0 mt-3 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 animate-in fade-in slide-in-from-top-2 duration-200">
-                                <div className="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-950/20 border-b border-slate-800">
+                                <div className="p-3 text-[10px] font-bold text-slate-500 bg-slate-950/20 border-b border-slate-800">
                                     추천 직무 ({jobList.length})
                                 </div>
                                 {jobList.slice(0, 10).map((job) => (
@@ -221,7 +221,7 @@ export function JobListPage() {
                         <p className="text-slate-500 text-sm">{totalJobs}개의 포지션이 분석됨</p>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
                         <span>분석 상태: 실시간</span>
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     </div>
@@ -343,7 +343,7 @@ export function JobListPage() {
                                             <div className="lg:col-span-8 p-12 space-y-10">
                                                 <div className="grid md:grid-cols-2 gap-10">
                                                     <div className="space-y-4">
-                                                        <div className="flex items-center gap-3 text-emerald-400 font-black text-xs uppercase tracking-[0.2em]">
+                                                        <div className="flex items-center gap-3 text-emerald-400 font-black text-xs">
                                                             <TrendingUp className="w-4 h-4" />
                                                             직업 전망 분석
                                                         </div>
@@ -353,14 +353,14 @@ export function JobListPage() {
                                                     </div>
 
                                                     <div className="space-y-4">
-                                                        <div className="flex items-center gap-3 text-amber-500 font-black text-xs uppercase tracking-[0.2em]">
+                                                        <div className="flex items-center gap-3 text-amber-500 font-black text-xs">
                                                             <DollarSign className="w-4 h-4" />
                                                             임금 및 만족도 레포트
                                                         </div>
                                                         <div className="text-amber-300 text-sm leading-relaxed bg-amber-500/5 p-6 rounded-2xl border border-amber-500/10 min-h-[140px] whitespace-pre-line">
                                                             {job.entry_salary && (
                                                                 <div className="mb-4 pb-4 border-b border-amber-500/10">
-                                                                    <span className="text-[10px] font-bold text-amber-500/60 uppercase tracking-widest block mb-1">상세 초임 정보</span>
+                                                                    <span className="text-[10px] font-bold text-amber-500/60 block mb-1">상세 초임 정보</span>
                                                                     <div className="text-lg font-black text-amber-400">{job.entry_salary}</div>
                                                                 </div>
                                                             )}
@@ -370,17 +370,17 @@ export function JobListPage() {
                                                 </div>
 
                                                 <div className="space-y-4 pt-6 border-t border-slate-800">
-                                                    <div className="flex items-center gap-3 text-indigo-400 font-black text-xs uppercase tracking-[0.2em]">
-                                                        <Zap className="w-4 h-4" />
+                                                    <div className="flex items-center gap-3 text-slate-400 font-bold text-xs">
+                                                        <Zap className="w-4 h-4 text-blue-400" />
                                                         취업 방법 및 핵심 경로
                                                     </div>
-                                                    <div className="text-indigo-300 text-sm leading-snug bg-indigo-500/5 p-6 rounded-2xl border border-indigo-500/10 whitespace-pre-line">
+                                                    <div className="text-slate-300 text-sm leading-snug bg-slate-900/40 p-6 rounded-2xl border border-slate-800 whitespace-pre-line">
                                                         {(job.employment_path || '취업 경로 정보 업데이트 중').replace(/ - /g, '\n- ').replace(/^- /g, '- ')}
                                                     </div>
                                                 </div>
 
                                                 <div className="space-y-6 pt-6 border-t border-slate-800">
-                                                    <div className="flex items-center gap-3 text-blue-400 font-black text-xs uppercase tracking-[0.2em]">
+                                                    <div className="flex items-center gap-3 text-blue-400 font-black text-xs">
                                                         <BookOpen className="w-4 h-4" />
                                                         핵심 적성 및 요구 역량
                                                     </div>
@@ -450,7 +450,7 @@ export function JobListPage() {
             <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-12 text-center space-y-8">
                 <div className="max-w-xl mx-auto space-y-4">
                     <h3 className="text-2xl font-bold text-white">데이터 출처 및 기준</h3>
-                    <p className="text-slate-400 text-sm leading-relaxed">
+                    <p className="text-slate-400 text-sm leading-relaxed font-medium">
                         본 직무 역량 차트와 전망 데이터는 워크넷, 커리어넷 및 국가기술자격 통계를 기반으로
                         알고리즘 분석을 통해 도출되었습니다. 성향 점수(Radar Chart)는 직무의 상대적 특성을
                         나타내며 개인의 역량과는 다를 수 있습니다.
@@ -462,11 +462,11 @@ export function JobListPage() {
                         워크넷 연계
                     </div>
                     <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
-                        <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
                         커리어넷 반영
                     </div>
                     <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
-                        <div className="w-2 h-2 rounded-full bg-purple-500" />
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
                         산업인력공단 데이터
                     </div>
                 </div>

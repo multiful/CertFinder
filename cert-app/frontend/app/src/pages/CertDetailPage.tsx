@@ -254,7 +254,7 @@ export function CertDetailPage({ id }: { id: string }) {
             onClick={() => router.navigate('/certs')}
             className="text-slate-500 hover:text-white mb-4 -ml-4 flex items-center gap-2"
           >
-            <ChevronLeft className="w-4 h-4" /> Back to Directory
+            <ChevronLeft className="w-4 h-4" /> 자격증 목록
           </Button>
 
           <div className="space-y-6">
@@ -277,7 +277,7 @@ export function CertDetailPage({ id }: { id: string }) {
                   <span>{cert.managing_body || "정보 없음"}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-indigo-500" />
+                  <Globe className="w-5 h-5 text-slate-400" />
                   <span>{cert.ncs_large} &gt; {cert.main_field}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -344,7 +344,7 @@ export function CertDetailPage({ id }: { id: string }) {
             {
               label: "누적 응시자",
               value: (cert.total_candidates ? cert.total_candidates.toLocaleString() : totalCandidates),
-              icon: Users, color: "text-indigo-400", bg: "bg-indigo-400/5",
+              icon: Users, color: "text-slate-300", bg: "bg-slate-300/5",
               sub: "최근 3개년 합계"
             },
             {
@@ -360,10 +360,10 @@ export function CertDetailPage({ id }: { id: string }) {
                   <div className={`p-3 rounded-2xl ${stat.bg} transition-colors`}>
                     <stat.icon className={`w-5 h-5 ${stat.color} transition-colors`} />
                   </div>
-                  <Badge variant="secondary" className="text-[10px] text-slate-500 font-bold uppercase tracking-widest border-none bg-slate-950/50">{stat.sub}</Badge>
+                  <Badge variant="secondary" className="text-[10px] text-slate-500 font-bold border-none bg-slate-950/50">{stat.sub}</Badge>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{stat.label}</p>
+                  <p className="text-xs font-bold text-slate-500 font-bold text-slate-500">{stat.label}</p>
                   <p className="text-2xl font-black text-white tracking-tight">{stat.value}</p>
                 </div>
               </CardContent>
@@ -374,7 +374,7 @@ export function CertDetailPage({ id }: { id: string }) {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="bg-slate-900/80 border border-slate-800 p-1.5 rounded-2xl gap-2 backdrop-blur-md sticky top-6 z-30">
+        <TabsList className="bg-slate-900/80 border border-slate-800 p-1.5 rounded-2xl gap-2 backdrop-blur-md sticky top-[88px] z-30">
           <TabsTrigger value="stats" className="px-6 py-2.5 rounded-xl font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white">
             <TrendingUp className="w-4 h-4 mr-2" /> 통계 및 분석
           </TabsTrigger>
@@ -392,7 +392,7 @@ export function CertDetailPage({ id }: { id: string }) {
             <CardHeader className="p-10 border-b border-slate-800">
               <div className="flex justify-between items-end">
                 <div className="space-y-2">
-                  <Badge variant="outline" className="border-blue-500/20 text-blue-400">Time-series Analysis</Badge>
+                  <Badge variant="outline" className="border-blue-500/20 text-blue-400">추이 분석</Badge>
                   <CardTitle className="text-3xl font-black text-white">합격률 변화 추이</CardTitle>
                 </div>
                 <div className="flex flex-wrap gap-4">
@@ -400,6 +400,7 @@ export function CertDetailPage({ id }: { id: string }) {
                     <button
                       key={stage}
                       onClick={() => toggleStage(stage)}
+                      aria-pressed={visibleStages.includes(stage)}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${visibleStages.includes(stage)
                         ? stage === '필기' ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
                           : stage === '실기' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
@@ -501,7 +502,7 @@ export function CertDetailPage({ id }: { id: string }) {
           <div className="grid md:grid-cols-2 gap-8">
             <Card className="bg-slate-900/50 border-slate-800 rounded-[2.5rem] p-10">
               <CardTitle className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-400" /> 상세 회차 정보
+                <Calendar className="w-5 h-5 text-slate-400" /> 상세 회차 정보
               </CardTitle>
               <div className="space-y-4">
                 {stats.slice(0, 10).map((s, i) => {
@@ -520,7 +521,7 @@ export function CertDetailPage({ id }: { id: string }) {
                       <div className="space-y-1.5">
                         <p className="text-sm font-bold text-white group-hover/item:text-blue-400 transition-colors">{yearLabel}</p>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-slate-700 text-slate-500 font-bold uppercase tracking-wider">
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-slate-700 text-slate-500 font-bold">
                             {roundName}
                           </Badge>
                         </div>
@@ -545,15 +546,15 @@ export function CertDetailPage({ id }: { id: string }) {
               </div>
             </Card>
 
-            <Card className="bg-slate-900 border-indigo-600/20 rounded-[2.5rem] p-10 relative overflow-hidden group">
+            <Card className="bg-slate-900 border-blue-600/20 rounded-[2.5rem] p-10 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform duration-700">
-                <Award className="w-40 h-40 text-indigo-400" />
+                <Award className="w-40 h-40 text-blue-400/30" />
               </div>
               <div className="relative z-10 space-y-6">
-                <Badge className="bg-indigo-600/10 text-indigo-400 border-indigo-500/20">Analysis Verdict</Badge>
+                <Badge className="bg-blue-600/10 text-blue-400 border-blue-500/20">분석 요약</Badge>
                 <div className="space-y-4">
                   <h3 className="text-3xl font-black text-white">데이터 분석 결과</h3>
-                  <div className="text-slate-400 leading-relaxed">
+                  <div className="text-slate-400 leading-relaxed font-medium">
                     본 자격증은 최근 {stats.length}개 회차 평균 합격률 <span className="text-white font-bold">{avgPassRate}%</span> 내외를 보이고 있으며,
                     자격 등급과 합격률 추이를 종합 분석한 결과
                     <span className="text-amber-400 font-bold ml-1"> {
@@ -586,18 +587,18 @@ export function CertDetailPage({ id }: { id: string }) {
                   <h3 className="text-2xl font-bold text-white flex items-center gap-2">
                     <Info className="w-6 h-6 text-blue-500" /> 자격 개요
                   </h3>
-                  <div className="text-slate-400 leading-relaxed bg-slate-950/40 p-6 rounded-2xl border border-slate-800">
+                  <div className="text-slate-400 leading-relaxed font-medium bg-slate-950/40 p-6 rounded-2xl border border-slate-800">
                     {cert.qual_name} 자격은 {cert.ncs_large} 분야의 전문 인력을 양성하기 위해 시행되는 {cert.qual_type}입니다.
                     주로 {cert.main_field} 직무 수행에 필요한 이론 및 실무 역량을 평가하며, 산업 현장에서의 전문성을 인증합니다.
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="p-4 bg-slate-950/40 rounded-2xl border border-slate-800">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">관리부처</p>
+                    <p className="text-[10px] font-bold text-slate-500 font-bold text-slate-500 mb-1">관리부처</p>
                     <p className="text-sm text-white font-medium">{cert.managing_body || "정보 없음"}</p>
                   </div>
                   <div className="p-4 bg-slate-950/40 rounded-2xl border border-slate-800">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">NCS 분류</p>
+                    <p className="text-[10px] font-bold text-slate-500 font-bold text-slate-500 mb-1">NCS 분류</p>
                     <p className="text-sm text-white font-medium">{cert.ncs_large}</p>
                   </div>
                 </div>
@@ -667,7 +668,7 @@ export function CertDetailPage({ id }: { id: string }) {
                               {job.similar_jobs && (
                                 <div className="flex flex-wrap gap-1">
                                   {job.similar_jobs.split(',').slice(0, 3).map((sj, i) => (
-                                    <Badge key={i} className="bg-indigo-600/10 text-indigo-400 border-indigo-500/20 text-[10px]">{sj.trim()}</Badge>
+                                    <Badge key={i} className="bg-slate-800 text-slate-300 border-slate-700 text-[10px]">{sj.trim()}</Badge>
                                   ))}
                                 </div>
                               )}
@@ -684,7 +685,7 @@ export function CertDetailPage({ id }: { id: string }) {
                         {/* Content */}
                         <div className="lg:col-span-8 space-y-10">
                           <div className="space-y-4">
-                            <h4 className="text-xs font-black text-blue-500/80 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <h4 className="text-xs font-black text-blue-500/80 uppercase flex items-center gap-2">
                               <BookOpen className="w-4 h-4" /> 핵심 적성 및 요구 역량
                             </h4>
                             <div className="text-slate-300 text-sm leading-relaxed bg-blue-500/5 p-6 rounded-2xl border border-blue-500/10 min-h-[100px] whitespace-pre-line">
@@ -694,7 +695,7 @@ export function CertDetailPage({ id }: { id: string }) {
 
                           <div className="grid sm:grid-cols-2 gap-8">
                             <div className="space-y-4">
-                              <h4 className="text-xs font-black text-emerald-500/80 uppercase tracking-[0.2em] flex items-center gap-2">
+                              <h4 className="text-xs font-black text-emerald-500/80 uppercase flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4" /> 직업 전망 분석
                               </h4>
                               <div className="text-emerald-300 text-sm leading-relaxed bg-emerald-500/5 p-6 rounded-2xl border border-emerald-500/10 min-h-[140px] whitespace-pre-line">
@@ -703,7 +704,7 @@ export function CertDetailPage({ id }: { id: string }) {
                             </div>
                             {(job.entry_salary || job.salary_info) && (
                               <div className="space-y-4">
-                                <h4 className="text-xs font-black text-amber-500/80 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <h4 className="text-xs font-black text-amber-500/80 uppercase flex items-center gap-2">
                                   <DollarSign className="w-4 h-4" /> 임금 및 만족도
                                 </h4>
                                 <div className="text-amber-300 text-sm leading-relaxed bg-amber-500/5 p-6 rounded-2xl border border-amber-500/10 min-h-[140px] whitespace-pre-line">
@@ -719,10 +720,10 @@ export function CertDetailPage({ id }: { id: string }) {
                           </div>
 
                           <div className="space-y-4 pt-4 border-t border-slate-800/50">
-                            <h4 className="text-xs font-black text-indigo-500/80 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <h4 className="text-xs font-black text-slate-400 uppercase flex items-center gap-2">
                               <Zap className="w-4 h-4" /> 취업 방법 및 핵심 경로
                             </h4>
-                            <div className="text-indigo-300 text-sm leading-relaxed bg-indigo-500/5 p-6 rounded-2xl border border-indigo-500/10 whitespace-pre-line">
+                            <div className="text-slate-300 text-sm leading-relaxed bg-slate-900/40 p-6 rounded-2xl border border-slate-800 whitespace-pre-line">
                               {(job.employment_path || '취업 경로 정보 업데이트 중').replace(/ - /g, '\n- ').replace(/^- /g, '- ')}
                             </div>
                           </div>
@@ -730,7 +731,7 @@ export function CertDetailPage({ id }: { id: string }) {
 
                         {/* Analysis Card */}
                         <div className="lg:col-span-4 flex flex-col items-center justify-center p-8 bg-slate-950/40 rounded-3xl border border-slate-800/50">
-                          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">직무 역량 다이어그램</h4>
+                          <h4 className="text-[10px] font-black text-slate-500 mb-4">직무 역량 다이어그램</h4>
                           <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                               <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
@@ -751,7 +752,7 @@ export function CertDetailPage({ id }: { id: string }) {
                               </RadarChart>
                             </ResponsiveContainer>
                           </div>
-                          <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest mt-4 text-center">Standardized Analysis (0-100 Base)</p>
+                          <p className="text-[10px] text-slate-600 font-bold font-bold text-slate-600 mt-4 text-center">표준화 역량 지수 (0–100)</p>
                         </div>
                       </div>
                     </CardContent>

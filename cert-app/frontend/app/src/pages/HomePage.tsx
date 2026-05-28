@@ -94,8 +94,8 @@ export function HomePage() {
       <section className="relative min-h-[85vh] flex items-center pt-20">
         {/* Background Decorative Elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
-          <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] animate-pulse" />
-          <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] animate-pulse delay-700" />
+          <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-500/8 rounded-full blur-[80px]" />
+          <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-indigo-500/8 rounded-full blur-[80px]" />
           <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] opacity-[0.18] brightness-50 contrast-150 pointer-events-none mix-blend-overlay"
             style={{
@@ -108,24 +108,24 @@ export function HomePage() {
           <div className="space-y-8 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium animate-fade-in">
               <Sparkles className="w-4 h-4" />
-              <span>국가자격 데이터 · 하이브리드 AI 추천</span>
+              <span>국가자격 데이터, 하이브리드 AI 추천</span>
             </div>
 
-            <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.1]">
+            <h1 className="text-5xl lg:text-7xl font-extrabold text-white leading-[1.1] [letter-spacing:-0.03em]">
               데이터로 설계하는<br />
-              <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 text-transparent bg-clip-text">
+              <span className="text-blue-400">
                 당신의 커리어 경로
               </span>
             </h1>
 
-            <p className="text-slate-400 text-lg lg:text-xl max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              합격률·난이도·직무 매칭은 DB 통계로, 전공·관심사 맞춤 추천은{' '}
-              <span className="text-slate-300 font-semibold">AI 분석 엔진</span>
+            <p className="text-slate-400 text-lg lg:text-xl max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
+              합격률, 난이도, 직무 매칭은 DB 통계로, 전공 맞춤 추천은{' '}
+              <span className="text-white font-semibold">AI 분석 엔진</span>
               으로 제공합니다.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
-              <form onSubmit={handleSearch} className="relative group flex-1 max-w-md">
+            <div className="flex flex-col gap-3 justify-center lg:justify-start pt-4">
+              <form onSubmit={handleSearch} className="relative group max-w-md w-full">
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
                 <div className="relative">
                   <label htmlFor="home-cert-search" className="sr-only">자격증 검색</label>
@@ -147,15 +147,25 @@ export function HomePage() {
                   />
                 </div>
               </form>
-              <Button
-                onClick={() => router.navigate('/recommendation')}
-                className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-900/20 transition-all hover:scale-105"
-              >
-                전공별 추천 시작
-              </Button>
+              <div className="flex items-center gap-5 text-sm pl-1">
+                <button
+                  type="button"
+                  onClick={() => router.navigate('/recommendation')}
+                  className="text-slate-400 hover:text-blue-400 font-medium transition-colors flex items-center gap-1"
+                >
+                  전공 추천 <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.navigate('/ai-recommendations')}
+                  className="text-blue-400 hover:text-blue-300 font-semibold transition-colors flex items-center gap-1"
+                >
+                  AI 추천 <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center justify-center lg:justify-start gap-8 pt-8 text-slate-500 text-sm font-medium">
+            <div className="flex items-center justify-center lg:justify-start gap-8 pt-8 text-slate-400 text-sm font-medium">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {certCatalogTotal.toLocaleString('ko-KR')}개 자격증 데이터
               </div>
@@ -169,37 +179,43 @@ export function HomePage() {
             {/* Visual element representing data/analytics */}
             <div className="relative z-10 p-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden group">
               <div className="absolute inset-0 bg-blue-600/5 group-hover:bg-blue-600/10 transition-colors" />
-              <div className="relative bg-slate-950 rounded-[22px] p-8 space-y-6">
-                <div className="flex justify-between items-center">
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">서비스 구성</p>
-                    <h3 className="text-xl font-bold text-white">데이터 · 검색</h3>
+              <div className="relative bg-slate-950 rounded-[22px] p-8 space-y-5">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-5">
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] font-bold text-blue-400 tracking-[0.05em]">실시간 데이터</p>
+                    <h3 className="text-xl font-bold text-white">서비스 커버리지</h3>
                   </div>
-                  <div className="p-2 bg-slate-900 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-indigo-400" />
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-500 font-bold">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    운영 중
                   </div>
                 </div>
 
-                {/* Simulated Chart/Data visualization */}
-                <div className="h-48 w-full flex items-end gap-2 px-2">
-                  {[40, 70, 45, 90, 65, 80, 55, 95].map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-gradient-to-t from-blue-600 to-indigo-400 rounded-t-sm transition-all duration-1000 hover:brightness-125"
-                      style={{ height: `${h}%` }}
-                    />
+                <div className="space-y-0">
+                  {([
+                    { label: '국가 자격증', value: certCatalogTotal.toLocaleString('ko-KR'), unit: '개' },
+                    { label: '직무 카테고리', value: '450', unit: '개+' },
+                    { label: '합격률 데이터', value: '연도별 회차', unit: '' },
+                    { label: 'AI 추천 모델', value: '하이브리드 RAG', unit: '' },
+                  ] as const).map((item, i) => (
+                    <div key={i} className="flex items-center justify-between py-3.5 border-b border-slate-800/60 last:border-0">
+                      <span className="text-sm text-slate-500">{item.label}</span>
+                      <span className="text-sm font-bold text-white tabular-nums">
+                        {item.value}
+                        {item.unit && <span className="text-slate-500 font-normal ml-0.5 text-xs">{item.unit}</span>}
+                      </span>
+                    </div>
                   ))}
                 </div>
 
-                <p className="text-[10px] text-slate-600 text-center -mt-2">막대 그래프는 UI 예시이며 실제 합격률 수치가 아닙니다.</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-                    <p className="text-xs text-slate-500 mb-1">AI 추천 검색</p>
-                    <p className="text-lg font-bold text-emerald-400 leading-tight">전공·관심사 AI 분석</p>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="p-3.5 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <p className="text-[10px] text-slate-500 mb-1 font-medium">전공 매핑</p>
+                    <p className="text-sm font-bold text-blue-400 leading-tight">DB 기반 매칭</p>
                   </div>
-                  <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-                    <p className="text-xs text-slate-500 mb-1">결과 정렬</p>
-                    <p className="text-lg font-bold text-blue-400 leading-tight">맞춤 점수 기반 정렬</p>
+                  <div className="p-3.5 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <p className="text-[10px] text-slate-500 mb-1 font-medium">AI 분석</p>
+                    <p className="text-sm font-bold text-blue-400 leading-tight">하이브리드 검색</p>
                   </div>
                 </div>
               </div>
@@ -207,7 +223,7 @@ export function HomePage() {
 
             {/* Floatables */}
             <div className="absolute -top-6 -right-6 p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl animate-bounce-slow z-20">
-              <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+              <Star className="w-6 h-6 text-blue-400 fill-blue-400/20" />
             </div>
             <div className="absolute -bottom-8 -left-8 p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl animate-float z-20">
               <Award className="w-8 h-8 text-blue-500" />
@@ -227,7 +243,7 @@ export function HomePage() {
           {[
             {
               title: "맞춤형 추천 시스템",
-              desc: "전공–자격증 DB 매핑과 시험 통계로 목록을 구성합니다. AI 기반 맞춤 추천은 상단 메뉴의 AI 추천에서 이용하세요.",
+              desc: "전공–자격증 DB 매핑과 시험 통계를 바탕으로 전공별 자격증 목록을 제공합니다.",
               icon: Target,
               color: "text-blue-400",
               bg: "bg-blue-400/5",
@@ -238,18 +254,18 @@ export function HomePage() {
               title: "진로 및 직무 매칭",
               desc: "자격증 취득 후 가질 수 있는 직업의 전망과 연봉 정보를 상세히 제공합니다.",
               icon: Briefcase,
-              color: "text-indigo-400",
-              bg: "bg-indigo-400/5",
-              border: "group-hover:border-indigo-500/50",
+              color: "text-slate-300",
+              bg: "bg-slate-300/5",
+              border: "group-hover:border-blue-500/30",
               link: "/jobs"
             },
             {
               title: "자격증 탐색 및 상세 정보",
               desc: "전체 국가기술자격증 목록을 검색하고, 각 자격증의 상세 통계와 취득 정보를 탐색하세요.",
               icon: Search,
-              color: "text-purple-400",
-              bg: "bg-purple-400/5",
-              border: "group-hover:border-purple-500/50",
+              color: "text-slate-300",
+              bg: "bg-slate-300/5",
+              border: "group-hover:border-blue-500/30",
               link: "/certs"
             }
           ].map((feature, i) => (
@@ -282,7 +298,7 @@ export function HomePage() {
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
             <div className="space-y-4">
-              <Badge variant="outline" className="border-indigo-500/30 text-indigo-400 px-4 py-1">Recent Trends</Badge>
+              <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">최근 트렌드</Badge>
               <h2 className="text-3xl md:text-4xl font-bold text-white">최근 주목받는 자격증</h2>
               <p className="text-slate-400">실시간 데이터가 반영된 최신 인기 트렌드를 확인하세요.</p>
             </div>
@@ -322,7 +338,7 @@ export function HomePage() {
                       <Badge className="bg-slate-800 text-slate-300 border-none px-2 py-0">{cert.qual_type}</Badge>
                       <div
                         className="flex items-center gap-1 text-blue-400 text-sm font-bold bg-blue-400/5 px-2 py-1 rounded-lg border border-blue-400/10"
-                        title="이 화면에 표시된 목록에서 1위 대비 상대 인기도입니다. (실제 상승률·합격률과는 다릅니다)"
+                        title="이 화면에 표시된 목록에서 1위 대비 상대 인기도입니다. (실제 상승률, 합격률과는 다릅니다)"
                       >
                         <TrendingUp className="w-3 h-3 shrink-0" aria-hidden />
                         <span className="tabular-nums">
@@ -381,29 +397,30 @@ export function HomePage() {
               DB 통계 기반 전공 추천과 AI 맞춤 추천을 함께 쓸 수 있습니다.
               회원가입 없이 대부분의 기능을 무료로 이용할 수 있습니다.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4 flex-wrap">
-              <Button
-                onClick={() => router.navigate('/recommendation')}
-                size="lg"
-                className="bg-white text-blue-600 hover:bg-blue-50 text-lg font-bold rounded-xl h-14 px-10 shadow-xl"
-              >
-                전공별 자격증 추천
-              </Button>
+            <div className="flex flex-col sm:flex-row items-center gap-5 justify-center pt-4">
               <Button
                 onClick={() => router.navigate('/ai-recommendations')}
                 size="lg"
-                className="bg-indigo-500/90 text-white hover:bg-indigo-400 text-lg font-bold rounded-xl h-14 px-10 shadow-xl border border-white/20"
+                className="bg-white text-blue-600 hover:bg-blue-50 text-lg font-bold rounded-xl h-14 px-10 shadow-xl"
               >
-                AI 자격증 추천
+                AI 자격증 추천 시작
               </Button>
-              <Button
-                onClick={() => router.navigate('/jobs')}
-                variant="outline"
-                size="lg"
-                className="border-white/30 text-white hover:bg-white/10 text-lg font-bold rounded-xl h-14 px-10 backdrop-blur-sm"
-              >
-                직업 전망 분석하기
-              </Button>
+              <div className="flex items-center gap-6 text-sm">
+                <button
+                  type="button"
+                  onClick={() => router.navigate('/recommendation')}
+                  className="text-blue-200/70 hover:text-white transition-colors flex items-center gap-1 font-medium"
+                >
+                  전공 추천 <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.navigate('/jobs')}
+                  className="text-blue-200/70 hover:text-white transition-colors flex items-center gap-1 font-medium"
+                >
+                  직업 전망 <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

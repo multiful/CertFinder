@@ -320,7 +320,7 @@ export function CertListPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-4">
-          <Badge className="bg-blue-600/10 text-blue-400 border-blue-500/20 px-3 py-1">Certification Directory</Badge>
+          <Badge className="bg-blue-600/10 text-blue-400 border-blue-500/20 px-3 py-1">자격증 데이터베이스</Badge>
           <h1 className="text-4xl font-bold text-white tracking-tight">자격증 탐색</h1>
           <p className="text-slate-400 max-w-lg">
             대한민국 {certCatalogTotal.toLocaleString('ko-KR')}종의 국가 기술 및 전문 자격증 데이터를 검색하고<br />
@@ -333,17 +333,21 @@ export function CertListPage() {
             variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setViewMode('grid')}
+            aria-label="그리드 보기"
+            aria-pressed={viewMode === 'grid'}
             className="h-9 w-9 p-0"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-4 h-4" aria-hidden />
           </Button>
           <Button
             variant={viewMode === 'list' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setViewMode('list')}
+            aria-label="목록 보기"
+            aria-pressed={viewMode === 'list'}
             className="h-9 w-9 p-0"
           >
-            <ListIcon className="w-4 h-4" />
+            <ListIcon className="w-4 h-4" aria-hidden />
           </Button>
         </div>
       </div>
@@ -352,7 +356,7 @@ export function CertListPage() {
       <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 space-y-8 backdrop-blur-sm">
         <form onSubmit={handleSearch} className="grid lg:grid-cols-12 gap-6 items-end">
           <div className="lg:col-span-5 space-y-3 relative">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+            <label className="text-xs font-bold text-slate-500 flex items-center gap-2">
               <Search className="w-3 h-3" /> 자격증 명칭
             </label>
 
@@ -375,7 +379,7 @@ export function CertListPage() {
                 onClick={() => handleSearchTypeChange('body')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   searchType === 'body'
-                    ? 'bg-purple-600 text-white shadow-sm'
+                    ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
@@ -387,12 +391,12 @@ export function CertListPage() {
             <div className="relative z-20">
               {searchType === 'name'
                 ? <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                : <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
+                : <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
               }
               <Input
                 id="cert-search-input"
                 name={searchType === 'name' ? 'q' : 'managing_body'}
-                placeholder={searchType === 'name' ? '자격증 이름을 검색하세요...' : '발행기관·주최기관명을 검색하세요...'}
+                placeholder={searchType === 'name' ? '자격증 이름을 검색하세요...' : '발행기관, 주최기관명을 검색하세요...'}
                 value={inputValue}
                 onFocus={() => setShowSuggestions(searchType === 'name')}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
@@ -401,7 +405,7 @@ export function CertListPage() {
                   if (searchType === 'name') setShowSuggestions(true);
                 }}
                 className={`pl-10 h-11 bg-black/20 border-slate-800 text-white rounded-xl focus:ring-2 ${
-                  searchType === 'body' ? 'focus:ring-purple-500 border-purple-900/40' : 'focus:ring-blue-500'
+                  searchType === 'body' ? 'focus:ring-blue-500 border-slate-700' : 'focus:ring-blue-500'
                 }`}
               />
             </div>
@@ -409,7 +413,7 @@ export function CertListPage() {
             {/* Suggestions Dropdown - 자격증명 검색 시만 표시 */}
             {showSuggestions && searchType === 'name' && inputValue.length >= 1 && data && data.items.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="p-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-950/20 border-b border-slate-800">
+                <div className="p-2 text-[10px] font-bold text-slate-500 bg-slate-950/20 border-b border-slate-800">
                   추천 검색어 ({data.items.length})
                 </div>
                 {(data?.items || []).slice(0, 10).map((cert) => (
@@ -429,7 +433,7 @@ export function CertListPage() {
           <div className="lg:col-span-2 space-y-3 lg:mt-[52px]">
             <label
               htmlFor="main-field-select"
-              className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"
+              className="text-xs font-bold text-slate-500 flex items-center gap-2"
             >
               <Filter className="w-3 h-3" /> 분야
             </label>
@@ -452,7 +456,7 @@ export function CertListPage() {
           <div className="lg:col-span-2 space-y-3 lg:mt-[52px]">
             <label
               htmlFor="sort-select"
-              className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"
+              className="text-xs font-bold text-slate-500 flex items-center gap-2"
             >
               <ArrowUpDown className="w-3 h-3" /> 정렬 기준
             </label>
@@ -476,6 +480,7 @@ export function CertListPage() {
                 variant="outline"
                 onClick={() => setParams(prev => ({ ...prev, sort_desc: !prev.sort_desc }))}
                 className="h-11 w-11 p-0 border-slate-800 bg-black/20 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl shrink-0"
+                aria-label={params.sort_desc ? "내림차순" : "오름차순"}
                 title={params.sort_desc ? "내림차순 (높은순)" : "오름차순 (낮은순)"}
               >
                 {params.sort_desc ? (
@@ -488,8 +493,8 @@ export function CertListPage() {
           </div>
 
           <div className="lg:col-span-3 flex gap-3 lg:mt-[52px]">
-            <div className="flex-1 flex items-center justify-center bg-blue-600/5 border border-blue-500/20 rounded-xl px-4 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-              <Zap className="w-3 h-3 mr-2 animate-pulse" /> Real-time Analysis Active
+            <div className="flex-1 flex items-center justify-center bg-blue-600/5 border border-blue-500/20 rounded-xl px-4 text-[10px] font-bold text-blue-400">
+              <Zap className="w-3 h-3 mr-2 animate-pulse" /> 실시간 분석 활성
             </div>
             <Button
               type="button"
@@ -508,7 +513,7 @@ export function CertListPage() {
 
         {/* Popular Keywords */}
         <div className="flex items-center gap-2 pt-2 px-1 overflow-x-auto pb-2 scrollbar-hide">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap mr-2">
+          <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap mr-2">
             인기 검색어
           </span>
           {trendingCerts.length > 0 ? (
@@ -685,10 +690,17 @@ export function CertListPage() {
                               취득
                             </span>
                           )}
-                          <Bookmark
-                            className={`w-4 h-4 cursor-pointer transition-all hover:scale-125 ${favoriteIds.includes(cert.qual_id) ? 'text-amber-500 fill-amber-500' : 'text-slate-600 hover:text-amber-500'}`}
+                          <button
+                            type="button"
+                            aria-label={favoriteIds.includes(cert.qual_id) ? '관심 자격증 해제' : '관심 자격증 추가'}
                             onClick={(e) => toggleFavorite(e, cert)}
-                          />
+                            className="flex items-center focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                          >
+                            <Bookmark
+                              aria-hidden
+                              className={`w-4 h-4 transition-all hover:scale-125 ${favoriteIds.includes(cert.qual_id) ? 'text-amber-500 fill-amber-500' : 'text-slate-600 hover:text-amber-500'}`}
+                            />
+                          </button>
                           <Award className={`w-5 h-5 ${cert.latest_pass_rate && cert.latest_pass_rate < 30 ? 'text-orange-500' : 'text-slate-600 group-hover:text-blue-500/50'}`} />
                         </div>
                       </div>
@@ -704,15 +716,15 @@ export function CertListPage() {
 
                       <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-800/50">
                         <div className="space-y-1">
-                          <p className="text-[10px] uppercase font-bold text-slate-600 tracking-wider">Pass Rate</p>
+                          <p className="text-[10px] font-bold text-slate-600">합격률</p>
                           <p className="text-sm font-bold text-emerald-400 flex items-center gap-1">
                             <Zap className="w-3 h-3 fill-emerald-400" />
                             {(cert.latest_pass_rate !== null && cert.latest_pass_rate !== undefined) ? `${cert.latest_pass_rate}%` : '정보 없음'}
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] uppercase font-bold text-slate-600 tracking-wider">Difficulty</p>
-                          <p className="text-sm font-bold text-indigo-400 flex items-center gap-1">
+                          <p className="text-[10px] font-bold text-slate-600">난이도</p>
+                          <p className="text-sm font-bold text-slate-300 flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />
                             {(cert.avg_difficulty !== null && cert.avg_difficulty !== undefined) ? `${cert.avg_difficulty}/10` : '정보 없음'}
                           </p>
@@ -737,7 +749,7 @@ export function CertListPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-slate-500">{cert.managing_body} • {cert.qual_type}</p>
+                      <p className="text-sm text-slate-500">{cert.managing_body}, {cert.qual_type}</p>
                     </div>
                     <div className="flex gap-8 items-center">
                       <div className="text-right hidden sm:block">
@@ -746,7 +758,7 @@ export function CertListPage() {
                       </div>
                       <div className="text-right hidden sm:block">
                         <p className="text-[10px] uppercase font-bold text-slate-600 mb-0.5">평균 난이도</p>
-                        <p className="text-base font-bold text-indigo-400">{(cert.avg_difficulty !== null && cert.avg_difficulty !== undefined) ? `${cert.avg_difficulty}` : "정보 없음"}</p>
+                        <p className="text-base font-bold text-slate-300">{(cert.avg_difficulty !== null && cert.avg_difficulty !== undefined) ? `${cert.avg_difficulty}` : "정보 없음"}</p>
                       </div>
                       <ChevronDown className="w-5 h-5 text-slate-700 -rotate-90 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
                     </div>

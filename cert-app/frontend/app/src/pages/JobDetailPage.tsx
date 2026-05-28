@@ -161,10 +161,10 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
                     <div className="grid md:grid-cols-2 gap-8">
                         <Card className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors">
                             <CardContent className="p-8 space-y-6">
-                                <div className="flex items-center gap-3 text-emerald-400 font-bold text-sm tracking-widest uppercase">
+                                <div className="flex items-center gap-3 text-emerald-400 font-bold text-sm">
                                     <TrendingUp className="w-5 h-5" /> 직업 전망
                                 </div>
-                                <p className="text-slate-300 text-sm leading-snug whitespace-pre-line">
+                                <p className="text-slate-300 text-sm leading-snug font-medium whitespace-pre-line">
                                     {job.outlook_summary || '전망 정보 분석 중입니다.'}
                                 </p>
                             </CardContent>
@@ -172,7 +172,7 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
 
                         <Card className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors">
                             <CardContent className="p-8">
-                                <div className="flex items-center gap-3 text-amber-500 font-bold text-sm tracking-widest uppercase mb-4">
+                                <div className="flex items-center gap-3 text-amber-500 font-bold text-sm mb-4">
                                     <DollarSign className="w-5 h-5" /> 임금 정보
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-6 items-start justify-between sm:gap-8">
@@ -199,14 +199,13 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
                     </div>
 
                     {/* How to Get Employed */}
-                    <Card className="relative bg-slate-900/50 border-slate-800 overflow-hidden group">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-20 group-hover:opacity-100 transition-opacity" />
+                    <Card className="bg-slate-900/50 border-slate-800 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all group">
                         <CardContent className="p-8 space-y-6">
-                            <div className="flex items-center gap-3 text-indigo-400 font-bold text-sm tracking-widest uppercase">
-                                <Zap className="w-5 h-5" /> 취업 방법 및 경로
+                            <div className="flex items-center gap-3 text-slate-400 font-bold text-sm">
+                                <Zap className="w-5 h-5 text-blue-400" /> 취업 방법 및 경로
                             </div>
                             <div className="bg-black/20 p-6 rounded-2xl border border-white/5">
-                                <p className="text-slate-300 text-sm leading-snug whitespace-pre-line">
+                                <p className="text-slate-300 text-sm leading-snug font-medium whitespace-pre-line">
                                     {job.employment_path?.replace(/ - /g, '\n- ').replace(/^- /g, '- ') || '취업 정보가 곧 업데이트됩니다.'}
                                 </p>
                             </div>
@@ -214,14 +213,13 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
                     </Card>
 
                     {/* Core Competencies */}
-                    <Card className="relative bg-slate-900/50 border-slate-800 overflow-hidden group">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-20 group-hover:opacity-100 transition-opacity" />
+                    <Card className="bg-slate-900/50 border-slate-800 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all group">
                         <CardContent className="p-8 space-y-6">
-                            <div className="flex items-center gap-3 text-blue-400 font-bold text-sm tracking-widest uppercase">
-                                <BookOpen className="w-5 h-5" /> 핵심 적성 및 역량
+                            <div className="flex items-center gap-3 text-slate-400 font-bold text-sm">
+                                <BookOpen className="w-5 h-5 text-blue-400" /> 핵심 적성 및 역량
                             </div>
                             <div className="bg-black/20 p-6 rounded-2xl border border-white/5">
-                                <p className="text-slate-300 text-sm leading-snug whitespace-pre-line text-justify">
+                                <p className="text-slate-300 text-sm leading-snug font-medium whitespace-pre-line text-justify">
                                     {job.aptitude?.replace(/ - /g, '\n- ').replace(/^- /g, '- ') || '상세 역량 정보 분석 중입니다.'}
                                 </p>
                             </div>
@@ -236,7 +234,7 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
                                 관련 핵심 자격증
                             </h3>
                             <Badge variant="outline" className="border-slate-800 text-slate-500 font-medium">
-                                {job.qualifications?.length || 0} Recommended
+                                {job.qualifications?.length || 0}개 추천
                             </Badge>
                         </div>
 
@@ -253,8 +251,8 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
                                                 <div className="text-white font-bold group-hover:text-blue-400 transition-colors">
                                                     {qual.qual_name}
                                                 </div>
-                                                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                                    {qual.qual_type} • {qual.main_field}
+                                                <div className="text-[10px] text-slate-500 font-bold">
+                                                    {qual.qual_type}, {qual.main_field}
                                                 </div>
                                             </div>
                                             <ExternalLink className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-colors" />
@@ -272,12 +270,12 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
 
                 {/* Right Side: Radar Chart & Metadata */}
                 <div className="lg:col-span-4 space-y-8">
-                    <Card className="relative bg-slate-900/50 border-slate-800 sticky top-24 overflow-hidden">
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-600 to-violet-600" />
+                    <Card className="relative bg-slate-900/50 border-slate-800 md:sticky md:top-24 overflow-hidden">
+                        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-blue-500 to-indigo-600 opacity-60" />
                         <CardContent className="p-8 space-y-8">
                             <div className="space-y-1 text-center">
                                 <h3 className="text-xl font-bold text-white uppercase tracking-tight">직무 특성 레이더</h3>
-                                <p className="text-[10px] text-slate-500 font-bold tracking-[0.2em]">CHARACTERISTIC SCALE 0-100</p>
+                                <p className="text-[10px] text-slate-500 font-bold tracking-widest">CHARACTERISTIC SCALE 0-100</p>
                             </div>
 
                             <div className="aspect-square relative">
@@ -326,7 +324,7 @@ export function JobDetailPage({ id }: JobDetailPageProps) {
                                 </div>
                                 <div className="flex justify-between items-center group">
                                     <div className="flex items-center gap-2 text-slate-400 text-xs font-bold">
-                                        <Users className="w-4 h-4 text-indigo-500" /> 고용 평등성
+                                        <Users className="w-4 h-4 text-slate-400" /> 고용 평등성
                                     </div>
                                     <div className="text-white font-black">{job.equality}%</div>
                                 </div>
