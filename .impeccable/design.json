@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-28T00:00:00Z",
+  "title": "Design System: CertFinder",
+  "extensions": {
+    "colorMeta": {
+      "surface-base":       { "role": "neutral",   "displayName": "Surface Base",         "canonical": "oklch(7% 0.02 264)",   "tonalRamp": ["#020617","#05091f","#080e29","#0b1233","#0f172a","#1a2544","#263456","#374768"] },
+      "surface-raised":     { "role": "neutral",   "displayName": "Surface Raised",       "canonical": "oklch(14% 0.025 264)", "tonalRamp": ["#050a18","#0a1226","#0f172a","#141e35","#1e293b","#2a3850","#374868","#445680"] },
+      "surface-elevated":   { "role": "neutral",   "displayName": "Surface Elevated",     "canonical": "oklch(22% 0.03 252)",  "tonalRamp": ["#0f172a","#141e35","#1e293b","#263449","#334155","#47566e","#5c6d87","#7284a0"] },
+      "signal-blue":        { "role": "primary",   "displayName": "Signal Blue",          "canonical": "oklch(53% 0.24 264)",  "tonalRamp": ["#1e3a8a","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe","#dbeafe"] },
+      "signal-blue-bright": { "role": "primary",   "displayName": "Signal Blue Bright",   "canonical": "oklch(62% 0.22 264)",  "tonalRamp": ["#1e3a8a","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe","#eff6ff"] },
+      "signal-blue-text":   { "role": "primary",   "displayName": "Signal Blue Text",     "canonical": "oklch(72% 0.18 264)",  "tonalRamp": ["#1e40af","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe","#dbeafe","#eff6ff"] },
+      "accent-indigo":      { "role": "secondary", "displayName": "Accent Indigo",        "canonical": "oklch(69% 0.17 280)",  "tonalRamp": ["#312e81","#4338ca","#6366f1","#818cf8","#a5b4fc","#c7d2fe","#e0e7ff","#eef2ff"] },
+      "success-emerald":    { "role": "tertiary",  "displayName": "Success Emerald",      "canonical": "oklch(68% 0.17 163)",  "tonalRamp": ["#064e3b","#065f46","#047857","#059669","#10b981","#34d399","#6ee7b7","#a7f3d0"] },
+      "text-primary":       { "role": "neutral",   "displayName": "Text Primary",         "canonical": "oklch(96% 0.007 252)", "tonalRamp": ["#334155","#475569","#64748b","#94a3b8","#cbd5e1","#e2e8f0","#f1f5f9","#f8fafc"] },
+      "text-secondary":     { "role": "neutral",   "displayName": "Text Secondary",       "canonical": "oklch(65% 0.025 252)", "tonalRamp": ["#1e293b","#334155","#475569","#64748b","#94a3b8","#cbd5e1","#e2e8f0","#f1f5f9"] },
+      "text-muted":         { "role": "neutral",   "displayName": "Text Muted",           "canonical": "oklch(48% 0.022 252)", "tonalRamp": ["#1e293b","#334155","#475569","#64748b","#94a3b8","#cbd5e1","#e2e8f0","#f1f5f9"] }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display",  "purpose": "Hero headings only. One per page. Combined Outfit weight-800 + Noto Sans KR for Korean." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings. Weight-700, tight tracking." },
+      "title":    { "displayName": "Title",    "purpose": "Card headings, list item primaries." },
+      "body":     { "displayName": "Body",     "purpose": "Reading copy. Max 65ch. Korean uses weight-500 for optical parity." },
+      "label":    { "displayName": "Label",    "purpose": "Badges, tags, nav items. Tracking 0.05em for Latin only — never apply to Korean." }
+    },
+    "shadows": [
+      { "name": "hover-lift",   "value": "0 20px 40px -20px rgba(59, 130, 246, 0.3)",    "purpose": "Interactive card hover state. Blue-tinted ambient. Paired with translateY(-8px) scale(1.02)." },
+      { "name": "cta-anchor",   "value": "0 10px 30px -10px rgba(37, 99, 235, 0.3)",     "purpose": "Primary CTA button in the hero only. The one shadow allowed at rest." },
+      { "name": "overlay-deep", "value": "0 25px 60px -10px rgba(0, 0, 0, 0.5)",         "purpose": "Modals, drawers, full-screen overlays." }
+    ],
+    "motion": [
+      { "name": "ease-state",    "value": "cubic-bezier(0.25, 0.8, 0.25, 1)",         "purpose": "Default for card hover and color transitions. 200-300ms." },
+      { "name": "ease-enter",    "value": "cubic-bezier(0.0, 0.0, 0.2, 1)",           "purpose": "Elements entering the viewport — slide-in, fade-in. 200ms." },
+      { "name": "ease-exit",     "value": "cubic-bezier(0.4, 0.0, 1, 1)",             "purpose": "Elements leaving — fade-out, slide-out. 150ms." },
+      { "name": "ai-loading",    "value": "aiRecIndeterminate 1.5s ease-in-out infinite alternate", "purpose": "AI recommendation loading bar. Bounces within track at 177.78% translateX." }
+    ],
+    "breakpoints": [
+      { "name": "sm",  "value": "640px"  },
+      { "name": "md",  "value": "768px"  },
+      { "name": "lg",  "value": "1024px" },
+      { "name": "xl",  "value": "1280px" },
+      { "name": "2xl", "value": "1440px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Signal Blue CTA. Used for navigation-forward actions and form submissions.",
+      "html": "<button class=\"ds-btn-primary\">전공별 추천 시작</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #2563eb; color: #f1f5f9; height: 36px; padding: 0 24px; border: none; border-radius: 12px; font-family: 'Outfit', 'Noto Sans KR', sans-serif; font-size: 0.875rem; font-weight: 700; letter-spacing: -0.01em; cursor: pointer; transition: background 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); } .ds-btn-primary:hover { background: #1d4ed8; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); } .ds-btn-primary:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Hero CTA Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Oversized primary button for hero placement. Carries the one resting shadow allowed in the system.",
+      "html": "<button class=\"ds-btn-hero\">전공별 추천 시작</button>",
+      "css": ".ds-btn-hero { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #2563eb; color: #f1f5f9; height: 56px; padding: 0 32px; border: none; border-radius: 12px; font-family: 'Outfit', 'Noto Sans KR', sans-serif; font-size: 1.125rem; font-weight: 700; box-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.3); cursor: pointer; transition: background 0.2s, transform 0.15s cubic-bezier(0.0, 0.0, 0.2, 1), box-shadow 0.2s; } .ds-btn-hero:hover { background: #1d4ed8; transform: scale(1.02); box-shadow: 0 15px 35px -10px rgba(37, 99, 235, 0.45); } .ds-btn-hero:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary actions and in-section navigation. No background at rest.",
+      "html": "<button class=\"ds-btn-ghost\">전체 보기 <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><polyline points=\"9 18 15 12 9 6\"></polyline></svg></button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: #60a5fa; height: 36px; padding: 0 16px; border: none; border-radius: 10px; font-family: 'Outfit', 'Noto Sans KR', sans-serif; font-size: 0.875rem; font-weight: 700; cursor: pointer; transition: color 0.15s, background 0.15s; } .ds-btn-ghost:hover { color: #93c5fd; background: rgba(96, 165, 250, 0.05); } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); }"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "refersTo": "nav-item-default",
+      "description": "Top navigation link. Ghost at rest, Signal Blue tinted on active route.",
+      "html": "<div class=\"ds-nav-item ds-nav-active\">자격증 탐색</div><div class=\"ds-nav-item\">진로 및 직무 매칭</div>",
+      "css": ".ds-nav-item { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 10px; border: 1px solid transparent; font-family: 'Outfit', 'Noto Sans KR', sans-serif; font-size: 0.875rem; font-weight: 700; color: #94a3b8; cursor: pointer; transition: color 0.15s, background 0.15s; } .ds-nav-item:hover { color: #f1f5f9; background: rgba(30, 41, 59, 0.5); } .ds-nav-active { background: rgba(37, 99, 235, 0.1); color: #60a5fa; border-color: rgba(59, 130, 246, 0.2); }"
+    },
+    {
+      "name": "Feature Card",
+      "kind": "card",
+      "refersTo": "card-feature",
+      "description": "Primary content card. Flat at rest, hover lift on interaction. Border shifts to accent on hover.",
+      "html": "<div class=\"ds-card-feature\"><div class=\"ds-card-icon\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#60a5fa\" stroke-width=\"2\"><circle cx=\"11\" cy=\"11\" r=\"8\"></circle><path d=\"m21 21-4.35-4.35\"></path></svg></div><div class=\"ds-card-body\"><h3 class=\"ds-card-title\">자격증 탐색 및 상세 정보 <svg style=\"display:inline;opacity:0;transform:translateX(-8px);transition:all 0.2s\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"></line><polyline points=\"12 5 19 12 12 19\"></polyline></svg></h3><p class=\"ds-card-desc\">전체 국가기술자격증 목록을 검색하고, 각 자격증의 상세 통계와 취득 정보를 탐색하세요.</p></div></div>",
+      "css": ".ds-card-feature { background: rgba(15, 23, 42, 0.4); border: 1px solid #1e293b; border-radius: 12px; padding: 32px; cursor: pointer; transition: background 0.3s cubic-bezier(0.25,0.8,0.25,1), border-color 0.3s, transform 0.3s, box-shadow 0.3s; } .ds-card-feature:hover { background: rgba(15, 23, 42, 0.8); border-color: rgba(96, 165, 250, 0.5); transform: translateY(-8px) scale(1.02); box-shadow: 0 20px 40px -20px rgba(59, 130, 246, 0.3); } .ds-card-icon { width: 56px; height: 56px; border-radius: 16px; background: rgba(96, 165, 250, 0.05); display: flex; align-items: center; justify-content: center; margin-bottom: 24px; transition: transform 0.5s; } .ds-card-feature:hover .ds-card-icon { transform: scale(1.1); } .ds-card-title { font-family: 'Outfit', 'Noto Sans KR', sans-serif; font-size: 1.25rem; font-weight: 700; color: #f1f5f9; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; } .ds-card-desc { font-family: 'Outfit', 'Noto Sans KR', sans-serif; font-size: 0.9375rem; font-weight: 400; color: #94a3b8; line-height: 1.625; margin: 0; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Hero search field. Full-width with icon offset, glow-on-hover container.",
+      "html": "<div class=\"ds-search-wrap\"><svg class=\"ds-search-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"11\" cy=\"11\" r=\"8\"></circle><path d=\"m21 21-4.35-4.35\"></path></svg><input class=\"ds-search-input\" placeholder=\"관심 있는 자격증을 검색하세요...\" /></div>",
+      "css": ".ds-search-wrap { position: relative; width: 100%; } .ds-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #64748b; pointer-events: none; } .ds-search-input { width: 100%; height: 56px; padding: 0 16px 0 48px; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; color: #f1f5f9; font-family: 'Outfit', 'Noto Sans KR', sans-serif; font-size: 1rem; transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box; } .ds-search-input::placeholder { color: #64748b; } .ds-search-input:focus { outline: none; border-color: transparent; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); } .ds-search-wrap:hover .ds-search-input:not(:focus) { border-color: #334155; }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge-blue",
+      "description": "Section label chip. Blue variant for features, indigo for AI/ML sections.",
+      "html": "<span class=\"ds-badge ds-badge-blue\">Core Modules</span><span class=\"ds-badge ds-badge-indigo\">AI 추천</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; padding: 4px 16px; border-radius: 9999px; font-family: 'Outfit', 'Noto Sans KR', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; border: 1px solid; } .ds-badge-blue { background: rgba(37, 99, 235, 0.1); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); } .ds-badge-indigo { background: rgba(99, 102, 241, 0.1); color: #818cf8; border-color: rgba(129, 140, 248, 0.3); }"
+    },
+    {
+      "name": "AI Feature Pill",
+      "kind": "chip",
+      "refersTo": "badge-blue",
+      "description": "Inline label for AI-powered features. Sparkles icon + text, rounded-full, blue-tinted.",
+      "html": "<div class=\"ds-ai-pill\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z\"/></svg>국가자격 데이터 · 하이브리드 AI 추천</div>",
+      "css": ".ds-ai-pill { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 9999px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: #60a5fa; font-family: 'Outfit', 'Noto Sans KR', sans-serif; font-size: 0.875rem; font-weight: 500; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Precision Instrument",
+    "overview": "CertFinder is a tool for people who need to make consequential decisions about their career. The design reflects that weight. Like a high-end analytical instrument, every element is calibrated to function; decoration is a signal failure. The surface is dark not for aesthetic coolness but because this is a focused workspace, and focused work happens in low ambient distraction. Blue appears once, as a signal color, exactly as a gauge needle moves into a specific zone.\n\nThe system is built on a single restraint: one accent, used for one purpose. The electric blue is reserved for actionable elements and active states. When it appears, the user's attention follows. Its rarity is not a design quirk; it is the entire point. Neutral mid-tones carry the data. Typography does the hierarchy. The blue fires only when the user needs to act.\n\nWhat this system explicitly rejects: the cluttered portal aesthetic of Q-Net and HRD Korea; the generic SaaS dashboard feel of shadcn defaults left unmodified; gamification excess that reduces a professional tool to a language-learning app; neon and glassmorphism that look distinctive but communicate nothing.",
+    "keyCharacteristics": [
+      "Dark, near-black base (slate-950) with cool blue-indigo tint in the neutrals",
+      "Single signal color (electric blue) with strict surface coverage discipline",
+      "Dual-font system: Outfit for Latin display power, Noto Sans KR for Korean density",
+      "Tight radius vocabulary: components lean geometric, not soft",
+      "Data surfaces are content; chrome is minimal",
+      "Flat by default, elevation only on hover and focus states"
+    ],
+    "rules": [
+      { "name": "The Signal Rule",          "body": "Signal Blue is the only accent color. Indigo lives only inside gradients. Emerald lives only in success states. Purple appears only in the hero headline gradient and nowhere else. If you are about to apply color that does not fall into one of these four functions, the answer is a neutral.", "section": "colors" },
+      { "name": "The No True Black Rule",   "body": "Surface Base is #020617, not #000000. Every neutral carries the cool blue-indigo tint of the palette. Pure black and pure white are prohibited; they read as errors in this system.", "section": "colors" },
+      { "name": "The Korean Density Rule",  "body": "Korean characters are visually heavier than Latin at the same weight. At body size, use font-weight 500 for Korean-dominant paragraphs to maintain visual parity with Latin 400. Do not apply letter-spacing to Korean text.", "section": "typography" },
+      { "name": "The Weight-First Rule",    "body": "Hierarchy is weight before size. Do not create hierarchy by size alone; always pair a size step with a weight step.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "If a shadow exists at rest, it is wrong. Tonal layering is the resting elevation system. Shadows appear only as a response to interaction: hover on cards, focus on inputs, lift on modals.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use #2563eb as the only action accent. One signal color.",
+      "Do keep cards flat at rest — border border-slate-800, no shadow.",
+      "Do use weight contrast (700 vs 400) as the primary hierarchy signal before adjusting size.",
+      "Do set Korean body text at font-weight: 500 when in paragraphs.",
+      "Do constrain body copy to 65ch maximum line length on wide layouts.",
+      "Do use rounded-xl (12px) for cards and primary buttons; rounded-full for badges and pills only.",
+      "Do show the focus ring at full opacity: ring-[3px] ring-blue-500/50.",
+      "Do use tonal layering as the resting elevation system."
+    ],
+    "donts": [
+      "Don't use gradient text (background-clip: text + gradient). Use solid text-white or text-blue-400 instead.",
+      "Don't use glassmorphism as a default card style. The .glass utility is available only for the header and contextual overlays.",
+      "Don't use side-stripe borders (border-left or border-right greater than 1px as a colored accent). Use full borders, tinted backgrounds, or nothing.",
+      "Don't make it look like a generic SaaS dashboard: shadcn defaults unmodified, cream/white backgrounds, identical icon+heading+text card grids.",
+      "Don't make it look like a government portal: no dense tables without spacing, no low-contrast gray-on-gray text.",
+      "Don't add gamification patterns: no conspicuous XP bars in primary views, no animated confetti, no badge grids as primary UI.",
+      "Don't use neon borders, glowing outlines, or heavy glassmorphism.",
+      "Don't put shadows on cards at rest.",
+      "Don't use #000000 or #ffffff directly.",
+      "Don't use letter-spacing on Korean text."
+    ]
+  }
+}
