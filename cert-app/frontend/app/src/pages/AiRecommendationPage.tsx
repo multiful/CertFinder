@@ -12,23 +12,18 @@ import {
     Lock,
     LogIn,
     RefreshCw,
-    Database,
-    Zap,
-    GitMerge,
-    Layers,
-    TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getHybridRecommendations, getAvailableMajors, getCertificationsCatalogTotal, FALLBACK_CERT_CATALOG_TOTAL } from '@/lib/api';
+import { getHybridRecommendations, getAvailableMajors } from '@/lib/api';
 import { useRouter } from '@/lib/router';
 import { useAuth } from '@/hooks/useAuth';
 import type { HybridRecommendationResponse } from '@/types';
 import { toast } from 'sonner';
-import { RAG_RETRIEVAL_DETAIL_LINE, RAG_RETRIEVAL_LOADING_LINE } from '@/lib/ragProductCopy';
+import { RAG_RETRIEVAL_LOADING_LINE } from '@/lib/ragProductCopy';
 
 const sampleMajors = [
     '컴퓨터공학', '정보통신공학', '전자공학', '전기공학', '기계공학',
@@ -49,44 +44,6 @@ const HYBRID_RECOMMEND_LIMIT = 15;
 
 const POPULAR_MAJORS = ['컴퓨터공학', '경영학', '전기공학', '간호학', '기계공학', '데이터사이언스'];
 
-const AI_ENGINE_STATS = [
-    {
-        label: '자격증 DB',
-        valueFromApiTotal: true,
-        unit: '개',
-        icon: Database,
-        color: 'blue' as const,
-        desc: '검색 대상 국가 자격증 수',
-        descSmall: false,
-    },
-    {
-        label: '분석 방식',
-        value: '다중 검색',
-        unit: '',
-        icon: GitMerge,
-        color: 'purple' as const,
-        desc: '키워드·의미·맥락을 함께 분석합니다',
-        descSmall: true,
-    },
-    {
-        label: '결과 정렬',
-        value: 'AI 점수순',
-        unit: '',
-        icon: Layers,
-        color: 'indigo' as const,
-        desc: '전공·관심사 적합도 기준으로 자동 정렬',
-        descSmall: true,
-    },
-    {
-        label: '추천 품질',
-        value: '지속 개선',
-        unit: '',
-        icon: TrendingUp,
-        color: 'green' as const,
-        desc: '전공·관심사에 맞는 후보 순위를 유지합니다',
-        descSmall: true,
-    },
-] as const;
 
 export function AiRecommendationPage() {
     const [major, setMajor] = useState('');
@@ -104,7 +61,6 @@ export function AiRecommendationPage() {
     const profileMajor = (user as any)?.user_metadata?.detail_major as string | undefined;
 
     const [availableMajors, setAvailableMajors] = useState<string[]>([]);
-    const [certCatalogTotal, setCertCatalogTotal] = useState(FALLBACK_CERT_CATALOG_TOTAL);
 
     // 전공별 샘플 미리보기 상태
     const [selectedPreviewMajor, setSelectedPreviewMajor] = useState<string | null>(null);
@@ -209,10 +165,6 @@ export function AiRecommendationPage() {
 
     React.useEffect(() => {
         getAvailableMajors().then(res => setAvailableMajors(res.majors)).catch(() => { });
-    }, []);
-
-    useEffect(() => {
-        getCertificationsCatalogTotal().then(setCertCatalogTotal).catch(() => { });
     }, []);
 
     const filteredMajors = useMemo(() => {
