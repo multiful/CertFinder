@@ -65,7 +65,7 @@ export function CertDetailPage({ id }: { id: string }) {
       const res = await getExamSchedule(certId, year);
       setScheduleData(res);
     } catch {
-      setScheduleData({ qual_id: certId, qual_name: '', source: 'none', schedules: [], fetched_at: '' });
+      setScheduleData({ qual_id: certId, qual_name: '', grade_code: null, source: 'none', year: year, schedules: [], fetched_at: '' });
     } finally {
       setScheduleLoading(false);
     }
@@ -687,7 +687,7 @@ export function CertDetailPage({ id }: { id: string }) {
                 <div key={i} className="h-48 rounded-3xl bg-slate-900/50 animate-pulse" />
               ))}
             </div>
-          ) : !scheduleData || scheduleData.source === 'none' || scheduleData.schedules.length === 0 ? (
+          ) : !scheduleData || scheduleData.source === 'none' || scheduleData.source === 'no_key' || scheduleData.schedules.length === 0 ? (
             <Card className="bg-slate-900/30 border-slate-800 border-dashed py-20 text-center rounded-[2.5rem]">
               <div className="space-y-4 max-w-sm mx-auto">
                 <div className="p-6 bg-slate-900 rounded-full w-fit mx-auto">
@@ -695,9 +695,9 @@ export function CertDetailPage({ id }: { id: string }) {
                 </div>
                 <h3 className="text-xl font-bold text-white">{scheduleYear}년 시험 일정 없음</h3>
                 <p className="text-slate-500 text-sm font-medium">
-                  {scheduleData?.source === 'none' && !scheduleLoading
-                    ? 'HRDK API 키가 설정되지 않았거나 해당 연도 일정이 아직 공개되지 않았습니다.'
-                    : '해당 연도에 등록된 시험 일정이 없습니다.'}
+                  {scheduleData?.source === 'no_key'
+                    ? 'HRDK API 키가 서버에 설정되지 않았습니다.'
+                    : '해당 연도에 등록된 시험 일정이 없거나 아직 공개되지 않았습니다.'}
                 </p>
                 <a
                   href="https://www.q-net.or.kr/man001.do?gSite=Q&gId="
@@ -713,12 +713,15 @@ export function CertDetailPage({ id }: { id: string }) {
             <div className="space-y-6">
               {scheduleData.schedules.map((round) => (
                 <Card key={`${round.year}-${round.round}`} className="bg-slate-900/50 border-slate-800 rounded-3xl overflow-hidden">
-                  <div className="px-8 py-5 border-b border-slate-800 flex items-center justify-between">
+                  <div className="px-8 py-5 border-b border-slate-800 flex items-center justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl font-black text-blue-400">{round.round}회</span>
-                      <span className="text-slate-500 text-sm font-medium">{round.year}년 제{round.round}회 시험</span>
+                      <div>
+                        <p className="text-white font-bold text-sm">{round.description}</p>
+                        <p className="text-slate-500 text-xs font-medium">{round.year}년 제{round.round}회</p>
+                      </div>
                     </div>
-                    <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                    <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 shrink-0">
                       HRDK 공식
                     </Badge>
                   </div>

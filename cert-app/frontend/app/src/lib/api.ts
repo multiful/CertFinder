@@ -556,6 +556,7 @@ export interface ExamRound {
   year: number;
   round: number;
   qual_name: string;
+  description: string;
   doc_reg_start: string | null;
   doc_reg_end: string | null;
   doc_exam_start: string | null;
@@ -571,7 +572,9 @@ export interface ExamRound {
 export interface ExamScheduleResponse {
   qual_id: number;
   qual_name: string;
-  source: 'hrdk' | 'none';
+  grade_code: string | null;
+  source: 'hrdk' | 'none' | 'no_key';
+  year: number;
   schedules: ExamRound[];
   fetched_at: string;
 }
