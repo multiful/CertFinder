@@ -23,46 +23,55 @@ def normalize_cert_name(name: str) -> str:
 def build_enhanced_name_mapping(db) -> Dict[str, int]:
     """
     향상된 자격증명 매핑 빌드.
-    
+    qual_aliases 컬럼의 약어/준말도 포함해 매핑 커버리지를 높인다.
+
     반환: {정규화된_이름: qual_id} 딕셔너리
     """
-    rows = db.execute(text("SELECT qual_id, qual_name FROM qualification")).fetchall()
+    rows = db.execute(text("SELECT qual_id, qual_name, qual_aliases FROM qualification")).fetchall()
     name_to_id = {}
-    
+
     for r in rows:
         qid = r.qual_id
         name = r.qual_name.strip()
-        
+
         # 원본 이름
         name_to_id[name.lower()] = qid
-        
+
         # 정규화된 이름
         normalized = normalize_cert_name(name)
         name_to_id[normalized] = qid
-        
+
         # 괄호 내용 추출
         if "(" in name:
             short = name.split("(")[0].strip().lower()
             name_to_id[short] = qid
             name_to_id[normalize_cert_name(short)] = qid
-            
+
             inside = name.split("(")[1].split(")")[0].strip().lower()
             name_to_id[inside] = qid
             name_to_id[normalize_cert_name(inside)] = qid
-        
+
         # 기사/산업기사/기능사 변형
         for suffix in ["기사", "산업기사", "기능사"]:
             if name.endswith(suffix):
                 base = name[:-len(suffix)].strip()
                 name_to_id[base.lower()] = qid
                 name_to_id[normalize_cert_name(base)] = qid
-        
+
         # 숫자+급 제거 변형 (리눅스마스터 2급 → 리눅스마스터)
         cleaned = re.sub(r'\s*\d+급$', '', name).strip().lower()
         if cleaned != name.lower():
             name_to_id[cleaned] = qid
             name_to_id[normalize_cert_name(cleaned)] = qid
-    
+
+        # DB qual_aliases: 약어·준말 등록 (쉼표 구분)
+        aliases_raw = getattr(r, "qual_aliases", None) or ""
+        for alias in aliases_raw.split(","):
+            alias = alias.strip()
+            if alias:
+                name_to_id[alias.lower()] = qid
+                name_to_id[normalize_cert_name(alias)] = qid
+
     return name_to_id
 
 

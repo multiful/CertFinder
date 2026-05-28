@@ -463,33 +463,85 @@ async def hybrid_recommendation(
 
     RRF_K = 60
 
+    # 약어·준말 → 정식 자격증명 (풀텍스트 확장용)
+    _ALIAS_EXPAND = {
+        "정처기": "정보처리기사 정보처리 IT",
+        "컴활": "컴퓨터활용능력 컴퓨터활용 사무 컴활",
+        "빅분기": "빅데이터분석기사 빅데이터 데이터분석",
+        "sqld": "SQL개발자 SQLD SQL 데이터베이스",
+        "SQLD": "SQL개발자 SQLD SQL 데이터베이스",
+        "sqlp": "SQL전문가 SQLP SQL 데이터베이스",
+        "SQLP": "SQL전문가 SQLP SQL 데이터베이스",
+        "adsp": "데이터분석준전문가 ADsP 데이터분석",
+        "ADsP": "데이터분석준전문가 ADsP 데이터분석",
+        "adp": "데이터분석전문가 ADP 데이터분석 빅데이터",
+        "ADP": "데이터분석전문가 ADP 데이터분석 빅데이터",
+        "데분준": "데이터분석준전문가 ADsP 데이터분석",
+        "데분전": "데이터분석전문가 ADP 데이터분석",
+        "정처산기": "정보처리산업기사 정보처리 IT",
+        "정처기능사": "정보처리기능사 정보처리 IT",
+        "네관사": "네트워크관리사 네트워크 관리",
+        "리마1급": "리눅스마스터 1급 리눅스 서버",
+        "리마2급": "리눅스마스터 2급 리눅스 서버",
+        "리눅스1급": "리눅스마스터 1급 리눅스 서버",
+        "리눅스2급": "리눅스마스터 2급 리눅스 서버",
+        "보안기사": "정보보안기사 정보보안 보안",
+        "보안산업기사": "정보보안산업기사 정보보안 보안",
+    }
+
     def _classify_query_and_expand(q_text: str) -> tuple[float, float, str]:
         """
         질의 타입에 따라 Dense/Sparse 가중치와 풀텍스트용 확장 질의를 결정.
         - w_d: Dense(OpenAI) 가중치
         - w_s: Sparse(키워드) 가중치
-        - expanded: 풀텍스트에 사용할 문자열 (간단한 동의어 확장 포함)
+        - expanded: 풀텍스트에 사용할 문자열 (약어 포함 동의어 확장)
         """
         q = (q_text or "").strip()
-        base = q
-        # 간단한 동의어/키워드 확장 (plainto_tsquery에 들어가므로 공백 구분만 사용)
-        if "정보처리기사" in q:
-            base = "정보처리기사 정보처리"
-        elif q.upper() == "SQL" or "SQL" in q:
-            base = "SQL 데이터베이스"
-        elif "간호" in q:
-            base = "간호사 간호"
+        q_lower = q.lower().replace(" ", "")
+
+        # 1. 약어 직접 매칭 (정확한 약어 → 확장)
+        base_parts = [q]
+        for alias, expansion in _ALIAS_EXPAND.items():
+            if alias.lower().replace(" ", "") == q_lower or alias in q:
+                base_parts.append(expansion)
+                break
+
+        # 2. 도메인 키워드 확장
+        if "정보처리기사" in q or "정처기" in q:
+            base_parts.append("정보처리기사 정보처리 IT 개발")
+        if "SQL" in q.upper() or "sqld" in q_lower or "sqlp" in q_lower:
+            base_parts.append("SQL 데이터베이스 SQLD SQL개발자")
+        if "데이터분석" in q or "adsp" in q_lower or "adp" in q_lower:
+            base_parts.append("데이터분석 ADsP ADP 빅데이터")
+        if "빅데이터" in q or "빅분기" in q:
+            base_parts.append("빅데이터분석기사 빅데이터 데이터분석")
+        if "보안" in q:
+            base_parts.append("정보보안기사 정보보안 보안")
+        if "리눅스" in q or "리마" in q:
+            base_parts.append("리눅스마스터 리눅스 서버")
+        if "네트워크" in q or "네관사" in q:
+            base_parts.append("네트워크관리사 네트워크 관리")
+        if "컴활" in q or "컴퓨터활용" in q:
+            base_parts.append("컴퓨터활용능력 컴활 사무")
+        if "전기" in q:
+            base_parts.append("전기기사 전기 전력 설비")
+        if "간호" in q:
+            base_parts.append("간호사 간호 의료 보건")
+        if "회계" in q:
+            base_parts.append("공인회계사 세무사 회계 세무")
+        if "부동산" in q or "중개" in q:
+            base_parts.append("공인중개사 부동산 중개")
+
+        base = " ".join(dict.fromkeys(" ".join(base_parts).split()))  # 중복 토큰 제거
 
         tokens = q.split()
         is_short = len(tokens) <= 2 and len(q) <= 8
         has_cert_suffix = any(s in q for s in ["기사", "산업기사", "기능사"])
-        is_keywordy = is_short or has_cert_suffix or q.upper() == "SQL" or "컴퓨터" in q
+        is_keywordy = is_short or has_cert_suffix or "SQL" in q.upper() or "컴퓨터" in q
 
         if is_keywordy:
-            # 토큰이 명확한 쿼리: Sparse 비중을 조금 더 높인다.
             w_d, w_s = 1.0, 1.2
         else:
-            # 설명형/서술형 쿼리: Dense 비중을 높인다.
             w_d, w_s = 1.3, 0.7
         return w_d, w_s, base
 
