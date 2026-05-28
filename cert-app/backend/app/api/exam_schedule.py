@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/certs", tags=["exam-schedule"])
 
 HRDK_BASE = "http://apis.data.go.kr/B490007/qualExamSchd/getQualExamSchdList"
+HRDK_INFO_BASE = "http://apis.data.go.kr/B490007/qualInfo/getQualInfoList"
 # HRDK API는 numOfRows 최대 30 정도 안정적
 PAGE_SIZE = 30
 
@@ -260,3 +261,97 @@ async def get_exam_schedule(
         schedules=schedules,
         fetched_at=datetime.now().isoformat(),
     )
+
+
+class QualInfoResponse(BaseModel):
+    qual_id: int
+    qual_name: str
+    source: str  # "hrdk" | "none" | "no_key"
+    managing_body: Optional[str] = None
+    exam_method: Optional[str] = None
+    eligibility: Optional[str] = None
+    job_description: Optional[str] = None
+    fetched_at: str
+
+
+@router.get(
+    "/{qual_id}/qual-info",
+    response_model=QualInfoResponse,
+    summary="자격 상세정보 조회 (HRDK)",
+    description="HRDK 공공 API에서 자격증 시험 방법·응시 자격·직무 내용을 가져옵니다.",
+)
+async def get_qual_info(
+    qual_id: int,
+    db: Session = Depends(get_db_session),
+    _: None = Depends(check_rate_limit),
+) -> QualInfoResponse:
+
+    cert = db.query(Qualification).filter(Qualification.qual_id == qual_id).first()
+    if not cert:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Certification not found")
+
+    cache_key = f"qual_info:v1:{qual_id}"
+    try:
+        cached_raw = redis_client.get(cache_key) if redis_client else None
+        if cached_raw and isinstance(cached_raw, dict):
+            return QualInfoResponse(**cached_raw)
+    except Exception:
+        pass
+
+    if not settings.HRDK_API_KEY:
+        return QualInfoResponse(
+            qual_id=qual_id, qual_name=cert.qual_name,
+            source="no_key", fetched_at=datetime.now().isoformat(),
+        )
+
+    try:
+        params = {
+            "serviceKey": settings.HRDK_API_KEY,
+            "dataFormat": "json",
+            "jmNm": cert.qual_name,
+            "numOfRows": "5",
+            "pageNo": "1",
+        }
+        async with httpx.AsyncClient(timeout=settings.HRDK_TIMEOUT) as client:
+            resp = await client.get(HRDK_INFO_BASE, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+
+        body = data.get("body", {})
+        items = body.get("items", [])
+        if isinstance(items, dict):
+            items = [items]
+
+        if not items:
+            return QualInfoResponse(
+                qual_id=qual_id, qual_name=cert.qual_name,
+                source="none", fetched_at=datetime.now().isoformat(),
+            )
+
+        it = items[0]
+        result = QualInfoResponse(
+            qual_id=qual_id,
+            qual_name=cert.qual_name,
+            source="hrdk",
+            managing_body=it.get("insttNm") or it.get("mngInsttNm") or None,
+            exam_method=it.get("examMthd") or None,
+            eligibility=it.get("applcQual") or None,
+            job_description=it.get("jbdcScop") or None,
+            fetched_at=datetime.now().isoformat(),
+        )
+
+        try:
+            if redis_client:
+                redis_client.set(cache_key, result.model_dump(), ex=86400)  # 24시간
+        except Exception:
+            pass
+
+        return result
+
+    except Exception as e:
+        logger.error("HRDK qual-info error for qual_id=%s: %s", qual_id, e)
+        return QualInfoResponse(
+            qual_id=qual_id, qual_name=cert.qual_name,
+            source="none", fetched_at=datetime.now().isoformat(),
+        )

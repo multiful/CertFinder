@@ -587,6 +587,24 @@ export async function getExamSchedule(
   return apiRequest<ExamScheduleResponse>(`/certs/${qualId}/exam-schedule${qs}`);
 }
 
+// ============== HRDK 자격 상세정보 ==============
+
+export interface QualInfoResponse {
+  qual_id: number;
+  qual_name: string;
+  source: 'hrdk' | 'none' | 'no_key';
+  managing_body: string | null;
+  exam_method: string | null;
+  eligibility: string | null;
+  job_description: string | null;
+  fetched_at: string;
+}
+
+export async function getQualInfo(qualId: number): Promise<QualInfoResponse> {
+  return apiRequest<QualInfoResponse>(`/certs/${qualId}/qual-info`);
+}
+
+
 // ============== Stream / SSE (향후 AI 스트리밍 응답용) ==============
 /** SSE 이벤트 스트림 구독. 백엔드에서 EventSource/SSE 엔드포인트 추가 시 사용 */
 export function createSSEClient(

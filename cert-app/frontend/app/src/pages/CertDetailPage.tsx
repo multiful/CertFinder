@@ -41,8 +41,8 @@ import { useCertDetail, useCertStats } from '@/hooks/useCerts';
 import { useRouter } from '@/lib/router';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
-import { checkFavorite, addFavorite, removeFavorite, getExamSchedule } from '@/lib/api';
-import type { ExamScheduleResponse } from '@/lib/api';
+import { checkFavorite, addFavorite, removeFavorite, getExamSchedule, getQualInfo } from '@/lib/api';
+import type { ExamScheduleResponse, QualInfoResponse } from '@/lib/api';
 
 export function CertDetailPage({ id }: { id: string }) {
   const router = useRouter();
@@ -56,9 +56,13 @@ export function CertDetailPage({ id }: { id: string }) {
   // 시험 일정 (HRDK 공공 API — 탭 클릭 시 lazy load)
   const [scheduleData, setScheduleData] = useState<ExamScheduleResponse | null>(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
-  const [scheduleYear, setScheduleYear] = useState(new Date().getFullYear());
+  const [scheduleYear] = useState(new Date().getFullYear());
 
-  const fetchSchedule = async (year: number) => {
+  // HRDK 자격 상세정보
+  const [qualInfo, setQualInfo] = useState<QualInfoResponse | null>(null);
+  const [qualInfoLoading, setQualInfoLoading] = useState(false);
+
+const fetchSchedule = async (year: number) => {
     if (!certId) return;
     setScheduleLoading(true);
     try {
@@ -71,10 +75,26 @@ export function CertDetailPage({ id }: { id: string }) {
     }
   };
 
-  const handleTabChange = (tab: string) => {
+  const fetchQualInfo = async () => {
+    if (!certId) return;
+    setQualInfoLoading(true);
+    try {
+      const res = await getQualInfo(certId);
+      setQualInfo(res);
+    } catch {
+      setQualInfo(null);
+    } finally {
+      setQualInfoLoading(false);
+    }
+  };
+
+const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === 'schedule' && !scheduleData && !scheduleLoading) {
       fetchSchedule(scheduleYear);
+    }
+    if (tab === 'info' && !qualInfo && !qualInfoLoading) {
+      fetchQualInfo();
     }
   };
 
@@ -651,34 +671,13 @@ export function CertDetailPage({ id }: { id: string }) {
 
         {/* Schedule Tab */}
         <TabsContent value="schedule" className="space-y-8 focus-visible:outline-none">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Calendar className="w-6 h-6 text-blue-400" /> 시험 일정
-              </h2>
-              <p className="text-sm text-slate-500 font-medium">
-                한국산업인력공단 공공데이터 기준 — 변경될 수 있으니 Q-Net에서 최종 확인하세요.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-slate-800 text-slate-400 hover:text-white rounded-xl"
-                onClick={() => { const y = scheduleYear - 1; setScheduleYear(y); fetchSchedule(y); }}
-              >
-                {scheduleYear - 1}년
-              </Button>
-              <span className="text-sm font-bold text-white px-2">{scheduleYear}년</span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-slate-800 text-slate-400 hover:text-white rounded-xl"
-                onClick={() => { const y = scheduleYear + 1; setScheduleYear(y); fetchSchedule(y); }}
-              >
-                {scheduleYear + 1}년
-              </Button>
-            </div>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-blue-400" /> {scheduleYear}년 시험 일정
+            </h2>
+            <p className="text-sm text-slate-500 font-medium">
+              한국산업인력공단 공공데이터 기준 — 변경될 수 있으니 Q-Net에서 최종 확인하세요.
+            </p>
           </div>
 
           {scheduleLoading ? (
@@ -818,6 +817,44 @@ export function CertDetailPage({ id }: { id: string }) {
               </div>
             </div>
           </Card>
+
+          {/* HRDK 자격 상세정보 */}
+          {qualInfoLoading ? (
+            <div className="h-40 rounded-3xl bg-slate-900/50 animate-pulse" />
+          ) : qualInfo && qualInfo.source === 'hrdk' && (qualInfo.exam_method || qualInfo.eligibility || qualInfo.job_description || qualInfo.managing_body) ? (
+            <Card className="bg-slate-900/50 border-slate-800 rounded-3xl p-8">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6">
+                <Info className="w-5 h-5 text-blue-400" /> HRDK 자격 상세 정보
+                <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] ml-auto">HRDK 공식</Badge>
+              </h3>
+              <div className="space-y-4">
+                {qualInfo.managing_body && (
+                  <div className="flex gap-4 py-3 border-b border-slate-800/50">
+                    <span className="text-xs font-bold text-slate-500 w-24 shrink-0">시행 기관</span>
+                    <span className="text-sm text-white font-medium">{qualInfo.managing_body}</span>
+                  </div>
+                )}
+                {qualInfo.exam_method && (
+                  <div className="flex gap-4 py-3 border-b border-slate-800/50">
+                    <span className="text-xs font-bold text-slate-500 w-24 shrink-0">검정 방법</span>
+                    <span className="text-sm text-white font-medium">{qualInfo.exam_method}</span>
+                  </div>
+                )}
+                {qualInfo.eligibility && (
+                  <div className="flex gap-4 py-3 border-b border-slate-800/50">
+                    <span className="text-xs font-bold text-slate-500 w-24 shrink-0">응시 자격</span>
+                    <span className="text-sm text-white font-medium leading-relaxed">{qualInfo.eligibility}</span>
+                  </div>
+                )}
+                {qualInfo.job_description && (
+                  <div className="flex gap-4 py-3">
+                    <span className="text-xs font-bold text-slate-500 w-24 shrink-0">직무 내용</span>
+                    <span className="text-sm text-white font-medium leading-relaxed">{qualInfo.job_description}</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          ) : null}
         </TabsContent>
 
         {/* Related Jobs Tab */}
@@ -956,6 +993,7 @@ export function CertDetailPage({ id }: { id: string }) {
             </div>
           )}
         </TabsContent>
+
       </Tabs>
     </div>
   );
