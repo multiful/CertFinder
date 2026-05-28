@@ -345,8 +345,8 @@ export function RecommendationPage() {
                                 {rec.latest_pass_rate !== null && (
                                   <div className="text-right">
                                     <p className="text-[10px] text-slate-500 font-semibold mb-0.5">합격률</p>
-                                    <p className={`text-sm font-bold ${rec.latest_pass_rate >= 50 ? 'text-green-400' :
-                                      rec.latest_pass_rate >= 30 ? 'text-yellow-400' : 'text-red-400'
+                                    <p className={`text-sm font-bold ${rec.latest_pass_rate > 70 ? 'text-emerald-400' :
+                                      rec.latest_pass_rate >= 30 ? 'text-amber-400' : 'text-rose-500'
                                       }`}>
                                       {rec.latest_pass_rate.toFixed(1)}%
                                     </p>

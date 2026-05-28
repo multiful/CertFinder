@@ -717,10 +717,17 @@ export function CertListPage() {
                       <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-800/50">
                         <div className="space-y-1">
                           <p className="text-[10px] font-bold text-slate-600">합격률</p>
-                          <p className="text-sm font-bold text-emerald-400 flex items-center gap-1">
-                            <Zap className="w-3 h-3 fill-emerald-400" />
-                            {(cert.latest_pass_rate !== null && cert.latest_pass_rate !== undefined) ? `${cert.latest_pass_rate}%` : '정보 없음'}
-                          </p>
+                          {(() => {
+                            const r = cert.latest_pass_rate;
+                            const c = r == null ? 'text-slate-500' : r > 70 ? 'text-emerald-400' : r >= 30 ? 'text-amber-400' : 'text-rose-500';
+                            const f = r == null ? 'fill-slate-500' : r > 70 ? 'fill-emerald-400' : r >= 30 ? 'fill-amber-400' : 'fill-rose-500';
+                            return (
+                              <p className={`text-sm font-bold ${c} flex items-center gap-1`}>
+                                <Zap className={`w-3 h-3 ${f}`} />
+                                {r != null ? `${r}%` : '정보 없음'}
+                              </p>
+                            );
+                          })()}
                         </div>
                         <div className="space-y-1">
                           <p className="text-[10px] font-bold text-slate-600">난이도</p>
@@ -753,8 +760,10 @@ export function CertListPage() {
                     </div>
                     <div className="flex gap-8 items-center">
                       <div className="text-right hidden sm:block">
-                        <p className="text-[10px] uppercase font-bold text-slate-600 mb-0.5">최신 합격률</p>
-                        <p className="text-base font-bold text-emerald-400">{(cert.latest_pass_rate !== null && cert.latest_pass_rate !== undefined) ? `${cert.latest_pass_rate}%` : "정보 없음"}</p>
+                        <p className="text-[10px] font-bold text-slate-600 mb-0.5">최신 합격률</p>
+                        <p className={`text-base font-bold ${cert.latest_pass_rate == null ? 'text-slate-500' : cert.latest_pass_rate > 70 ? 'text-emerald-400' : cert.latest_pass_rate >= 30 ? 'text-amber-400' : 'text-rose-500'}`}>
+                          {cert.latest_pass_rate != null ? `${cert.latest_pass_rate}%` : "정보 없음"}
+                        </p>
                       </div>
                       <div className="text-right hidden sm:block">
                         <p className="text-[10px] uppercase font-bold text-slate-600 mb-0.5">평균 난이도</p>

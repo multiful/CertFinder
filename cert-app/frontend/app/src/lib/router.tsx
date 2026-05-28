@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode, MouseEvent } from 'react';
 
-export type Route = 'home' | 'certs' | 'cert-detail' | 'recommendations' | 'ai-recommendations' | 'jobs' | 'job-detail' | 'mypage' | 'privacy' | 'terms' | 'contact';
+export type Route = 'home' | 'certs' | 'cert-detail' | 'recommendations' | 'ai-recommendations' | 'jobs' | 'job-detail' | 'mypage' | 'privacy' | 'terms' | 'contact' | 'about';
 
 export interface RouteState {
     route: Route;
@@ -39,6 +39,8 @@ export const getRouteFromPath = (path: string, search: string): RouteState => {
         route = 'mypage';
     } else if (path === '/contact') {
         route = 'contact';
+    } else if (path === '/about') {
+        route = 'about';
     }
     return { route, params };
 };

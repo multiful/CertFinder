@@ -550,6 +550,40 @@ export async function sendContactEmail(data: { name: string; email: string; subj
   );
 }
 
+// ============== 시험 일정 (HRDK 공공 API) ==============
+
+export interface ExamRound {
+  year: number;
+  round: number;
+  qual_name: string;
+  doc_reg_start: string | null;
+  doc_reg_end: string | null;
+  doc_exam_start: string | null;
+  doc_exam_end: string | null;
+  doc_pass_dt: string | null;
+  prac_reg_start: string | null;
+  prac_reg_end: string | null;
+  prac_exam_start: string | null;
+  prac_exam_end: string | null;
+  prac_pass_dt: string | null;
+}
+
+export interface ExamScheduleResponse {
+  qual_id: number;
+  qual_name: string;
+  source: 'hrdk' | 'none';
+  schedules: ExamRound[];
+  fetched_at: string;
+}
+
+export async function getExamSchedule(
+  qualId: number,
+  year?: number
+): Promise<ExamScheduleResponse> {
+  const qs = year ? `?year=${year}` : '';
+  return apiRequest<ExamScheduleResponse>(`/certs/${qualId}/exam-schedule${qs}`);
+}
+
 // ============== Stream / SSE (향후 AI 스트리밍 응답용) ==============
 /** SSE 이벤트 스트림 구독. 백엔드에서 EventSource/SSE 엔드포인트 추가 시 사용 */
 export function createSSEClient(

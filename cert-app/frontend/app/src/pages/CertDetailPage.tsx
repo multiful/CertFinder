@@ -41,7 +41,8 @@ import { useCertDetail, useCertStats } from '@/hooks/useCerts';
 import { useRouter } from '@/lib/router';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
-import { checkFavorite, addFavorite, removeFavorite } from '@/lib/api';
+import { checkFavorite, addFavorite, removeFavorite, getExamSchedule } from '@/lib/api';
+import type { ExamScheduleResponse } from '@/lib/api';
 
 export function CertDetailPage({ id }: { id: string }) {
   const router = useRouter();
@@ -51,6 +52,31 @@ export function CertDetailPage({ id }: { id: string }) {
   const { data: statsRes, loading: statsLoading } = useCertStats(certId);
   const [activeTab, setActiveTab] = useState('stats');
   const [isBookmarked, setIsBookmarked] = useState(false);
+
+  // 시험 일정 (HRDK 공공 API — 탭 클릭 시 lazy load)
+  const [scheduleData, setScheduleData] = useState<ExamScheduleResponse | null>(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleYear, setScheduleYear] = useState(new Date().getFullYear());
+
+  const fetchSchedule = async (year: number) => {
+    if (!certId) return;
+    setScheduleLoading(true);
+    try {
+      const res = await getExamSchedule(certId, year);
+      setScheduleData(res);
+    } catch {
+      setScheduleData({ qual_id: certId, qual_name: '', source: 'none', schedules: [], fetched_at: '' });
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'schedule' && !scheduleData && !scheduleLoading) {
+      fetchSchedule(scheduleYear);
+    }
+  };
 
   // Sync with API or LocalStorage on mount
   useEffect(() => {
@@ -124,6 +150,48 @@ export function CertDetailPage({ id }: { id: string }) {
   };
 
   const stats = statsRes?.items || [];
+
+  /** 자격 개요 — 단순 템플릿 대신 보유 데이터를 최대한 활용해 고유한 설명 생성 */
+  const certOverview = useMemo(() => {
+    if (!cert) return '';
+    const grade = cert.grade_code ? `${cert.grade_code} 등급` : null;
+    const examParts: string[] = [];
+    if ((cert.written_cnt || 0) > 0) examParts.push(`필기 ${cert.written_cnt}과목`);
+    if ((cert.practical_cnt || 0) > 0) examParts.push(`실기 ${cert.practical_cnt}과목`);
+    if ((cert.interview_cnt || 0) > 0) examParts.push(`면접 ${cert.interview_cnt}과목`);
+    const examStr = examParts.length > 0 ? examParts.join(', ') : null;
+
+    const diff = cert.avg_difficulty ?? null;
+    const diffLabel =
+      diff === null ? null
+      : diff >= 8.5 ? '최상급(Expert) 수준의 고난이도'
+      : diff >= 7.0 ? '심화(Advanced) 수준'
+      : diff >= 5.0 ? '중등(Intermediate) 수준'
+      : diff >= 3.0 ? '기초(Basic) 수준'
+      : '입문(Entry) 수준';
+
+    const passRate = cert.latest_pass_rate ?? null;
+    const passCtx =
+      passRate === null ? ''
+      : passRate < 20 ? `최근 합격률이 ${passRate}%로 매우 낮아 장기적인 준비가 필요합니다.`
+      : passRate < 40 ? `최근 합격률은 ${passRate}%로, 체계적인 학습 계획이 요구됩니다.`
+      : passRate < 65 ? `최근 합격률은 ${passRate}%로 적정 수준입니다.`
+      : `최근 합격률이 ${passRate}%로 비교적 접근하기 수월한 자격증입니다.`;
+
+    const parts: string[] = [];
+    parts.push(
+      `${cert.qual_name}은(는) ${cert.managing_body || cert.ncs_large} 관할 하에 시행되는 ${grade ? grade + ' ' : ''}${cert.qual_type}으로, ${cert.ncs_large} 직군의 ${cert.main_field} 분야 전문성을 국가 차원에서 공인합니다.`
+    );
+    if (examStr) {
+      parts.push(`시험은 ${examStr}으로 구성되며, 이론 지식과 실무 역량을 종합 평가합니다.`);
+    }
+    if (diffLabel) {
+      parts.push(`CertFinder 데이터 기준 ${diffLabel}(난이도 ${diff?.toFixed(1)}/10)에 해당합니다.`);
+    }
+    if (passCtx) parts.push(passCtx);
+    if (!cert.is_active) parts.push('현재 이 자격증은 시행이 종료된 상태입니다.');
+    return parts.join(' ');
+  }, [cert]);
 
   // Multi-series Chart Data
   const [visibleStages, setVisibleStages] = useState<string[]>(['필기', '실기', '면접']);
@@ -321,7 +389,7 @@ export function CertDetailPage({ id }: { id: string }) {
           const getPassRateStyles = (rate: number) => {
             if (rate === 0) return { color: "text-slate-400", bg: "bg-slate-400/5" };
             if (rate < 30) return { color: "text-rose-500", bg: "bg-rose-500/5" };
-            if (rate < 60) return { color: "text-amber-400", bg: "bg-amber-400/5" };
+            if (rate <= 70) return { color: "text-amber-400", bg: "bg-amber-400/5" };
             return { color: "text-emerald-400", bg: "bg-emerald-400/5" };
           };
 
@@ -373,10 +441,13 @@ export function CertDetailPage({ id }: { id: string }) {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="bg-slate-900/80 border border-slate-800 p-1.5 rounded-2xl gap-2 backdrop-blur-md sticky top-[88px] z-30">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
+        <TabsList className="bg-slate-900/80 border border-slate-800 p-1.5 rounded-2xl gap-2 backdrop-blur-md sticky top-[88px] z-30 flex-wrap">
           <TabsTrigger value="stats" className="px-6 py-2.5 rounded-xl font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white">
             <TrendingUp className="w-4 h-4 mr-2" /> 통계 및 분석
+          </TabsTrigger>
+          <TabsTrigger value="schedule" className="px-6 py-2.5 rounded-xl font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <Calendar className="w-4 h-4 mr-2" /> 시험 일정
           </TabsTrigger>
           <TabsTrigger value="info" className="px-6 py-2.5 rounded-xl font-bold data-[state=active]:bg-blue-600 data-[state=active]:text-white">
             <BookOpen className="w-4 h-4 mr-2" /> 기본 정보
@@ -512,7 +583,7 @@ export function CertDetailPage({ id }: { id: string }) {
                   const passRateValue = s.pass_rate || 0;
                   const getPassRateColor = (rate: number) => {
                     if (rate < 30) return 'text-rose-500';
-                    if (rate < 60) return 'text-amber-400';
+                    if (rate <= 70) return 'text-amber-400';
                     return 'text-emerald-400';
                   };
 
@@ -578,6 +649,127 @@ export function CertDetailPage({ id }: { id: string }) {
           </div>
         </TabsContent>
 
+        {/* Schedule Tab */}
+        <TabsContent value="schedule" className="space-y-8 focus-visible:outline-none">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Calendar className="w-6 h-6 text-blue-400" /> 시험 일정
+              </h2>
+              <p className="text-sm text-slate-500 font-medium">
+                한국산업인력공단 공공데이터 기준 — 변경될 수 있으니 Q-Net에서 최종 확인하세요.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-slate-800 text-slate-400 hover:text-white rounded-xl"
+                onClick={() => { const y = scheduleYear - 1; setScheduleYear(y); fetchSchedule(y); }}
+              >
+                {scheduleYear - 1}년
+              </Button>
+              <span className="text-sm font-bold text-white px-2">{scheduleYear}년</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-slate-800 text-slate-400 hover:text-white rounded-xl"
+                onClick={() => { const y = scheduleYear + 1; setScheduleYear(y); fetchSchedule(y); }}
+              >
+                {scheduleYear + 1}년
+              </Button>
+            </div>
+          </div>
+
+          {scheduleLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-48 rounded-3xl bg-slate-900/50 animate-pulse" />
+              ))}
+            </div>
+          ) : !scheduleData || scheduleData.source === 'none' || scheduleData.schedules.length === 0 ? (
+            <Card className="bg-slate-900/30 border-slate-800 border-dashed py-20 text-center rounded-[2.5rem]">
+              <div className="space-y-4 max-w-sm mx-auto">
+                <div className="p-6 bg-slate-900 rounded-full w-fit mx-auto">
+                  <Calendar className="w-10 h-10 text-slate-700" />
+                </div>
+                <h3 className="text-xl font-bold text-white">{scheduleYear}년 시험 일정 없음</h3>
+                <p className="text-slate-500 text-sm font-medium">
+                  {scheduleData?.source === 'none' && !scheduleLoading
+                    ? 'HRDK API 키가 설정되지 않았거나 해당 연도 일정이 아직 공개되지 않았습니다.'
+                    : '해당 연도에 등록된 시험 일정이 없습니다.'}
+                </p>
+                <a
+                  href="https://www.q-net.or.kr/man001.do?gSite=Q&gId="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 font-medium"
+                >
+                  Q-Net 공식 사이트에서 확인하기 <ChevronRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {scheduleData.schedules.map((round) => (
+                <Card key={`${round.year}-${round.round}`} className="bg-slate-900/50 border-slate-800 rounded-3xl overflow-hidden">
+                  <div className="px-8 py-5 border-b border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl font-black text-blue-400">{round.round}회</span>
+                      <span className="text-slate-500 text-sm font-medium">{round.year}년 제{round.round}회 시험</span>
+                    </div>
+                    <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                      HRDK 공식
+                    </Badge>
+                  </div>
+                  <div className="p-8 grid sm:grid-cols-2 gap-6">
+                    {/* 필기 */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-slate-400 flex items-center gap-2">
+                        <BookOpen className="w-3.5 h-3.5 text-blue-400" /> 필기 일정
+                      </h4>
+                      {[
+                        { label: '원서접수', start: round.doc_reg_start, end: round.doc_reg_end },
+                        { label: '시험 기간', start: round.doc_exam_start, end: round.doc_exam_end },
+                        { label: '합격자 발표', start: round.doc_pass_dt, end: null },
+                      ].map(row => (row.start || row.end) ? (
+                        <div key={row.label} className="flex justify-between items-center py-2 border-b border-slate-800/50 last:border-0">
+                          <span className="text-xs text-slate-500 font-medium">{row.label}</span>
+                          <span className="text-xs font-bold text-white tabular-nums">
+                            {row.start}{row.end && row.end !== row.start ? ` ~ ${row.end}` : ''}
+                          </span>
+                        </div>
+                      ) : null)}
+                    </div>
+                    {/* 실기 */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-slate-400 flex items-center gap-2">
+                        <Target className="w-3.5 h-3.5 text-emerald-400" /> 실기 일정
+                      </h4>
+                      {[
+                        { label: '원서접수', start: round.prac_reg_start, end: round.prac_reg_end },
+                        { label: '시험 기간', start: round.prac_exam_start, end: round.prac_exam_end },
+                        { label: '최종 합격자 발표', start: round.prac_pass_dt, end: null },
+                      ].map(row => (row.start || row.end) ? (
+                        <div key={row.label} className="flex justify-between items-center py-2 border-b border-slate-800/50 last:border-0">
+                          <span className="text-xs text-slate-500 font-medium">{row.label}</span>
+                          <span className="text-xs font-bold text-white tabular-nums">
+                            {row.start}{row.end && row.end !== row.start ? ` ~ ${row.end}` : ''}
+                          </span>
+                        </div>
+                      ) : null)}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+              <p className="text-xs text-slate-600 font-medium text-center">
+                * 시험 일정은 변경될 수 있습니다.
+                최종 확인은 <a href="https://www.q-net.or.kr" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Q-Net 공식 사이트</a>에서 하시기 바랍니다.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+
         {/* Info Tab */}
         <TabsContent value="info" className="space-y-8 focus-visible:outline-none">
           <Card className="bg-slate-900/50 border-slate-800 rounded-[2.5rem] p-10">
@@ -587,10 +779,9 @@ export function CertDetailPage({ id }: { id: string }) {
                   <h3 className="text-2xl font-bold text-white flex items-center gap-2">
                     <Info className="w-6 h-6 text-blue-500" /> 자격 개요
                   </h3>
-                  <div className="text-slate-400 leading-relaxed font-medium bg-slate-950/40 p-6 rounded-2xl border border-slate-800">
-                    {cert.qual_name} 자격은 {cert.ncs_large} 분야의 전문 인력을 양성하기 위해 시행되는 {cert.qual_type}입니다.
-                    주로 {cert.main_field} 직무 수행에 필요한 이론 및 실무 역량을 평가하며, 산업 현장에서의 전문성을 인증합니다.
-                  </div>
+                  <p className="text-slate-400 leading-relaxed font-medium bg-slate-950/40 p-6 rounded-2xl border border-slate-800">
+                    {certOverview}
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="p-4 bg-slate-950/40 rounded-2xl border border-slate-800">

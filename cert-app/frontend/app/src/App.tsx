@@ -17,6 +17,7 @@ const MyPage = lazy(() => import('@/pages/MyPage').then(m => ({ default: m.MyPag
 const PrivacyPolicyPage = lazy(() => import('@/pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
 const TermsOfServicePage = lazy(() => import('@/pages/TermsOfServicePage').then(m => ({ default: m.TermsOfServicePage })));
 const ContactPage = lazy(() => import('@/pages/ContactPage').then(m => ({ default: m.ContactPage })));
+const AboutPage = lazy(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage })));
 
 
 function App() {
@@ -97,6 +98,9 @@ function App() {
       case 'contact':
         title = '문의하기 | CertFinder';
         break;
+      case 'about':
+        title = 'CertFinder 소개 — 국가자격 AI 분석 서비스';
+        break;
       default:
         title = baseTitle;
     }
@@ -128,6 +132,8 @@ function App() {
         return <TermsOfServicePage />;
       case 'contact':
         return <ContactPage />;
+      case 'about':
+        return <AboutPage />;
       default:
         return <HomePage />;
     }

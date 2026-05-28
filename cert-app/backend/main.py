@@ -25,6 +25,7 @@ from app.api import (
     ai_recommendations,
     fast_certs,
     contact,
+    exam_schedule,
 )
 from app.rag.api import rag_router
 
@@ -394,6 +395,7 @@ app.include_router(ai_recommendations.router, prefix=v1_prefix)
 app.include_router(fast_certs.router, prefix=v1_prefix)
 app.include_router(rag_router, prefix=v1_prefix)
 app.include_router(contact.router, prefix=v1_prefix)
+app.include_router(exam_schedule.router, prefix=v1_prefix)
 
 
 # ============== Health Check ==============

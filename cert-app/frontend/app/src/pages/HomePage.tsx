@@ -385,6 +385,63 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Guide Section — 독창적 콘텐츠, 크롤러 접근 가능 */}
+      <section className="container mx-auto px-6">
+        <div className="space-y-12">
+          <div className="text-center space-y-4">
+            <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">활용 가이드</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-white">CertFinder로 무엇을 할 수 있나요?</h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                합격률로 난이도를 사전에 파악
+              </h3>
+              <p className="text-slate-400 leading-relaxed font-medium text-sm">
+                국가기술자격 시험은 종목마다 합격률이 크게 다릅니다. 연도별·회차별 합격률 추이를
+                차트로 확인하면 공부 기간과 전략을 현실적으로 계획할 수 있습니다.
+                예를 들어 합격률 10% 이하 자격증은 최소 6개월 이상의 준비 기간을 권장합니다.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                전공과 연결된 자격증 경로 탐색
+              </h3>
+              <p className="text-slate-400 leading-relaxed font-medium text-sm">
+                전공명을 입력하면 해당 학과에서 주로 취득하는 국가자격증 목록이 표시됩니다.
+                컴퓨터공학과라면 정보처리기사, 전기공학과라면 전기기사가 대표적입니다.
+                전공-자격증 매핑 DB와 합격률 통계를 결합해 우선순위를 제안합니다.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                커리어 목표에 맞는 AI 추천
+              </h3>
+              <p className="text-slate-400 leading-relaxed font-medium text-sm">
+                "클라우드 보안 분야에서 일하고 싶다"처럼 구체적인 목표를 입력하면
+                하이브리드 AI 엔진이 관련 자격증 후보를 실시간으로 분석합니다.
+                단순 키워드 매칭이 아니라 직무 연관성, 합격률, 취득 이력까지 종합 고려합니다.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                자격증 취득 후 직무·연봉 확인
+              </h3>
+              <p className="text-slate-400 leading-relaxed font-medium text-sm">
+                자격증을 취득한 후 어떤 직무에 취업할 수 있는지, 초임 연봉과 직업 전망은
+                어떤지 워크넷·커리어넷 기반 데이터로 확인할 수 있습니다.
+                직무 역량 레이더 차트로 해당 직업이 요구하는 역량 분포도 한눈에 볼 수 있습니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="container mx-auto px-6">
         <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 p-12 md:p-20 text-center">

@@ -87,6 +87,13 @@ class Settings(BaseSettings):
     # 문의 수신 이메일 (contact API)
     CONTACT_EMAIL: str = ""
 
+    # 한국산업인력공단 공공데이터 API (공공데이터포털 발급 키)
+    HRDK_API_KEY: str = ""
+    # HRDK API 타임아웃(초)
+    HRDK_TIMEOUT: float = 10.0
+    # HRDK 시험일정 캐시 TTL(초) — 일정은 자주 안 바뀌므로 6시간
+    HRDK_CACHE_TTL: int = 21600
+
     # Resend HTTPS API — Railway 등에서 네이버 SMTP(587) 타임아웃일 때 사용. 설정 시 SMTP보다 우선.
     RESEND_API_KEY: str = ""
     # 예: CertFinder <noreply@yourdomain.com> (Resend에서 도메인 인증 후). 비우면 onboarding@resend.dev (테스트 제한 있음)

@@ -475,15 +475,15 @@ export function AiRecommendationPage() {
                                             <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden max-w-[80px]">
                                                 <div
                                                     className={`h-full rounded-full transition-all ${
-                                                        res.pass_rate >= 50 ? 'bg-emerald-500' :
-                                                        res.pass_rate >= 25 ? 'bg-yellow-500' : 'bg-red-500'
+                                                        res.pass_rate > 70 ? 'bg-emerald-500' :
+                                                        res.pass_rate >= 30 ? 'bg-amber-500' : 'bg-rose-500'
                                                     }`}
                                                     style={{ width: `${Math.min(res.pass_rate, 100)}%` }}
                                                 />
                                             </div>
                                             <span className={`text-[11px] font-bold ${
-                                                res.pass_rate >= 50 ? 'text-emerald-400' :
-                                                res.pass_rate >= 25 ? 'text-yellow-400' : 'text-red-400'
+                                                res.pass_rate > 70 ? 'text-emerald-400' :
+                                                res.pass_rate >= 30 ? 'text-amber-400' : 'text-rose-500'
                                             }`}>
                                                 {res.pass_rate.toFixed(1)}%
                                             </span>
