@@ -52,6 +52,7 @@ export function CertDetailPage({ id }: { id: string }) {
   const { data: statsRes, loading: statsLoading } = useCertStats(certId);
   const [activeTab, setActiveTab] = useState('stats');
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [justBookmarked, setJustBookmarked] = useState(false);
 
   // 시험 일정 (HRDK 공공 API — 탭 클릭 시 lazy load)
   const [scheduleData, setScheduleData] = useState<ExamScheduleResponse | null>(null);
@@ -126,6 +127,10 @@ const handleTabChange = (tab: string) => {
   const toggleBookmark = async () => {
     const nextState = !isBookmarked;
     setIsBookmarked(nextState);
+    if (nextState) {
+      setJustBookmarked(true);
+      setTimeout(() => setJustBookmarked(false), 600);
+    }
 
     if (user && token) {
       try {
@@ -386,7 +391,7 @@ const handleTabChange = (tab: string) => {
                   : 'bg-blue-600 hover:bg-blue-700 text-white'}
               `}
             >
-              <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-white' : ''}`} />
+              <Bookmark className={`w-4 h-4 transition-transform ${isBookmarked ? 'fill-white' : ''} ${justBookmarked ? '[animation:bookmarkPulse_0.5s_ease-out]' : ''}`} />
               {isBookmarked ? '관심 자격증 해제' : '관심 자격증 추가'}
             </Button>
             <Button
@@ -442,11 +447,11 @@ const handleTabChange = (tab: string) => {
               sub: "등급+합격률 기반"
             },
           ].map((stat, i) => (
-            <Card key={i} className="bg-slate-900/50 border-slate-800 overflow-hidden group hover:border-blue-500/30 transition-all duration-300">
+            <Card key={i} className="bg-slate-900/50 border-slate-800 overflow-hidden group hover:border-blue-500/30 hover:-translate-y-0.5 transition-all duration-200">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <div className={`p-3 rounded-2xl ${stat.bg} transition-colors`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color} transition-colors`} />
+                  <div className={`p-3 rounded-2xl ${stat.bg} transition-transform duration-200 group-hover:scale-110`}>
+                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
                   </div>
                   <Badge variant="secondary" className="text-[10px] text-slate-500 font-bold border-none bg-slate-950/50">{stat.sub}</Badge>
                 </div>
@@ -866,9 +871,15 @@ const handleTabChange = (tab: string) => {
                   <Briefcase className="w-12 h-12 text-slate-700" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-bold text-white">매칭된 직무가 없습니다</h3>
-                  <p className="text-slate-500">이 자격증과 직접적으로 연관된 직무 데이터를 분석 중입니다.</p>
+                  <h3 className="text-2xl font-bold text-white">매칭된 직무 데이터가 없습니다</h3>
+                  <p className="text-slate-500">해당 자격증과 연결된 직무 데이터가 아직 없습니다. AI 추천 엔진에서 이 자격증에 어울리는 커리어를 찾아보세요.</p>
                 </div>
+                <Button
+                  onClick={() => router.navigate('/ai-recommendations')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center gap-2 mx-auto"
+                >
+                  AI 추천 받아보기 <ChevronRight className="w-4 h-4" />
+                </Button>
               </div>
             </Card>
           ) : (

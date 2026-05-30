@@ -18,12 +18,20 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { getHybridRecommendations, getAvailableMajors } from '@/lib/api';
 import { useRouter } from '@/lib/router';
 import { useAuth } from '@/hooks/useAuth';
 import type { HybridRecommendationResponse } from '@/types';
 import { toast } from 'sonner';
-import { RAG_RETRIEVAL_LOADING_LINE } from '@/lib/ragProductCopy';
+
+const LOADING_MSGS = [
+    '전공 DB에서 관련 자격증 후보를 추출하는 중입니다...',
+    'AI 엔진이 전공-자격증 적합도를 계산하는 중입니다...',
+    '커리어 목표와 자격증 간 의미적 유사도를 분석하는 중입니다...',
+    '합격률 · 난이도 통계를 반영해 후보를 재정렬하는 중입니다...',
+    '최종 추천 목록을 구성하는 중입니다...',
+] as const;
 
 const sampleMajors = [
     '컴퓨터공학', '정보통신공학', '전자공학', '전기공학', '기계공학',
@@ -55,7 +63,7 @@ export function AiRecommendationPage() {
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState<HybridRecommendationResponse | null>(null);
     const [majorError, setMajorError] = useState<string | null>(null);
-    const [, setError] = useState<Error | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const { navigate } = useRouter();
     const { token, user, loading: authLoading } = useAuth();
     const profileMajor = (user as any)?.user_metadata?.detail_major as string | undefined;
@@ -167,6 +175,20 @@ export function AiRecommendationPage() {
         getAvailableMajors().then(res => setAvailableMajors(res.majors)).catch(() => { });
     }, []);
 
+    useEffect(() => {
+        if (!loading) { setLoadingMsgIdx(0); return; }
+        const interval = setInterval(() => {
+            setLoadingMsgIdx(prev => (prev + 1) % LOADING_MSGS.length);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [loading]);
+
+    useEffect(() => {
+        if (!results) { setBarsVisible(false); return; }
+        const t = setTimeout(() => setBarsVisible(true), 200);
+        return () => clearTimeout(t);
+    }, [results]);
+
     const filteredMajors = useMemo(() => {
         const list = availableMajors.length > 0 ? availableMajors : sampleMajors;
         const t = inputValue.trim();
@@ -182,8 +204,8 @@ export function AiRecommendationPage() {
             return;
         }
         setMajorError(null);
+        setSubmitError(null);
         setLoading(true);
-        setError(null);
         try {
             const res = await getHybridRecommendations(major, interest, HYBRID_RECOMMEND_LIMIT, token);
             setResults(res);
@@ -201,6 +223,7 @@ export function AiRecommendationPage() {
             }
         } catch (err: any) {
             console.error(err);
+            setSubmitError('추천 결과를 가져오는데 실패했습니다. 잠시 후 다시 시도해 주세요.');
             toast.error('추천 결과를 가져오는데 실패했습니다.');
         } finally {
             setLoading(false);
@@ -218,9 +241,13 @@ export function AiRecommendationPage() {
         }
         setInterest('');
         setResults(null);
+        setSubmitError(null);
         sessionStorage.removeItem(AI_CACHE_KEY);
     };
 
+    const [highlightedIdx, setHighlightedIdx] = useState(-1);
+    const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
+    const [barsVisible, setBarsVisible] = useState(false);
     const [expandedReasons, setExpandedReasons] = useState<Set<number>>(new Set());
 
     const toggleReason = (e: React.MouseEvent, qualId: number) => {
@@ -251,16 +278,10 @@ export function AiRecommendationPage() {
                         </Badge>
                         <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight">
                             관심사와 전공을 <br />
-                            <span className="text-white">
-                                하나의 로드맵으로.
-                            </span>
+                            하나의 로드맵으로.
                         </h1>
                         <p className="text-slate-400 text-lg max-w-xl">
                             전공, 관심사, 프로필을 반영해 자격 후보를 고릅니다.
-                            <br />
-                            <span className="text-slate-500 text-base">
-                                전공과 관심사를 바탕으로 딱 맞는 자격증을 찾아드립니다.
-                            </span>
                         </p>
                     </div>
 
@@ -276,17 +297,48 @@ export function AiRecommendationPage() {
                                     name="major"
                                     placeholder="예: 컴퓨터공학, 경영학"
                                     value={inputValue}
+                                    role="combobox"
+                                    aria-haspopup="listbox"
+                                    aria-expanded={showSuggestions && filteredMajors.length > 0}
+                                    aria-controls="major-listbox"
+                                    aria-autocomplete="list"
+                                    aria-activedescendant={highlightedIdx >= 0 ? `major-option-${highlightedIdx}` : undefined}
                                     onChange={(e) => {
                                         setMajorExactMode(false);
                                         setInputValue(e.target.value);
                                         setMajor(e.target.value);
                                         setShowSuggestions(true);
                                         setMajorError(null);
+                                        setHighlightedIdx(-1);
                                     }}
                                     onKeyDown={(e) => {
+                                        if (showSuggestions && filteredMajors.length > 0) {
+                                            if (e.key === 'ArrowDown') {
+                                                e.preventDefault();
+                                                setHighlightedIdx(prev => Math.min(prev + 1, filteredMajors.length - 1));
+                                                return;
+                                            }
+                                            if (e.key === 'ArrowUp') {
+                                                e.preventDefault();
+                                                setHighlightedIdx(prev => Math.max(prev - 1, -1));
+                                                return;
+                                            }
+                                            if (e.key === 'Enter' && highlightedIdx >= 0) {
+                                                e.preventDefault();
+                                                const m = filteredMajors[highlightedIdx]!;
+                                                setMajor(m);
+                                                setInputValue(m);
+                                                setMajorExactMode(false);
+                                                setShowSuggestions(false);
+                                                setHighlightedIdx(-1);
+                                                setMajorError(null);
+                                                return;
+                                            }
+                                        }
                                         if (e.key === 'Escape') {
                                             setMajorExactMode(false);
                                             setShowSuggestions(false);
+                                            setHighlightedIdx(-1);
                                             return;
                                         }
                                         if (e.key !== 'Enter' || profileMajor) return;
@@ -300,6 +352,7 @@ export function AiRecommendationPage() {
                                             setInputValue(exact[0]!);
                                             setMajorExactMode(false);
                                             setShowSuggestions(false);
+                                            setHighlightedIdx(-1);
                                             return;
                                         }
                                         setMajorExactMode(true);
@@ -315,18 +368,29 @@ export function AiRecommendationPage() {
                                     <p id="major-input-error" role="alert" className="text-xs text-red-400 font-medium px-1">{majorError}</p>
                                 )}
                                 {showSuggestions && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] max-h-[min(22rem,70vh)] overflow-y-auto overflow-x-hidden overscroll-contain">
+                                    <div
+                                        id="major-listbox"
+                                        role="listbox"
+                                        aria-label="전공 목록"
+                                        className="absolute top-full left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] max-h-[min(22rem,70vh)] overflow-y-auto overflow-x-hidden overscroll-contain"
+                                    >
                                         {filteredMajors.length > 0 ? (
                                             filteredMajors.map((m, idx) => (
                                                 <div
                                                     key={`${m}__${idx}`}
-                                                    className="px-4 py-3 hover:bg-slate-800 cursor-pointer text-sm text-slate-300 transition-colors border-b border-slate-800 last:border-0 break-words"
+                                                    id={`major-option-${idx}`}
+                                                    role="option"
+                                                    aria-selected={highlightedIdx === idx}
+                                                    className={`px-4 py-3 cursor-pointer text-sm text-slate-300 transition-colors border-b border-slate-800 last:border-0 break-words ${
+                                                        highlightedIdx === idx ? 'bg-slate-800 text-white' : 'hover:bg-slate-800'
+                                                    }`}
                                                     onClick={() => {
                                                         setMajor(m);
                                                         setInputValue(m);
                                                         setMajorExactMode(false);
                                                         setShowSuggestions(false);
                                                         setMajorError(null);
+                                                        setHighlightedIdx(-1);
                                                     }}
                                                 >
                                                     {m}
@@ -342,8 +406,8 @@ export function AiRecommendationPage() {
                                         {!profileMajor && (
                                             <p className="px-4 py-2 text-[10px] text-slate-600 border-t border-slate-800 bg-slate-950/40">
                                                 {majorExactMode
-                                                    ? 'Esc: 포함 검색으로 / Enter로 확정한 전공만 표시 중'
-                                                    : 'Enter: 목록을 정확히 일치하는 전공만으로 좁힙니다'}
+                                                    ? 'Esc: 포함 검색으로 / ↑↓ 방향키로 선택'
+                                                    : '↑↓ 방향키로 이동, Enter로 선택, Esc로 닫기'}
                                             </p>
                                         )}
                                     </div>
@@ -377,6 +441,11 @@ export function AiRecommendationPage() {
                             >
                                 {loading ? <Skeleton className="w-5 h-5 bg-white/30 rounded-full animate-pulse" /> : "AI 분석"}
                             </Button>
+                            {submitError && (
+                                <p className="text-xs text-red-400 font-medium text-center py-1" role="alert">
+                                    {submitError}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -385,9 +454,12 @@ export function AiRecommendationPage() {
             {/* Results Section */}
             {loading && (
                 <div className="space-y-6">
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-4 text-center space-y-3">
-                        <p className="text-sm text-slate-300 font-medium">
-                            {RAG_RETRIEVAL_LOADING_LINE}
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-5 text-center space-y-3">
+                        <p
+                            key={loadingMsgIdx}
+                            className="text-sm text-slate-300 font-medium animate-in fade-in duration-500"
+                        >
+                            {LOADING_MSGS[loadingMsgIdx]}
                         </p>
                         <p className="text-xs text-slate-500">
                             비로그인 미리보기는 후보 탐색을 가볍게 해 더 빠르게 응답합니다. 통상 약 5~25초입니다.
@@ -412,7 +484,7 @@ export function AiRecommendationPage() {
             )}
 
             {results && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="space-y-8">
                     <div className="flex items-center justify-between flex-wrap gap-4">
                         <div className="space-y-1">
                             <h2 className="text-2xl font-bold text-white flex items-center gap-3 flex-wrap">
@@ -447,7 +519,8 @@ export function AiRecommendationPage() {
                             <Card
                                 key={res.qual_id}
                                 onClick={() => navigateToCert(res.qual_id)}
-                                className="bg-slate-900/40 border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 transition-all cursor-pointer group rounded-2xl overflow-hidden shadow-sm hover:shadow-blue-500/10"
+                                style={{ animationDelay: `${idx * 40}ms` }}
+                                className="bg-slate-900/40 border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 transition-all cursor-pointer group rounded-2xl overflow-hidden shadow-sm hover:shadow-blue-500/10 animate-in fade-in slide-in-from-bottom-3 duration-500"
                             >
                                 <div className="h-2 bg-blue-600/20 group-hover:bg-blue-600 transition-colors" />
                                 <CardHeader className="pb-2">
@@ -474,11 +547,11 @@ export function AiRecommendationPage() {
                                             <span className="text-[11px] text-slate-500">최근합격률</span>
                                             <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden max-w-[80px]">
                                                 <div
-                                                    className={`h-full rounded-full transition-all ${
+                                                    className={`h-full rounded-full transition-[width] duration-700 ease-out ${
                                                         res.pass_rate > 70 ? 'bg-emerald-500' :
                                                         res.pass_rate >= 30 ? 'bg-amber-500' : 'bg-rose-500'
                                                     }`}
-                                                    style={{ width: `${Math.min(res.pass_rate, 100)}%` }}
+                                                    style={{ width: barsVisible ? `${Math.min(res.pass_rate, 100)}%` : '0%' }}
                                                 />
                                             </div>
                                             <span className={`text-[11px] font-bold ${
@@ -524,12 +597,12 @@ export function AiRecommendationPage() {
                                         </span>
                                         <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-blue-500 transition-all"
+                                                className="h-full bg-blue-500 transition-[width] duration-700 ease-out"
                                                 style={{
-                                                    width: `${Math.min(100, (() => {
+                                                    width: barsVisible ? `${Math.min(100, (() => {
                                                         const norm = res.major_score_normalized ?? Math.min(1, Math.max(0, res.major_score / 10));
                                                         return 20 + 80 * Math.min(1, Math.max(0, norm));
-                                                    })())}%`,
+                                                    })())}%` : '0%',
                                                 }}
                                             />
                                         </div>
@@ -541,12 +614,12 @@ export function AiRecommendationPage() {
                                         </span>
                                         <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-emerald-500 transition-all"
+                                                className="h-full bg-emerald-500 transition-[width] duration-700 ease-out"
                                                 style={{
-                                                    width: `${Math.min(100, (() => {
+                                                    width: barsVisible ? `${Math.min(100, (() => {
                                                         const norm = res.semantic_score_normalized ?? Math.min(1, Math.max(0, res.semantic_similarity ?? 0));
                                                         return 20 + 80 * Math.min(1, Math.max(0, norm));
-                                                    })())}%`,
+                                                    })())}%` : '0%',
                                                 }}
                                             />
                                         </div>
@@ -619,37 +692,43 @@ export function AiRecommendationPage() {
                 <div className="space-y-10 pt-8 border-t border-slate-800/50">
 
                     {/* ── 1. 입력 가이드 ── */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                            <MessageSquare className="w-4 h-4 text-blue-400" />
-                            <h3 className="text-sm font-bold text-slate-300">좋은 추천을 받으려면</h3>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {([
-                                {
-                                    step: '01',
-                                    label: '전공명은 구체적으로',
-                                    desc: "'컴퓨터공학', '간호학'처럼 정확한 학과명을 입력할수록 관련 자격증이 더 정밀하게 매칭됩니다.",
-                                },
-                                {
-                                    step: '02',
-                                    label: '커리어 목표를 함께 입력',
-                                    desc: "관심사란에 '데이터 분석 취업 준비', '공무원 준비' 등 목표를 쓸수록 AI 적합도가 올라갑니다.",
-                                },
-                                {
-                                    step: '03',
-                                    label: '취득 자격증은 자동 제외',
-                                    desc: '로그인 후 마이페이지에서 취득 자격증을 등록하면 추천 목록에서 자동으로 빠집니다.',
-                                },
-                            ] as const).map((item) => (
-                                <div key={item.step} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 space-y-3">
-                                    <p className="text-2xl font-black text-slate-700">{item.step}</p>
-                                    <h4 className="text-sm font-bold text-white">{item.label}</h4>
-                                    <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+                    <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="guide" className="border border-slate-800 rounded-2xl overflow-hidden bg-slate-900/50">
+                            <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-slate-800/30 [&>svg]:text-slate-500">
+                                <div className="flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4 text-blue-400" />
+                                    <span className="text-sm font-bold text-slate-300">좋은 추천을 받으려면</span>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-5 pb-5">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                                    {([
+                                        {
+                                            step: '01',
+                                            label: '전공명은 구체적으로',
+                                            desc: "'컴퓨터공학', '간호학'처럼 정확한 학과명을 입력할수록 관련 자격증이 더 정밀하게 매칭됩니다.",
+                                        },
+                                        {
+                                            step: '02',
+                                            label: '커리어 목표를 함께 입력',
+                                            desc: "관심사란에 '데이터 분석 취업 준비', '공무원 준비' 등 목표를 쓸수록 AI 적합도가 올라갑니다.",
+                                        },
+                                        {
+                                            step: '03',
+                                            label: '취득 자격증은 자동 제외',
+                                            desc: '로그인 후 마이페이지에서 취득 자격증을 등록하면 추천 목록에서 자동으로 빠집니다.',
+                                        },
+                                    ] as const).map((item) => (
+                                        <div key={item.step} className="bg-slate-950/40 border border-slate-800 rounded-xl p-4 space-y-2">
+                                            <p className="text-2xl font-black text-slate-700">{item.step}</p>
+                                            <h4 className="text-sm font-bold text-white">{item.label}</h4>
+                                            <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
 
                     {/* ── 2. 전공별 AI 추천 미리보기 ── */}
                     <div className="space-y-5">

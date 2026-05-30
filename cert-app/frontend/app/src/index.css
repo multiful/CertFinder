@@ -144,6 +144,22 @@
   box-shadow: 0 20px 40px -20px rgba(59, 130, 246, 0.3);
 }
 
+@keyframes bookmarkPulse {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.4); }
+  65%  { transform: scale(0.88); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hover-effect:hover {
+    transform: none;
+  }
+  [class*="animate-in"] {
+    animation: none !important;
+  }
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }

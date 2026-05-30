@@ -8,14 +8,15 @@ interface NavItem {
   path: string;
   label: string;
   icon: React.ReactNode;
+  description?: string;
 }
 
 const navItems: NavItem[] = [
   { path: '/', label: '홈', icon: <Home className="w-4 h-4" /> },
   { path: '/certs', label: '자격증', icon: <Search className="w-4 h-4" /> },
   { path: '/jobs', label: '직무', icon: <Award className="w-4 h-4" /> },
-  { path: '/recommendations', label: '전공 추천', icon: <ThumbsUp className="w-4 h-4" /> },
-  { path: '/ai-recommendations', label: 'AI 추천', icon: <BrainCircuit className="w-4 h-4" /> },
+  { path: '/recommendations', label: '전공 추천', icon: <ThumbsUp className="w-4 h-4" />, description: '학과별 자격증 DB 매핑' },
+  { path: '/ai-recommendations', label: 'AI 추천', icon: <BrainCircuit className="w-4 h-4" />, description: '커리어 목표 기반 로드맵' },
 ];
 
 import { CertLogo } from '../common/CertLogo';
@@ -66,7 +67,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
               <CertLogo className="w-9 h-9" />
             </div>
-            <span className="font-black text-xl hidden sm:inline tracking-tighter bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">CertFinder</span>
+            <span className="font-black text-xl hidden sm:inline tracking-tighter text-white">CertFinder</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -81,7 +82,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   }`}
               >
                 {item.icon}
-                {item.label}
+                {item.description ? (
+                  <span className="flex flex-col gap-0">
+                    <span>{item.label}</span>
+                    <span className="text-[10px] font-normal opacity-60 leading-none">{item.description}</span>
+                  </span>
+                ) : item.label}
               </Link>
             ))}
             <div className="w-px h-6 bg-slate-800 mx-2" />
@@ -118,7 +124,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   }`}
               >
                 {item.icon}
-                {item.label}
+                {item.description ? (
+                  <span className="flex flex-col gap-0.5">
+                    <span>{item.label}</span>
+                    <span className="text-[10px] font-normal text-slate-500 leading-none">{item.description}</span>
+                  </span>
+                ) : item.label}
               </Link>
             ))}
           </nav>
@@ -180,7 +191,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-10 group-hover:opacity-30 transition duration-500"></div>
                 <CertLogo className="w-6 h-6" />
               </div>
-              <span className="font-black text-sm tracking-tighter bg-gradient-to-r from-white/80 to-slate-500 bg-clip-text text-transparent uppercase">CertFinder</span>
+              <span className="font-black text-sm tracking-tighter text-white/80 uppercase">CertFinder</span>
             </Link>
             <p className="text-slate-500 text-sm font-medium text-center sm:text-left max-w-md leading-snug">
               {PRODUCT_FOOTER_LINE}

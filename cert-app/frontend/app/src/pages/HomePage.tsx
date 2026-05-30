@@ -3,7 +3,6 @@ import {
   Search,
   Award,
   TrendingUp,
-  Star,
   ArrowRight,
   CheckCircle2,
   Briefcase,
@@ -147,20 +146,26 @@ export function HomePage() {
                   />
                 </div>
               </form>
-              <div className="flex items-center gap-5 text-sm pl-1">
+              <div className="flex items-center gap-6 pl-1">
                 <button
                   type="button"
                   onClick={() => router.navigate('/recommendation')}
-                  className="text-slate-400 hover:text-blue-400 font-medium transition-colors flex items-center gap-1"
+                  className="group text-left"
                 >
-                  전공 추천 <ChevronRight className="w-3.5 h-3.5" />
+                  <span className="flex items-center gap-1 text-sm text-slate-400 group-hover:text-blue-400 font-medium transition-colors">
+                    전공 추천 <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="block text-[11px] text-slate-600 group-hover:text-slate-500 transition-colors leading-tight mt-0.5">학과별 자격증 DB 매핑</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => router.navigate('/ai-recommendations')}
-                  className="text-blue-400 hover:text-blue-300 font-semibold transition-colors flex items-center gap-1"
+                  className="group text-left"
                 >
-                  AI 추천 <ChevronRight className="w-3.5 h-3.5" />
+                  <span className="flex items-center gap-1 text-sm text-blue-400 group-hover:text-blue-300 font-semibold transition-colors">
+                    AI 추천 <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="block text-[11px] text-slate-600 group-hover:text-slate-500 transition-colors leading-tight mt-0.5">커리어 목표 기반 로드맵</span>
                 </button>
               </div>
             </div>
@@ -176,7 +181,6 @@ export function HomePage() {
           </div>
 
           <div className="relative hidden lg:block">
-            {/* Visual element representing data/analytics */}
             <div className="relative z-10 p-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden group">
               <div className="absolute inset-0 bg-blue-600/5 group-hover:bg-blue-600/10 transition-colors" />
               <div className="relative bg-slate-950 rounded-[22px] p-8 space-y-5">
@@ -221,13 +225,6 @@ export function HomePage() {
               </div>
             </div>
 
-            {/* Floatables */}
-            <div className="absolute -top-6 -right-6 p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl animate-bounce-slow z-20">
-              <Star className="w-6 h-6 text-blue-400 fill-blue-400/20" />
-            </div>
-            <div className="absolute -bottom-8 -left-8 p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl animate-float z-20">
-              <Award className="w-8 h-8 text-blue-500" />
-            </div>
           </div>
         </div>
       </section>
@@ -235,7 +232,7 @@ export function HomePage() {
       {/* Features Grid */}
       <section className="container mx-auto px-6">
         <div className="text-center space-y-4 mb-16">
-          <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">Core Modules</Badge>
+          <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">핵심 기능</Badge>
           <h2 className="text-3xl md:text-4xl font-bold text-white">핵심 서비스 안내</h2>
         </div>
 
@@ -324,7 +321,8 @@ export function HomePage() {
                   key={cert.qual_id}
                   aria-label={cert.qual_name}
                   onClick={() => router.navigate(`/certs/${cert.qual_id}`)}
-                  className="group relative p-6 bg-slate-900 border border-slate-800 rounded-2xl hover:border-blue-500/50 hover:bg-slate-900/80 transition-all cursor-pointer overflow-hidden shadow-lg card-hover-effect"
+                  style={{ animationDelay: `${index * 60}ms` }}
+                  className="group relative p-6 bg-slate-900 border border-slate-800 rounded-2xl hover:border-blue-500/50 hover:bg-slate-900/80 transition-all cursor-pointer overflow-hidden shadow-lg card-hover-effect animate-in fade-in slide-in-from-bottom-3 duration-500"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-600/5 to-transparent rounded-bl-full group-hover:from-blue-600/10 transition-colors" />
 

@@ -7,6 +7,7 @@ import {
   Zap,
   ArrowUpDown,
   ChevronDown,
+  ChevronRight,
   LayoutGrid,
   List as ListIcon,
   SearchX,
@@ -479,23 +480,16 @@ export function CertListPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setParams(prev => ({ ...prev, sort_desc: !prev.sort_desc }))}
-                className="h-11 w-11 p-0 border-slate-800 bg-black/20 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl shrink-0"
-                aria-label={params.sort_desc ? "내림차순" : "오름차순"}
-                title={params.sort_desc ? "내림차순 (높은순)" : "오름차순 (낮은순)"}
+                className="h-11 px-3 border-slate-800 bg-black/20 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl shrink-0 flex items-center gap-1.5"
+                aria-label={params.sort_desc ? "내림차순으로 변경" : "오름차순으로 변경"}
               >
-                {params.sort_desc ? (
-                  <TrendingUp className="w-4 h-4 rotate-180" />
-                ) : (
-                  <TrendingUp className="w-4 h-4" />
-                )}
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-bold">{params.sort_desc ? '내림차순' : '오름차순'}</span>
               </Button>
             </div>
           </div>
 
-          <div className="lg:col-span-3 flex gap-3 lg:mt-[52px]">
-            <div className="flex-1 flex items-center justify-center bg-blue-600/5 border border-blue-500/20 rounded-xl px-4 text-[10px] font-bold text-blue-400">
-              <Zap className="w-3 h-3 mr-2 animate-pulse" /> 실시간 분석 활성
-            </div>
+          <div className="lg:col-span-3 flex justify-end lg:mt-[52px]">
             <Button
               type="button"
               variant="outline"
@@ -551,7 +545,7 @@ export function CertListPage() {
         <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-800/50">
           <Badge
             variant={!params.qual_type ? "secondary" : "outline"}
-            className="cursor-pointer px-3 py-1 rounded-full text-xs"
+            className="cursor-pointer px-3 py-1 rounded-full text-xs transition-transform active:scale-95"
             onClick={() => updateParam('qual_type', ALL_TYPES)}
           >
             전체
@@ -560,7 +554,7 @@ export function CertListPage() {
             <Badge
               key={t}
               variant={params.qual_type === t ? "secondary" : "outline"}
-              className={`cursor-pointer px-3 py-1 rounded-full text-xs transition-all ${params.qual_type === t ? 'bg-blue-600 text-white border-none' : 'hover:border-slate-600'}`}
+              className={`cursor-pointer px-3 py-1 rounded-full text-xs transition-all active:scale-95 ${params.qual_type === t ? 'bg-blue-600 text-white border-none' : 'hover:border-slate-600'}`}
               onClick={() => updateParam('qual_type', t)}
             >
               {t}
@@ -654,7 +648,7 @@ export function CertListPage() {
                     {isFavoritesOnly ? "관심 자격증으로 등록된 항목이 없습니다." : "다른 검색어나 필터를 사용해 보세요."}
                   </EmptyDescription>
                 </EmptyHeader>
-                <EmptyContent>
+                <EmptyContent className="flex flex-col items-center gap-4">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -665,6 +659,18 @@ export function CertListPage() {
                   >
                     필터 초기화
                   </Button>
+                  {params.q && !isFavoritesOnly && (
+                    <div className="text-center space-y-1.5 pt-3 border-t border-slate-800/50 w-full">
+                      <p className="text-xs text-slate-500">자격증 이름이 아닌 전공을 입력하셨나요?</p>
+                      <button
+                        type="button"
+                        onClick={() => router.navigate('/ai-recommendations')}
+                        className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 mx-auto transition-colors"
+                      >
+                        AI 추천으로 전공 맞춤 자격증 찾기 <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </EmptyContent>
               </Empty>
             </CardContent>
