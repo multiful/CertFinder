@@ -272,8 +272,10 @@ export function AiRecommendationPage() {
             </div>
             {/* Hero Section */}
             <div className="relative rounded-3xl bg-slate-900 border border-slate-800 p-8 md:p-12 shadow-2xl">
-                <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
-                <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px]" />
+                <div
+                  className="absolute inset-0 rounded-3xl pointer-events-none"
+                  style={{ background: 'radial-gradient(ellipse 60% 60% at 100% 0%, oklch(0.5 0.09 248 / 0.07) 0%, transparent 60%), radial-gradient(ellipse 55% 55% at 0% 100%, oklch(0.5 0.07 275 / 0.06) 0%, transparent 60%)' }}
+                />
 
                 <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
                     <div className="flex-1 space-y-6">

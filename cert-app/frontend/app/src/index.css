@@ -92,6 +92,22 @@
 }
 
 @layer utilities {
+  /* Design system focus ring — single point of change for all interactive elements */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500/50;
+  }
+
+  /* Pass-rate semantic colors — emerald ≥ 70%, amber 30–69%, rose < 30% */
+  .pass-high { @apply text-emerald-400; }
+  .pass-mid  { @apply text-amber-400;  }
+  .pass-low  { @apply text-rose-500;   }
+
+  /* Skip off-screen card rendering — reduces main-thread time for long lists */
+  .cert-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 260px;
+  }
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }

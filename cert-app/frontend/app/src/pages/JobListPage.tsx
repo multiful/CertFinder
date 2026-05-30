@@ -143,7 +143,7 @@ export function JobListPage() {
                 {/* Background Effects Container - Clips only the decorative elements */}
                 <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none">
                     <div className="absolute top-0 right-0 w-[60%] h-full bg-gradient-to-l from-indigo-600/10 via-blue-600/5 to-transparent" />
-                    <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
+                    <div className="absolute inset-0 rounded-[2.5rem]" style={{ background: 'radial-gradient(ellipse 55% 55% at 100% 100%, oklch(0.5 0.07 248 / 0.07) 0%, transparent 65%)' }} />
                 </div>
 
                 <div className="relative z-10 max-w-2xl space-y-8">

@@ -342,7 +342,10 @@ const handleTabChange = (tab: string) => {
       {/* Premium Header/Cover */}
       <div className="relative rounded-[2.5rem] overflow-hidden bg-slate-900 border border-slate-800 p-10 md:p-16">
         <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-blue-600/15 via-indigo-600/5 to-transparent pointer-events-none" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 60% 70% at 100% 0%, oklch(0.5 0.09 248 / 0.08) 0%, transparent 65%)' }}
+        />
 
         <div className="relative z-10 space-y-8">
           <Button

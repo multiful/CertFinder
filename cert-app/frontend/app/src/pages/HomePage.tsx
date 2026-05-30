@@ -90,16 +90,12 @@ export function HomePage() {
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex items-center pt-20">
         {/* Background Decorative Elements */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
-          <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-500/8 rounded-full blur-[80px]" />
-          <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-indigo-500/8 rounded-full blur-[80px]" />
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] opacity-[0.18] brightness-50 contrast-150 pointer-events-none mix-blend-overlay"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-            }}
-          />
-        </div>
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 55% 45% at 28% 32%, oklch(0.5 0.09 248 / 0.07) 0%, transparent 70%), radial-gradient(ellipse 50% 40% at 72% 68%, oklch(0.5 0.07 275 / 0.06) 0%, transparent 70%)'
+          }}
+        />
 
         <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8 text-center lg:text-left">
@@ -140,7 +136,7 @@ export function HomePage() {
                       e.preventDefault();
                       handleSearch(e as unknown as React.FormEvent);
                     }}
-                    className="w-full h-14 pl-12 pr-4 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full h-14 pl-12 pr-4 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-[colors,box-shadow]"
                   />
                 </div>
               </form>
@@ -179,52 +175,28 @@ export function HomePage() {
           </div>
 
           <div className="relative hidden lg:block">
-            <div className="relative z-10 p-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden group">
-              <div className="absolute inset-0 bg-blue-600/5 group-hover:bg-blue-600/10 transition-colors" />
-              <div className="relative bg-slate-950 rounded-[22px] p-8 space-y-5">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-5">
-                  <div className="space-y-0.5">
-                    <p className="text-[11px] font-bold text-blue-400 tracking-[0.05em]">실시간 데이터</p>
-                    <h3 className="text-xl font-bold text-white">서비스 커버리지</h3>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[11px] font-bold text-blue-400 tabular-nums leading-none">
-                      {certCatalogTotal.toLocaleString('ko-KR')}개
-                    </p>
-                    <p className="text-[10px] text-slate-500 font-medium leading-none mt-0.5">자격증 분석 중</p>
-                  </div>
-                </div>
+            <div className="relative z-10 bg-slate-950 rounded-2xl p-10 border border-slate-800/60 space-y-10">
+              {/* Primary stat */}
+              <div>
+                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.12em] mb-3">실시간 수집 데이터</p>
+                <p className="text-6xl font-black text-white tabular-nums tracking-tight leading-none">
+                  {certCatalogTotal.toLocaleString('ko-KR')}
+                </p>
+                <p className="text-sm text-slate-500 font-medium mt-2">개 국가기술자격 종목 분석 중</p>
+              </div>
 
-                <div className="space-y-0">
-                  {([
-                    { label: '국가 자격증', value: certCatalogTotal.toLocaleString('ko-KR'), unit: '개' },
-                    { label: '직무 카테고리', value: '450', unit: '개+' },
-                    { label: '합격률 데이터', value: '연도별 회차', unit: '' },
-                    { label: 'AI 추천 모델', value: '복합 AI 검색', unit: '' },
-                  ] as const).map((item, i) => (
-                    <div key={i} className="flex items-center justify-between py-3.5 border-b border-slate-800/60 last:border-0">
-                      <span className="text-sm text-slate-500">{item.label}</span>
-                      <span className="text-sm font-bold text-white tabular-nums">
-                        {item.value}
-                        {item.unit && <span className="text-slate-500 font-normal ml-0.5 text-xs">{item.unit}</span>}
-                      </span>
-                    </div>
-                  ))}
+              {/* Two real data points */}
+              <div className="grid grid-cols-2 gap-px bg-slate-800/40 rounded-xl overflow-hidden">
+                <div className="bg-slate-950 p-5">
+                  <p className="text-2xl font-black text-white tabular-nums leading-none">450+</p>
+                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mt-2">직무 분류</p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="p-3.5 bg-slate-900/50 rounded-xl border border-slate-800">
-                    <p className="text-[10px] text-slate-500 mb-1 font-medium">전공 매핑</p>
-                    <p className="text-sm font-bold text-blue-400 leading-tight">DB 기반 매칭</p>
-                  </div>
-                  <div className="p-3.5 bg-slate-900/50 rounded-xl border border-slate-800">
-                    <p className="text-[10px] text-slate-500 mb-1 font-medium">AI 분석</p>
-                    <p className="text-sm font-bold text-blue-400 leading-tight">하이브리드 검색</p>
-                  </div>
+                <div className="bg-slate-950 p-5">
+                  <p className="text-2xl font-black text-white tabular-nums leading-none">10년+</p>
+                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mt-2">합격률 연속 기록</p>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </section>
@@ -273,7 +245,7 @@ export function HomePage() {
               key={f.num}
               type="button"
               onClick={() => router.navigate(f.link)}
-              className="w-full flex items-start gap-6 sm:gap-10 py-8 group text-left hover:bg-slate-900/30 transition-colors duration-200 px-5 -mx-5 rounded-2xl focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              className="w-full flex items-start gap-6 sm:gap-10 py-8 group text-left hover:bg-slate-900/30 transition-colors duration-200 px-5 -mx-5 rounded-2xl focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
               <span className="text-[10px] font-mono text-slate-700 font-bold tracking-[0.12em] pt-1.5 w-6 shrink-0 tabular-nums select-none">
                 {f.num}
@@ -295,7 +267,7 @@ export function HomePage() {
                     <p className="text-[9px] font-bold text-slate-700 uppercase tracking-[0.1em] mb-0.5">{f.stat}</p>
                     <p className="text-sm font-black text-slate-400 tabular-nums">{f.statVal}</p>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
+                  <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-blue-400 group-hover:translate-x-1 transition-[colors,transform] duration-200 shrink-0" />
                 </div>
               </div>
             </button>
@@ -399,72 +371,57 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Guide Section — 독창적 콘텐츠, 크롤러 접근 가능 */}
+      {/* Guide Section */}
       <section className="container mx-auto px-6">
-        <div className="space-y-12">
-          <div className="text-center space-y-4">
+        <div className="space-y-10">
+          <div className="space-y-3">
             <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">활용 가이드</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-white">CertFinder로 무엇을 할 수 있나요?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-white">이렇게 활용하세요</h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                합격률로 난이도를 사전에 파악
-              </h3>
-              <p className="text-slate-400 leading-relaxed font-medium text-sm">
-                국가기술자격 시험은 종목마다 합격률이 크게 다릅니다. 연도별·회차별 합격률 추이를
-                차트로 확인하면 공부 기간과 전략을 현실적으로 계획할 수 있습니다.
-                예를 들어 합격률 10% 이하 자격증은 최소 6개월 이상의 준비 기간을 권장합니다.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                전공과 연결된 자격증 경로 탐색
-              </h3>
-              <p className="text-slate-400 leading-relaxed font-medium text-sm">
-                전공명을 입력하면 해당 학과에서 주로 취득하는 국가자격증 목록이 표시됩니다.
-                컴퓨터공학과라면 정보처리기사, 전기공학과라면 전기기사가 대표적입니다.
-                전공-자격증 매핑 DB와 합격률 통계를 결합해 우선순위를 제안합니다.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                커리어 목표에 맞는 AI 추천
-              </h3>
-              <p className="text-slate-400 leading-relaxed font-medium text-sm">
-                "클라우드 보안 분야에서 일하고 싶다"처럼 구체적인 목표를 입력하면
-                하이브리드 AI 엔진이 관련 자격증 후보를 실시간으로 분석합니다.
-                단순 키워드 매칭이 아니라 직무 연관성, 합격률, 취득 이력까지 종합 고려합니다.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                자격증 취득 후 직무·연봉 확인
-              </h3>
-              <p className="text-slate-400 leading-relaxed font-medium text-sm">
-                자격증을 취득한 후 어떤 직무에 취업할 수 있는지, 초임 연봉과 직업 전망은
-                어떤지 워크넷·커리어넷 기반 데이터로 확인할 수 있습니다.
-                직무 역량 레이더 차트로 해당 직업이 요구하는 역량 분포도 한눈에 볼 수 있습니다.
-              </p>
-            </div>
+          <div className="grid md:grid-cols-2 gap-x-0 gap-y-0 max-w-4xl">
+            {([
+              {
+                num: '01',
+                title: '합격률로 난이도 파악',
+                body: '종목마다 합격률이 크게 다릅니다. 연도별·회차별 추이를 차트로 확인하면 준비 기간과 전략을 현실적으로 계획할 수 있습니다.',
+              },
+              {
+                num: '02',
+                title: '전공 연결 자격증 탐색',
+                body: '전공명을 입력하면 해당 학과에서 주로 취득하는 국가자격증 목록이 표시됩니다. 합격률 통계와 결합해 우선순위를 제안합니다.',
+              },
+              {
+                num: '03',
+                title: 'AI 커리어 로드맵',
+                body: '"클라우드 보안 분야에서 일하고 싶다"처럼 목표를 입력하면 AI 엔진이 직무 연관성, 합격률, 취득 이력을 종합해 자격증 순서를 제시합니다.',
+              },
+              {
+                num: '04',
+                title: '직무·연봉 전망 확인',
+                body: '자격증 취득 후 진입 가능한 직무의 전망과 연봉을 워크넷·커리어넷 기반 데이터로 확인합니다. 직무 역량 레이더 차트도 제공합니다.',
+              },
+            ] as const).map((item) => (
+              <div key={item.num} className="flex gap-5 py-8 border-b border-slate-800/50 last:border-0 md:[&:nth-child(odd)]:border-r md:[&:nth-child(odd)]:pr-12 md:[&:nth-child(even)]:pl-12">
+                <span className="text-[10px] font-mono font-bold text-slate-700 tracking-[0.12em] pt-1 shrink-0 w-5 select-none">{item.num}</span>
+                <div className="space-y-2">
+                  <h3 className="text-base font-bold text-white">{item.title}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">{item.body}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="container mx-auto px-6">
-        <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 p-12 md:p-20 text-center">
-          <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`}} />
+        <div className="relative rounded-[2rem] overflow-hidden bg-blue-600 p-12 md:p-20 text-center">
           <div className="relative z-10 space-y-8 max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight">
               커리어의 다음 단계를<br />지금 바로 설계해 보세요
             </h2>
-            <p className="text-blue-100 text-lg opacity-80">
+            <p className="text-white/70 text-lg">
               DB 통계 기반 전공 추천과 AI 맞춤 추천을 함께 쓸 수 있습니다.
               회원가입 없이 대부분의 기능을 무료로 이용할 수 있습니다.
             </p>

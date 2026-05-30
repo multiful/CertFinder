@@ -51,6 +51,10 @@ export function CertListPage() {
   const router = useRouter();
   const { addToCompare, removeFromCompare, isInCompare, canAdd } = useCompare();
   const searchParams = new URL(window.location.href).searchParams;
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    try { return (localStorage.getItem('certViewMode') as 'grid' | 'list') ?? 'grid'; } catch { return 'grid'; }
+  });
 
   const [params, setParams] = useState<CertFilterParams>({
     q: searchParams.get('q') || '',
@@ -108,7 +112,6 @@ export function CertListPage() {
     }
     loadTrending();
   }, []);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchType, setSearchType] = useState<'name' | 'body'>(
     searchParams.get('managing_body') ? 'body' : 'name'
   );
@@ -343,7 +346,7 @@ export function CertListPage() {
           <Button
             variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
             size="sm"
-            onClick={() => setViewMode('grid')}
+            onClick={() => { setViewMode('grid'); try { localStorage.setItem('certViewMode', 'grid'); } catch {} }}
             aria-label="그리드 보기"
             aria-pressed={viewMode === 'grid'}
             className="h-11 w-11 p-0"
@@ -353,7 +356,7 @@ export function CertListPage() {
           <Button
             variant={viewMode === 'list' ? 'secondary' : 'ghost'}
             size="sm"
-            onClick={() => setViewMode('list')}
+            onClick={() => { setViewMode('list'); try { localStorage.setItem('certViewMode', 'list'); } catch {} }}
             aria-label="목록 보기"
             aria-pressed={viewMode === 'list'}
             className="h-11 w-11 p-0"
@@ -364,7 +367,31 @@ export function CertListPage() {
       </div>
 
       {/* Filter Section */}
-      <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 space-y-8 backdrop-blur-sm">
+      <div className="bg-slate-900/40 border border-slate-800 rounded-3xl backdrop-blur-sm overflow-hidden">
+        {/* Mobile filter toggle — hidden on md+ */}
+        <button
+          type="button"
+          onClick={() => setFilterOpen(f => !f)}
+          aria-expanded={filterOpen}
+          aria-controls="filter-panel"
+          className="md:hidden w-full flex items-center justify-between px-6 py-4 text-sm font-bold text-slate-300 hover:text-white transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <Filter className="w-4 h-4" aria-hidden />
+            검색 및 필터
+            {hasActiveFilters && (
+              <span className="inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-blue-600 text-white text-[10px] font-black leading-none">
+                {[params.q, params.main_field, params.qual_type, params.managing_body, params.has_pass_rate, isFavoritesOnly, isHideAcquired].filter(Boolean).length}
+              </span>
+            )}
+          </span>
+          <ChevronDown aria-hidden className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${filterOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div
+          id="filter-panel"
+          className={`md:block p-8 space-y-8 ${filterOpen ? 'block' : 'hidden'}`}
+        >
         <form onSubmit={handleSearch} className="grid lg:grid-cols-12 gap-6 items-end">
           <div className="lg:col-span-5 space-y-3 relative">
             <label className="text-xs font-bold text-slate-500 flex items-center gap-2">
@@ -379,7 +406,7 @@ export function CertListPage() {
               <button
                 type="button"
                 onClick={() => handleSearchTypeChange('name')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                   searchType === 'name'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-500 hover:text-slate-300'
@@ -391,7 +418,7 @@ export function CertListPage() {
               <button
                 type="button"
                 onClick={() => handleSearchTypeChange('body')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                   searchType === 'body'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-500 hover:text-slate-300'
@@ -449,7 +476,7 @@ export function CertListPage() {
                     onMouseDown={() => handleSuggestionClick(cert.qual_name)}
                   >
                     <span className="text-sm font-medium group-hover/item:text-blue-400">{cert.qual_name}</span>
-                    <TrendingUp className="w-3 h-3 text-slate-600 opacity-0 group-hover/item:opacity-100 transition-all" aria-hidden />
+                    <TrendingUp className="w-3 h-3 text-slate-600 opacity-0 group-hover/item:opacity-100 transition-opacity" aria-hidden />
                   </div>
                 ))}
               </div>
@@ -540,7 +567,7 @@ export function CertListPage() {
               <Badge
                 key={cert.qual_id}
                 variant="outline"
-                className="cursor-pointer bg-slate-900/50 hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-500/30 transition-all whitespace-nowrap"
+                className="cursor-pointer bg-slate-900/50 hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-500/30 transition-colors whitespace-nowrap"
                 onClick={() => {
                   setInputValue(cert.qual_name);
                   updateParam('q', cert.qual_name);
@@ -554,7 +581,7 @@ export function CertListPage() {
               <Badge
                 key={keyword}
                 variant="outline"
-                className="cursor-pointer bg-slate-900/50 hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-500/30 transition-all whitespace-nowrap"
+                className="cursor-pointer bg-slate-900/50 hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-500/30 transition-colors whitespace-nowrap"
                 onClick={() => {
                   setInputValue(keyword);
                   updateParam('q', keyword);
@@ -579,7 +606,7 @@ export function CertListPage() {
             <Badge
               key={t}
               variant={params.qual_type === t ? "secondary" : "outline"}
-              className={`cursor-pointer px-3 py-1 rounded-full text-xs transition-all active:scale-95 ${params.qual_type === t ? 'bg-blue-600 text-white border-none' : 'hover:border-slate-600'}`}
+              className={`cursor-pointer px-3 py-1 rounded-full text-xs transition-[colors,transform] active:scale-95 ${params.qual_type === t ? 'bg-blue-600 text-white border-none' : 'hover:border-slate-600'}`}
               onClick={() => updateParam('qual_type', t)}
             >
               {t}
@@ -587,7 +614,7 @@ export function CertListPage() {
           ))}
           <Badge
             variant={isFavoritesOnly ? "secondary" : "outline"}
-            className={`cursor-pointer px-3 py-1 rounded-full text-xs transition-all ${isFavoritesOnly ? 'bg-blue-600 text-white border-none' : 'hover:border-slate-600 text-slate-400'}`}
+            className={`cursor-pointer px-3 py-1 rounded-full text-xs transition-colors ${isFavoritesOnly ? 'bg-blue-600 text-white border-none' : 'hover:border-slate-600 text-slate-400'}`}
             onClick={() => {
               const next = !isFavoritesOnly;
               setIsFavoritesOnly(next);
@@ -600,7 +627,7 @@ export function CertListPage() {
 
           {/* 합격률 필터 */}
           <label
-            className={`cursor-pointer flex items-center gap-2 px-3 py-1 rounded-full text-xs border transition-all select-none ${
+            className={`cursor-pointer flex items-center gap-2 px-3 py-1 rounded-full text-xs border transition-colors select-none ${
               params.has_pass_rate === true
                 ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400'
                 : 'border-slate-700 text-slate-500 hover:border-slate-600 hover:text-slate-300'
@@ -619,7 +646,7 @@ export function CertListPage() {
           {/* 취득 자격증 제외 필터 (로그인 사용자 + 취득 자격증 있을 때) */}
           {user && acquiredIds.length > 0 && (
             <label
-              className={`cursor-pointer flex items-center gap-2 px-3 py-1 rounded-full text-xs border transition-all select-none ${
+              className={`cursor-pointer flex items-center gap-2 px-3 py-1 rounded-full text-xs border transition-colors select-none ${
                 isHideAcquired
                   ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400'
                   : 'border-slate-700 text-slate-500 hover:border-slate-600 hover:text-slate-300'
@@ -636,6 +663,7 @@ export function CertListPage() {
             </label>
           )}
         </div>
+        </div>{/* /filter-panel */}
       </div>
 
       {/* Active Filter Summary */}
@@ -786,7 +814,7 @@ export function CertListPage() {
                 onKeyDown={(e) => e.key === 'Enter' && router.navigate(`/certs/${cert.qual_id}`)}
                 role="button"
                 tabIndex={0}
-                className={`group cursor-pointer bg-slate-900 border-slate-800 hover:border-blue-500/40 transition-colors duration-300 overflow-hidden focus-visible:ring-[3px] focus-visible:ring-blue-500/50/50 focus-visible:outline-none ${viewMode === 'list' ? 'flex flex-row items-center py-2' : 'flex flex-col'}`}
+                className={`group cursor-pointer bg-slate-900 border-slate-800 hover:border-blue-500/40 transition-colors duration-300 overflow-hidden focus-ring ${viewMode === 'list' ? 'flex flex-row items-center py-2' : 'flex flex-col cert-card'}`}
               >
                 {viewMode === 'grid' ? (
                   <>
@@ -814,24 +842,22 @@ export function CertListPage() {
                                 addToCompare({ id: cert.qual_id, name: cert.qual_name });
                               }
                             }}
-                            className={`flex items-center justify-center w-8 h-8 rounded-lg focus-visible:ring-[3px] focus-visible:ring-blue-500/50 transition-colors ${
+                            className={`flex items-center gap-1 px-2 h-7 rounded-md focus-ring transition-colors ${
                               isInCompare(cert.qual_id)
                                 ? 'text-blue-400 bg-blue-500/10'
                                 : (!canAdd ? 'text-slate-700 cursor-not-allowed' : 'text-slate-600 hover:text-blue-400 hover:bg-blue-500/10')
                             }`}
                             disabled={!isInCompare(cert.qual_id) && !canAdd}
-                            title={isInCompare(cert.qual_id) ? '비교 목록에서 제거' : (canAdd ? '비교에 추가' : '최대 3개까지 비교 가능')}
+                            title={!isInCompare(cert.qual_id) && !canAdd ? '최대 3개까지 비교 가능' : undefined}
                           >
-                            <Scale
-                              aria-hidden
-                              className={`w-4 h-4 transition-all ${isInCompare(cert.qual_id) ? 'fill-blue-400/20' : ''}`}
-                            />
+                            <Scale aria-hidden className={`w-3 h-3 shrink-0 ${isInCompare(cert.qual_id) ? 'fill-blue-400/20' : ''}`} />
+                            <span className="text-[10px] font-bold leading-none">{isInCompare(cert.qual_id) ? '비교중' : '비교'}</span>
                           </button>
                           <button
                             type="button"
                             aria-label={favoriteIds.includes(cert.qual_id) ? '관심 자격증 해제' : '관심 자격증 추가'}
                             onClick={(e) => toggleFavorite(e, cert)}
-                            className={`flex items-center justify-center w-8 h-8 rounded-lg focus-visible:ring-[3px] focus-visible:ring-blue-500/50 transition-colors ${favoriteIds.includes(cert.qual_id) ? 'text-amber-500' : 'text-slate-600 hover:text-amber-500'}`}
+                            className={`flex items-center justify-center w-8 h-8 rounded-lg focus-ring transition-colors ${favoriteIds.includes(cert.qual_id) ? 'text-amber-500' : 'text-slate-600 hover:text-amber-500'}`}
                           >
                             <Bookmark
                               aria-hidden
@@ -920,13 +946,14 @@ export function CertListPage() {
                         }}
                         disabled={!isInCompare(cert.qual_id) && !canAdd}
                         title={isInCompare(cert.qual_id) ? '비교 목록에서 제거' : (canAdd ? '비교에 추가' : '최대 3개까지 비교 가능')}
-                        className={`flex items-center justify-center w-9 h-9 rounded-lg focus-visible:ring-[3px] focus-visible:ring-blue-500/50 transition-colors shrink-0 ${
+                        className={`flex items-center gap-1.5 px-2.5 h-8 rounded-lg focus-ring transition-colors shrink-0 ${
                           isInCompare(cert.qual_id)
                             ? 'text-blue-400 bg-blue-500/10'
                             : (!canAdd ? 'text-slate-700 cursor-not-allowed' : 'text-slate-600 hover:text-blue-400 hover:bg-blue-500/10')
                         }`}
                       >
-                        <Scale aria-hidden className={`w-4 h-4 ${isInCompare(cert.qual_id) ? 'fill-blue-400/20' : ''}`} />
+                        <Scale aria-hidden className={`w-3.5 h-3.5 shrink-0 ${isInCompare(cert.qual_id) ? 'fill-blue-400/20' : ''}`} />
+                        <span className="text-[11px] font-bold leading-none">{isInCompare(cert.qual_id) ? '비교중' : '비교'}</span>
                       </button>
                       <ChevronDown className="w-5 h-5 text-slate-700 -rotate-90 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" aria-hidden />
                     </div>

@@ -23,7 +23,7 @@ const CompareContext = createContext<CompareContextType | null>(null);
 export function CompareProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CompareItem[]>(() => {
     try {
-      const raw = sessionStorage.getItem(COMPARE_KEY);
+      const raw = localStorage.getItem(COMPARE_KEY);
       return raw ? (JSON.parse(raw) as CompareItem[]) : [];
     } catch {
       return [];
@@ -32,7 +32,7 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(COMPARE_KEY, JSON.stringify(items));
+      localStorage.setItem(COMPARE_KEY, JSON.stringify(items));
     } catch {}
   }, [items]);
 

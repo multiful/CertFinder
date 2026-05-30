@@ -102,16 +102,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors ${currentRoutePath === item.path
+                className={`flex items-start gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors focus-ring ${currentRoutePath === item.path
                   ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
               >
-                {item.icon}
-                <span className="flex flex-col leading-none gap-[3px]">
+                <span className="shrink-0 mt-[1px]">{item.icon}</span>
+                <span className="flex flex-col leading-none gap-1">
                   <span className="text-sm leading-none">{item.label}</span>
                   <span
-                    className={`text-[10px] font-normal leading-none ${item.description ? 'opacity-60' : 'opacity-0 select-none'}`}
+                    className={`text-[10px] font-normal leading-none ${item.description ? 'text-current opacity-45 font-medium tracking-wide' : 'opacity-0 select-none pointer-events-none'}`}
                     aria-hidden={!item.description}
                   >
                     {item.description ?? ' '}
@@ -147,14 +147,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-colors ${currentRoutePath === item.path
+                className={`flex items-start gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-colors ${currentRoutePath === item.path
                   ? 'bg-blue-600/10 text-blue-400 focus-visible:ring-[3px] focus-visible:ring-blue-500/50'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50 focus-visible:ring-[3px] focus-visible:ring-blue-500/50'
                   }`}
               >
-                {item.icon}
+                <span className="shrink-0 mt-[1px]">{item.icon}</span>
                 {item.description ? (
-                  <span className="flex flex-col gap-0.5">
+                  <span className="flex flex-col gap-1">
                     <span>{item.label}</span>
                     <span className="text-[10px] font-normal text-slate-500 leading-none">{item.description}</span>
                   </span>
@@ -166,7 +166,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content — id for skip link / a11y */}
-      <main id="main-content" className="container mx-auto px-4 py-8" role="main">
+      <main id="main-content" className="container mx-auto px-6 py-8" role="main">
         {children}
       </main>
 

@@ -93,9 +93,9 @@ export function CertComparePage() {
 
   const passRateColor = (rate: number | null) => {
     if (rate == null) return 'text-slate-500';
-    if (rate > 70) return 'text-emerald-400';
-    if (rate >= 30) return 'text-amber-400';
-    return 'text-rose-500';
+    if (rate > 70) return 'pass-high';
+    if (rate >= 30) return 'pass-mid';
+    return 'pass-low';
   };
 
   const difficultyColor = (diff: number | null) => {
@@ -199,7 +199,7 @@ export function CertComparePage() {
                     <button
                       type="button"
                       onClick={() => navigate(`/certs/${cert.qual_id}`)}
-                      className="text-base font-bold text-white hover:text-blue-400 transition-colors text-left leading-snug rounded focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500/50"
+                      className="text-base font-bold text-white hover:text-blue-400 transition-colors text-left leading-snug rounded focus-ring"
                     >
                       {cert.qual_name}
                     </button>
@@ -216,7 +216,7 @@ export function CertComparePage() {
                     <button
                       type="button"
                       onClick={() => removeFromCompare(cert.qual_id)}
-                      className="flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-400 transition-colors font-medium rounded focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500/50"
+                      className="flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-400 transition-colors font-medium rounded focus-ring"
                       aria-label={`${cert.qual_name} 비교 제거`}
                     >
                       <X className="w-3 h-3" /> 제거
@@ -397,7 +397,7 @@ export function CertComparePage() {
                       <button
                         type="button"
                         onClick={() => navigate(`/certs/${cert.qual_id}#jobs`)}
-                        className="text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors rounded focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500/50"
+                        className="text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors rounded focus-ring"
                       >
                         {count}개 직무 보기
                       </button>
@@ -456,11 +456,19 @@ function RowLabel({
   return (
     <td
       className="sticky left-0 z-10 bg-slate-950 px-6 py-4 text-xs font-bold text-slate-500 whitespace-nowrap border-r border-slate-800/40"
-      title={title}
     >
       <div className="flex items-center gap-2">
         {icon}
         {label}
+        {title && (
+          <span
+            title={title}
+            aria-label={title}
+            className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-slate-700 text-slate-700 hover:border-slate-500 hover:text-slate-400 transition-colors cursor-help text-[9px] font-black leading-none select-none"
+          >
+            ?
+          </span>
+        )}
       </div>
     </td>
   );

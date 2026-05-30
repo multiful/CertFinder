@@ -30,7 +30,7 @@ export function CompareTray() {
                   type="button"
                   onClick={() => removeFromCompare(item.id)}
                   aria-label={`${item.name} 비교 제거`}
-                  className="text-slate-500 hover:text-slate-200 transition-colors ml-0.5 p-0.5 rounded focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500/50"
+                  className="text-slate-500 hover:text-slate-200 transition-colors ml-0.5 p-0.5 rounded focus-ring"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -48,7 +48,7 @@ export function CompareTray() {
             <button
               type="button"
               onClick={clearCompare}
-              className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors font-medium rounded focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500/50 px-1 py-0.5"
+              className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors font-medium rounded focus-ring px-1 py-0.5"
             >
               초기화
             </button>
