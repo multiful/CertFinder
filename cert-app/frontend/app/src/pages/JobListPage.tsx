@@ -201,7 +201,7 @@ export function JobListPage() {
                                         onMouseDown={() => handleSuggestionClick(job.job_name)}
                                     >
                                         <span className="text-sm font-medium group-hover/item:text-blue-400">{job.job_name}</span>
-                                        <TrendingUp className="w-3 h-3 text-slate-600 opacity-0 group-hover/item:opacity-100 transition-all" />
+                                        <TrendingUp className="w-3 h-3 text-slate-600 opacity-0 group-hover/item:opacity-100 transition-opacity" />
                                     </div>
                                 ))}
                             </div>
@@ -272,9 +272,12 @@ export function JobListPage() {
                                 <article key={job.job_id} aria-label={job.job_name} className="contents">
                                 <Card
                                     onClick={() => router.navigate(`/jobs/${job.job_id}`)}
-                                    className="bg-slate-900/50 border-slate-800 hover:border-blue-500/50 hover:bg-slate-900/80 transition-all duration-500 shadow-2xl group overflow-hidden rounded-[2rem] cursor-pointer"
+                                    onKeyDown={(e) => e.key === 'Enter' && router.navigate(`/jobs/${job.job_id}`)}
+                                    role="button"
+                                    tabIndex={0}
+                                    className="bg-slate-900/50 border-slate-800 hover:border-blue-500/50 hover:bg-slate-900/80 transition-colors shadow-2xl group overflow-hidden rounded-[2rem] cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none"
                                 >
-                                    <div className="absolute top-0 left-0 w-2 h-full bg-blue-600 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                    <div className="h-1.5 bg-slate-800 group-hover:bg-blue-600 transition-colors" />
                                     <CardContent className="p-0">
                                         <div className="grid lg:grid-cols-12">
                                             {/* Left Profile Section */}

@@ -459,16 +459,8 @@ export function UserMenu() {
                 >
                     <div className="p-8 space-y-6">
                         <DialogHeader>
-                            <DialogTitle className="text-3xl font-extrabold tracking-tight">
-                                {isSignUp ? (
-                                    <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                                        새로운 시작
-                                    </span>
-                                ) : (
-                                    <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                                        환영합니다
-                                    </span>
-                                )}
+                            <DialogTitle className="text-3xl font-extrabold tracking-tight text-white">
+                                {isSignUp ? '새로운 시작' : '환영합니다'}
                             </DialogTitle>
                             <DialogDescription className="text-slate-400 text-sm font-medium mt-1">
                                 {isSignUp ? '간단한 정보를 입력하고 커리어를 시작하세요.' : '아이디와 비밀번호를 입력하여 로그인하세요.'}

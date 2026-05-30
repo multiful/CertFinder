@@ -14,6 +14,7 @@ const AiRecommendationPage = lazy(() => import('@/pages/AiRecommendationPage').t
 const JobListPage = lazy(() => import('@/pages/JobListPage').then(m => ({ default: m.JobListPage })));
 const JobDetailPage = lazy(() => import('@/pages/JobDetailPage').then(m => ({ default: m.JobDetailPage })));
 const MyPage = lazy(() => import('@/pages/MyPage').then(m => ({ default: m.MyPage })));
+const CertComparePage = lazy(() => import('@/pages/CertComparePage').then(m => ({ default: m.CertComparePage })));
 const PrivacyPolicyPage = lazy(() => import('@/pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
 const TermsOfServicePage = lazy(() => import('@/pages/TermsOfServicePage').then(m => ({ default: m.TermsOfServicePage })));
 const ContactPage = lazy(() => import('@/pages/ContactPage').then(m => ({ default: m.ContactPage })));
@@ -71,6 +72,9 @@ function App() {
       case 'certs':
         title = '자격증 탐색 | CertFinder';
         break;
+      case 'cert-compare':
+        title = '자격증 비교 | CertFinder';
+        break;
       case 'cert-detail':
         title = '자격증 상세 정보 | CertFinder';
         break;
@@ -114,6 +118,8 @@ function App() {
         return <HomePage />;
       case 'certs':
         return <CertListPage />;
+      case 'cert-compare':
+        return <CertComparePage />;
       case 'cert-detail':
         return <CertDetailPage id={routeState.params?.qualId || ''} />;
       case 'recommendations':

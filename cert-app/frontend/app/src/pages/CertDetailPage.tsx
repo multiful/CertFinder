@@ -16,9 +16,11 @@ import {
   Bookmark,
   ChevronRight,
   DollarSign,
-  CheckCircle
+  CheckCircle,
+  Scale,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCompare } from '@/contexts/CompareContext';
 import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
@@ -53,6 +55,7 @@ export function CertDetailPage({ id }: { id: string }) {
   const [activeTab, setActiveTab] = useState('stats');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [justBookmarked, setJustBookmarked] = useState(false);
+  const { addToCompare, removeFromCompare, isInCompare, canAdd } = useCompare();
 
   // 시험 일정 (HRDK 공공 API — 탭 클릭 시 lazy load)
   const [scheduleData, setScheduleData] = useState<ExamScheduleResponse | null>(null);
@@ -335,7 +338,7 @@ const handleTabChange = (tab: string) => {
     : "정보 없음";
 
   return (
-    <div className="space-y-12 pb-20 max-w-7xl mx-auto">
+    <div className="space-y-12 pb-40 max-w-7xl mx-auto">
       {/* Premium Header/Cover */}
       <div className="relative rounded-[2.5rem] overflow-hidden bg-slate-900 border border-slate-800 p-10 md:p-16">
         <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-blue-600/15 via-indigo-600/5 to-transparent pointer-events-none" />
@@ -371,7 +374,7 @@ const handleTabChange = (tab: string) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="w-5 h-5 text-slate-400" />
-                  <span>{cert.ncs_large} &gt; {cert.main_field}</span>
+                  <span title="국가직무능력표준(NCS) 기준 직무 분류 체계">{cert.ncs_large} &gt; {cert.main_field}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-amber-500" />
@@ -381,23 +384,41 @@ const handleTabChange = (tab: string) => {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-6">
+          <div className="flex gap-3 pt-6 flex-wrap">
             <Button
               onClick={toggleBookmark}
-              className={`
-                h-12 px-8 rounded-2xl font-bold flex items-center gap-2 transition-all
-                ${isBookmarked
-                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'}
-              `}
+              className="h-12 px-8 rounded-2xl font-bold flex items-center gap-2 transition-colors bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Bookmark className={`w-4 h-4 transition-transform ${isBookmarked ? 'fill-white' : ''} ${justBookmarked ? '[animation:bookmarkPulse_0.5s_ease-out]' : ''}`} />
               {isBookmarked ? '관심 자격증 해제' : '관심 자격증 추가'}
             </Button>
+            {cert && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (isInCompare(cert.qual_id)) {
+                    removeFromCompare(cert.qual_id);
+                  } else {
+                    addToCompare({ id: cert.qual_id, name: cert.qual_name });
+                  }
+                }}
+                disabled={!isInCompare(cert.qual_id) && !canAdd}
+                aria-pressed={isInCompare(cert.qual_id)}
+                className={`h-12 px-6 rounded-2xl font-bold flex items-center gap-2 transition-colors border ${
+                  isInCompare(cert.qual_id)
+                    ? 'border-blue-500/40 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'
+                    : 'border-slate-800 text-slate-400 hover:text-white hover:border-slate-600'
+                } disabled:opacity-40`}
+                title={!isInCompare(cert.qual_id) && !canAdd ? '최대 3개까지 비교 가능' : undefined}
+              >
+                <Scale className={`w-4 h-4 ${isInCompare(cert.qual_id) ? 'fill-blue-400/20' : ''}`} />
+                {isInCompare(cert.qual_id) ? '비교 중' : '비교 추가'}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={handleNativeShare}
-              className="rounded-2xl h-12 w-12 p-0 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600 transition-all"
+              className="rounded-2xl h-12 w-12 p-0 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600 transition-colors"
             >
               <Share2 className="w-4 h-4" />
             </Button>
@@ -447,7 +468,7 @@ const handleTabChange = (tab: string) => {
               sub: "등급+합격률 기반"
             },
           ].map((stat, i) => (
-            <Card key={i} className="bg-slate-900/50 border-slate-800 overflow-hidden group hover:border-blue-500/30 hover:-translate-y-0.5 transition-all duration-200">
+            <Card key={i} className="bg-slate-900/50 border-slate-800 overflow-hidden group hover:border-blue-500/30 hover:-translate-y-0.5 transition-[colors,transform] duration-200">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div className={`p-3 rounded-2xl ${stat.bg} transition-transform duration-200 group-hover:scale-110`}>
@@ -456,7 +477,7 @@ const handleTabChange = (tab: string) => {
                   <Badge variant="secondary" className="text-[10px] text-slate-500 font-bold border-none bg-slate-950/50">{stat.sub}</Badge>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-slate-500 font-bold text-slate-500">{stat.label}</p>
+                  <p className="text-xs font-bold text-slate-500">{stat.label}</p>
                   <p className="text-2xl font-black text-white tracking-tight">{stat.value}</p>
                 </div>
               </CardContent>
@@ -497,7 +518,7 @@ const handleTabChange = (tab: string) => {
                       key={stage}
                       onClick={() => toggleStage(stage)}
                       aria-pressed={visibleStages.includes(stage)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${visibleStages.includes(stage)
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-colors ${visibleStages.includes(stage)
                         ? stage === '필기' ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
                           : stage === '실기' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
                             : 'bg-amber-500/10 border-amber-500/50 text-amber-400'
@@ -613,7 +634,7 @@ const handleTabChange = (tab: string) => {
                   };
 
                   return (
-                    <div key={i} className="flex items-center justify-between p-5 bg-slate-950/40 rounded-[1.5rem] border border-slate-800/50 hover:border-slate-700/80 hover:bg-slate-900/40 transition-all duration-300 group/item">
+                    <div key={i} className="flex items-center justify-between p-5 bg-slate-950/40 rounded-[1.5rem] border border-slate-800/50 hover:border-slate-700/80 hover:bg-slate-900/40 transition-colors duration-200 group/item">
                       <div className="space-y-1.5">
                         <p className="text-sm font-bold text-white group-hover/item:text-blue-400 transition-colors">{yearLabel}</p>
                         <div className="flex items-center gap-2">
@@ -681,7 +702,7 @@ const handleTabChange = (tab: string) => {
               <Calendar className="w-6 h-6 text-blue-400" /> {scheduleYear}년 시험 일정
             </h2>
             <p className="text-sm text-slate-500 font-medium">
-              한국산업인력공단 공공데이터 기준 — 변경될 수 있으니 Q-Net에서 최종 확인하세요.
+              한국산업인력공단 공공데이터 기준. 변경될 수 있으니 Q-Net에서 최종 확인하세요.
             </p>
           </div>
 
@@ -792,11 +813,11 @@ const handleTabChange = (tab: string) => {
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="p-4 bg-slate-950/40 rounded-2xl border border-slate-800">
-                    <p className="text-[10px] font-bold text-slate-500 font-bold text-slate-500 mb-1">관리부처</p>
+                    <p className="text-[10px] font-bold text-slate-500 mb-1">관리부처</p>
                     <p className="text-sm text-white font-medium">{cert.managing_body || "정보 없음"}</p>
                   </div>
                   <div className="p-4 bg-slate-950/40 rounded-2xl border border-slate-800">
-                    <p className="text-[10px] font-bold text-slate-500 font-bold text-slate-500 mb-1">NCS 분류</p>
+                    <p className="text-[10px] font-bold text-slate-500 mb-1" title="국가직무능력표준(NCS) 기준 직무 분류">직무 분류 (NCS)</p>
                     <p className="text-sm text-white font-medium">{cert.ncs_large}</p>
                   </div>
                 </div>
@@ -895,7 +916,7 @@ const handleTabChange = (tab: string) => {
                 ];
 
                 return (
-                  <Card key={job.job_id} className="bg-slate-900/50 border-slate-800 group overflow-hidden rounded-[2.5rem] hover:border-slate-600 transition-all shadow-xl">
+                  <Card key={job.job_id} className="bg-slate-900/50 border-slate-800 group overflow-hidden rounded-[2.5rem] hover:border-slate-600 transition-colors shadow-xl">
                     <CardHeader className="bg-slate-950/60 p-10 border-b border-slate-800">
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div className="flex items-center gap-4">
@@ -917,7 +938,7 @@ const handleTabChange = (tab: string) => {
                             </div>
                           </div>
                         </div>
-                        <Button variant="outline" onClick={() => router.navigate('/jobs')} className="rounded-xl border-slate-800 text-slate-400 hover:text-white group-hover:border-blue-500/30 transition-all">
+                        <Button variant="outline" onClick={() => router.navigate('/jobs')} className="rounded-xl border-slate-800 text-slate-400 hover:text-white group-hover:border-blue-500/30 transition-colors">
                           직무 목록 보기 <ChevronRight className="w-4 h-4 ml-2" />
                         </Button>
                       </div>
@@ -994,7 +1015,7 @@ const handleTabChange = (tab: string) => {
                               </RadarChart>
                             </ResponsiveContainer>
                           </div>
-                          <p className="text-[10px] text-slate-600 font-bold font-bold text-slate-600 mt-4 text-center">표준화 역량 지수 (0–100)</p>
+                          <p className="text-[10px] text-slate-600 font-bold mt-4 text-center">표준화 역량 지수 (0–100)</p>
                         </div>
                       </div>
                     </CardContent>

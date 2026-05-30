@@ -3,6 +3,8 @@ import { Award, Search, ThumbsUp, Menu, X, Home, BrainCircuit, Cookie } from 'lu
 import { Button } from '@/components/ui/button';
 import { Link, useRouter } from '@/lib/router';
 import { UserMenu } from './UserMenu';
+import { CompareTray } from './CompareTray';
+import { useCompare } from '@/contexts/CompareContext';
 
 interface NavItem {
   path: string;
@@ -25,12 +27,36 @@ import { PRODUCT_FOOTER_LINE } from '@/lib/ragProductCopy';
 export function Layout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cookieConsent, setCookieConsent] = useState<boolean | null>(null);
-  const { route } = useRouter();
+  const { route, navigate } = useRouter();
+  const { items: compareItems } = useCompare();
 
   useEffect(() => {
     const stored = localStorage.getItem('cookie_consent');
     setCookieConsent(stored === 'accepted' ? true : stored === 'declined' ? false : null);
   }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchEl = (
+          document.getElementById('cert-search-input') ||
+          document.getElementById('home-cert-search')
+        ) as HTMLInputElement | null;
+        if (searchEl) {
+          searchEl.focus();
+          searchEl.select();
+        } else {
+          navigate('/certs');
+          setTimeout(() => {
+            (document.getElementById('cert-search-input') as HTMLInputElement | null)?.focus();
+          }, 200);
+        }
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [navigate]);
 
   const acceptCookies = () => {
     localStorage.setItem('cookie_consent', 'accepted');
@@ -76,18 +102,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentRoutePath === item.path
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors ${currentRoutePath === item.path
                   ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
               >
                 {item.icon}
-                {item.description ? (
-                  <span className="flex flex-col gap-0">
-                    <span>{item.label}</span>
-                    <span className="text-[10px] font-normal opacity-60 leading-none">{item.description}</span>
+                <span className="flex flex-col leading-none gap-[3px]">
+                  <span className="text-sm leading-none">{item.label}</span>
+                  <span
+                    className={`text-[10px] font-normal leading-none ${item.description ? 'opacity-60' : 'opacity-0 select-none'}`}
+                    aria-hidden={!item.description}
+                  >
+                    {item.description ?? ' '}
                   </span>
-                ) : item.label}
+                </span>
               </Link>
             ))}
             <div className="w-px h-6 bg-slate-800 mx-2" />
@@ -119,8 +148,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-colors ${currentRoutePath === item.path
-                  ? 'bg-blue-600/10 text-blue-400'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-blue-600/10 text-blue-400 focus-visible:ring-[3px] focus-visible:ring-blue-500/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50 focus-visible:ring-[3px] focus-visible:ring-blue-500/50'
                   }`}
               >
                 {item.icon}
@@ -141,44 +170,49 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {/* Cookie Consent Banner */}
-      {cookieConsent === null && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pointer-events-none">
-          <div className="max-w-2xl mx-auto bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl p-5 shadow-2xl pointer-events-auto animate-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 shrink-0 mt-0.5">
-                <Cookie className="w-5 h-5 text-blue-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  CertFinder는 서비스 개선 및 맞춤형 광고 제공을 위해 쿠키를 사용합니다.
-                  자세한 내용은{' '}
-                  <Link to="/privacy" className="text-blue-400 underline hover:text-blue-300">
-                    개인정보 처리방침
-                  </Link>을 참고하세요.
-                </p>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={declineCookies}
-                  className="text-slate-500 hover:text-slate-300 text-xs px-3"
-                  aria-label="쿠키 거부"
-                >
-                  거부
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={acceptCookies}
-                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 rounded-xl"
-                  aria-label="쿠키 동의"
-                >
-                  동의
-                </Button>
+      {/* Stacked bottom notifications: compare tray renders above, cookie banner below */}
+      {(compareItems.length > 0 || cookieConsent === null) && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex flex-col pointer-events-none">
+          {compareItems.length > 0 && <CompareTray />}
+          {cookieConsent === null && (
+            <div className="pointer-events-auto w-full px-4 pb-4 pt-0">
+              <div className="max-w-2xl mx-auto bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl p-5 shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 shrink-0 mt-0.5">
+                    <Cookie className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                      CertFinder는 서비스 개선 및 맞춤형 광고 제공을 위해 쿠키를 사용합니다.
+                      자세한 내용은{' '}
+                      <Link to="/privacy" className="text-blue-400 underline hover:text-blue-300">
+                        개인정보 처리방침
+                      </Link>을 참고하세요.
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={declineCookies}
+                      className="text-slate-500 hover:text-slate-300 text-xs px-3"
+                      aria-label="쿠키 거부"
+                    >
+                      거부
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={acceptCookies}
+                      className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 rounded-xl"
+                      aria-label="쿠키 동의"
+                    >
+                      동의
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

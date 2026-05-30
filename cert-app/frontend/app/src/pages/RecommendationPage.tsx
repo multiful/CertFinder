@@ -134,7 +134,7 @@ export function RecommendationPage() {
           />
           <Button
             type="submit"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 bg-blue-600 hover:bg-blue-700 px-6 rounded-lg text-white font-semibold transition-all active:scale-95"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-11 bg-blue-600 hover:bg-blue-700 px-6 rounded-lg text-white font-semibold transition-colors active:scale-95"
             disabled={loading}
           >
             {loading ? (
@@ -162,7 +162,7 @@ export function RecommendationPage() {
                     <div className="w-2 h-2 rounded-full bg-blue-500/30 group-hover/item:bg-blue-500 transition-colors shrink-0" />
                     <span className="group-hover/item:text-white break-words">{m}</span>
                   </div>
-                  <ArrowRight className="w-3 h-3 text-slate-600 opacity-0 group-hover/item:opacity-100 -translate-x-2 group-hover/item:translate-x-0 transition-all shrink-0" />
+                  <ArrowRight className="w-3 h-3 text-slate-600 opacity-0 group-hover/item:opacity-100 -translate-x-2 group-hover/item:translate-x-0 transition-[opacity,transform] shrink-0" />
                 </div>
               ))
             ) : (
@@ -304,7 +304,7 @@ export function RecommendationPage() {
                     onClick={() => navigateToCert(rec.qual_id)}
                     className="group"
                   >
-                    <Card className="bg-slate-900/40 border-slate-800/60 hover:border-blue-500/40 transition-all hover:bg-slate-900/80 cursor-pointer shadow-sm">
+                    <Card className="bg-slate-900/40 border-slate-800/60 hover:border-blue-500/40 transition-colors hover:bg-slate-900/80 cursor-pointer shadow-sm">
                       <CardContent className="p-5">
                         <div className="flex items-start gap-5">
                           {/* Rank */}

@@ -265,6 +265,11 @@ export function AiRecommendationPage() {
 
     return (
         <div className="max-w-6xl mx-auto space-y-12 pb-20">
+            {/* Screen reader live region */}
+            <div aria-live="polite" aria-atomic="true" className="sr-only">
+                {loading && '자격증 추천을 분석하는 중입니다. 잠시 기다려 주세요.'}
+                {results && !loading && `${results.major} 전공 AI 추천 완료. ${results.results.length}개의 자격증을 찾았습니다.`}
+            </div>
             {/* Hero Section */}
             <div className="relative rounded-3xl bg-slate-900 border border-slate-800 p-8 md:p-12 shadow-2xl">
                 <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
@@ -425,9 +430,16 @@ export function AiRecommendationPage() {
                                     placeholder="예: 클라우드 보안 환경에서 일하고 싶어요. 데이터 분석을 금융에 적용하고 싶습니다."
                                     value={interest}
                                     onChange={(e) => setInterest(e.target.value)}
-                                    className="w-full bg-slate-900/80 border-slate-700 rounded-lg p-3 text-sm h-28 focus:ring-blue-500/20 border outline-none text-white focus:border-blue-500 transition-all placeholder:text-slate-600 shadow-inner resize-none"
+                                    maxLength={500}
+                                    aria-describedby="career-interest-hint"
+                                    className="w-full bg-slate-900/80 border-slate-700 rounded-lg p-3 text-sm h-28 focus:ring-2 focus:ring-blue-500/50 border outline-none text-white focus:border-blue-500 transition-colors placeholder:text-slate-600 shadow-inner resize-none"
                                 />
-                                <p className="text-[11px] text-slate-500 leading-relaxed">
+                                {interest.length > 400 && (
+                                    <p className={`text-[10px] text-right tabular-nums ${interest.length > 480 ? 'text-rose-400' : 'text-slate-500'}`}>
+                                        {500 - interest.length}자 남음
+                                    </p>
+                                )}
+                                <p id="career-interest-hint" className="text-[11px] text-slate-500 leading-relaxed">
                                     AI는 입력한 전공, 커리어 목표뿐 아니라 마이페이지에 저장된
                                     <span className="font-semibold text-slate-300"> 학년, 학과, 관심 자격증, 취득 자격증, 난이도</span>
                                     를 함께 고려해 현재 레벨에 맞는 자격증 난이도를 추천합니다.
@@ -519,8 +531,11 @@ export function AiRecommendationPage() {
                             <Card
                                 key={res.qual_id}
                                 onClick={() => navigateToCert(res.qual_id)}
+                                onKeyDown={(e) => e.key === 'Enter' && navigateToCert(res.qual_id)}
+                                role="button"
+                                tabIndex={0}
                                 style={{ animationDelay: `${idx * 40}ms` }}
-                                className="bg-slate-900/40 border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 transition-all cursor-pointer group rounded-2xl overflow-hidden shadow-sm hover:shadow-blue-500/10 animate-in fade-in slide-in-from-bottom-3 duration-500"
+                                className="bg-slate-900/40 border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 transition-colors cursor-pointer group rounded-2xl overflow-hidden shadow-sm hover:shadow-blue-500/10 animate-in fade-in slide-in-from-bottom-3 duration-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none"
                             >
                                 <div className="h-2 bg-blue-600/20 group-hover:bg-blue-600 transition-colors" />
                                 <CardHeader className="pb-2">
@@ -534,7 +549,10 @@ export function AiRecommendationPage() {
                                                     ✦ AI 생성
                                                 </Badge>
                                             )}
-                                            <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                                            <Badge
+                                                className="bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                                title="전공 연관성과 커리어 목표 일치도를 결합한 하이브리드 점수"
+                                            >
                                                 AI 적합도 {Math.min(100, Math.round((res.hybrid_score ?? 0) * 100))}%
                                             </Badge>
                                         </div>
@@ -565,9 +583,23 @@ export function AiRecommendationPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div
-                                        className="flex items-start gap-2 bg-slate-950/50 p-3 rounded-xl border border-slate-800 cursor-pointer hover:border-blue-500/40 hover:bg-slate-950/80 transition-all"
+                                        className="flex items-start gap-2 bg-slate-950/50 p-3 rounded-xl border border-slate-800 cursor-pointer hover:border-blue-500/40 hover:bg-slate-950/80 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none rounded-xl"
                                         onClick={(e) => toggleReason(e, res.qual_id)}
-                                        title="클릭하면 설명을 펼칩니다"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                setExpandedReasons(prev => {
+                                                    const next = new Set(prev);
+                                                    next.has(res.qual_id) ? next.delete(res.qual_id) : next.add(res.qual_id);
+                                                    return next;
+                                                });
+                                            }
+                                        }}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-expanded={expandedReasons.has(res.qual_id)}
+                                        aria-label={expandedReasons.has(res.qual_id) ? '추천 이유 접기' : '추천 이유 더보기'}
                                     >
                                         <Info className="w-4 h-4 text-blue-400/60 mt-0.5 flex-shrink-0" />
                                         <div className="flex-1 min-w-0">
@@ -784,13 +816,19 @@ export function AiRecommendationPage() {
                                                 <div
                                                     key={res.qual_id}
                                                     onClick={() => navigate(`/certs/${res.qual_id}`)}
-                                                    className="group bg-slate-900/40 border border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 rounded-2xl p-5 cursor-pointer transition-all space-y-3"
+                                                    onKeyDown={(e) => e.key === 'Enter' && navigate(`/certs/${res.qual_id}`)}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    className="group bg-slate-900/40 border border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 rounded-2xl p-5 cursor-pointer transition-colors space-y-3 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none"
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">
                                                             {idx + 1}
                                                         </div>
-                                                        <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]">
+                                                        <Badge
+                                                            className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]"
+                                                            title="전공 연관성과 커리어 목표 일치도를 결합한 하이브리드 점수"
+                                                        >
                                                             AI 적합도 {Math.min(100, Math.round((res.hybrid_score ?? 0) * 100))}%
                                                         </Badge>
                                                     </div>

@@ -5,9 +5,7 @@ import {
   TrendingUp,
   ArrowRight,
   CheckCircle2,
-  Briefcase,
   ChevronRight,
-  Target,
   Sparkles,
   AlertCircle
 } from 'lucide-react';
@@ -88,7 +86,7 @@ export function HomePage() {
   };
 
   return (
-    <div className="flex flex-col gap-20 pb-20 overflow-hidden">
+    <div className="flex flex-col gap-20 pb-40 overflow-hidden">
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex items-center pt-20">
         {/* Background Decorative Elements */}
@@ -189,9 +187,11 @@ export function HomePage() {
                     <p className="text-[11px] font-bold text-blue-400 tracking-[0.05em]">실시간 데이터</p>
                     <h3 className="text-xl font-bold text-white">서비스 커버리지</h3>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-500 font-bold">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    운영 중
+                  <div className="text-right">
+                    <p className="text-[11px] font-bold text-blue-400 tabular-nums leading-none">
+                      {certCatalogTotal.toLocaleString('ko-KR')}개
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-medium leading-none mt-0.5">자격증 분석 중</p>
                   </div>
                 </div>
 
@@ -200,7 +200,7 @@ export function HomePage() {
                     { label: '국가 자격증', value: certCatalogTotal.toLocaleString('ko-KR'), unit: '개' },
                     { label: '직무 카테고리', value: '450', unit: '개+' },
                     { label: '합격률 데이터', value: '연도별 회차', unit: '' },
-                    { label: 'AI 추천 모델', value: '하이브리드 RAG', unit: '' },
+                    { label: 'AI 추천 모델', value: '복합 AI 검색', unit: '' },
                   ] as const).map((item, i) => (
                     <div key={i} className="flex items-center justify-between py-3.5 border-b border-slate-800/60 last:border-0">
                       <span className="text-sm text-slate-500">{item.label}</span>
@@ -229,63 +229,76 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Features Grid */}
+      {/* Features Section — numbered spec-sheet layout */}
       <section className="container mx-auto px-6">
-        <div className="text-center space-y-4 mb-16">
-          <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">핵심 기능</Badge>
-          <h2 className="text-3xl md:text-4xl font-bold text-white">핵심 서비스 안내</h2>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
+          <div className="space-y-3">
+            <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">핵심 기능</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">데이터 기반 경로 설계 3단계</h2>
+          </div>
+          <p className="text-sm text-slate-600 font-medium max-w-xs leading-relaxed">국가자격 데이터와 AI 분석 엔진이 결합된 세 가지 핵심 서비스입니다.</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {[
+        <div className="divide-y divide-slate-800/50">
+          {([
             {
-              title: "맞춤형 추천 시스템",
-              desc: "전공–자격증 DB 매핑과 시험 통계를 바탕으로 전공별 자격증 목록을 제공합니다.",
-              icon: Target,
-              color: "text-blue-400",
-              bg: "bg-blue-400/5",
-              border: "group-hover:border-blue-500/50",
-              link: "/recommendation"
+              num: '01',
+              title: '전공별 자격증 추천',
+              tag: 'DB 매핑',
+              desc: '학과–자격증 데이터베이스 매핑과 합격률 통계를 바탕으로 전공별 최적 자격증 목록을 제공합니다.',
+              link: '/recommendations',
+              stat: '전공 DB',
+              statVal: '연동됨',
             },
             {
-              title: "진로 및 직무 매칭",
-              desc: "자격증 취득 후 가질 수 있는 직업의 전망과 연봉 정보를 상세히 제공합니다.",
-              icon: Briefcase,
-              color: "text-slate-300",
-              bg: "bg-slate-300/5",
-              border: "group-hover:border-blue-500/30",
-              link: "/jobs"
+              num: '02',
+              title: 'AI 커리어 로드맵',
+              tag: '하이브리드 AI',
+              desc: '커리어 목표와 현재 역량을 입력하면 복합 AI 검색 엔진이 최적 취득 순서와 이유를 제시합니다.',
+              link: '/ai-recommendations',
+              stat: 'AI 엔진',
+              statVal: 'RAG 기반',
             },
             {
-              title: "자격증 탐색 및 상세 정보",
-              desc: "전체 국가기술자격증 목록을 검색하고, 각 자격증의 상세 통계와 취득 정보를 탐색하세요.",
-              icon: Search,
-              color: "text-slate-300",
-              bg: "bg-slate-300/5",
-              border: "group-hover:border-blue-500/30",
-              link: "/certs"
-            }
-          ].map((feature, i) => (
-            <Card
-              key={i}
-              onClick={() => router.navigate(feature.link)}
-              className={`group bg-slate-900/40 border-slate-800 hover:bg-slate-900/80 transition-all cursor-pointer overflow-hidden ${feature.border}`}
+              num: '03',
+              title: '직무·진로 매칭',
+              tag: '연봉·전망',
+              desc: '자격증 취득 후 진입 가능한 직업의 채용 수요와 연봉 분포 데이터를 직무 단위로 분석합니다.',
+              link: '/jobs',
+              stat: '직무 분류',
+              statVal: '450개+',
+            },
+          ] as const).map((f) => (
+            <button
+              key={f.num}
+              type="button"
+              onClick={() => router.navigate(f.link)}
+              className="w-full flex items-start gap-6 sm:gap-10 py-8 group text-left hover:bg-slate-900/30 transition-colors duration-200 px-5 -mx-5 rounded-2xl focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
             >
-              <CardContent className="p-8 space-y-6">
-                <div className={`w-14 h-14 rounded-2xl ${feature.bg} flex items-center justify-center transition-transform group-hover:scale-110 duration-500`}>
-                  <feature.icon className={`w-7 h-7 ${feature.color}`} />
+              <span className="text-[10px] font-mono text-slate-700 font-bold tracking-[0.12em] pt-1.5 w-6 shrink-0 tabular-nums select-none">
+                {f.num}
+              </span>
+              <div className="flex-1 grid sm:grid-cols-[1fr_auto] items-center gap-4 min-w-0">
+                <div className="space-y-2 min-w-0">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors duration-200 leading-tight">
+                      {f.title}
+                    </h3>
+                    <span className="text-[10px] font-bold text-slate-600 border border-slate-800 group-hover:border-slate-700 px-2 py-0.5 rounded-full tracking-wide transition-colors duration-200">
+                      {f.tag}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-500 max-w-xl leading-relaxed">{f.desc}</p>
                 </div>
-                <div className="space-y-3">
-                  <h3 className="text-xl font-bold text-white group-hover:text-white flex items-center gap-2">
-                    {feature.title}
-                    <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                  </h3>
-                  <p className="text-slate-400 leading-relaxed">
-                    {feature.desc}
-                  </p>
+                <div className="flex items-center gap-5 shrink-0">
+                  <div className="hidden sm:block text-right">
+                    <p className="text-[9px] font-bold text-slate-700 uppercase tracking-[0.1em] mb-0.5">{f.stat}</p>
+                    <p className="text-sm font-black text-slate-400 tabular-nums">{f.statVal}</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-slate-700 group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-200 shrink-0" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </button>
           ))}
         </div>
       </section>
@@ -321,8 +334,11 @@ export function HomePage() {
                   key={cert.qual_id}
                   aria-label={cert.qual_name}
                   onClick={() => router.navigate(`/certs/${cert.qual_id}`)}
+                  onKeyDown={(e) => e.key === 'Enter' && router.navigate(`/certs/${cert.qual_id}`)}
+                  role="button"
+                  tabIndex={0}
                   style={{ animationDelay: `${index * 60}ms` }}
-                  className="group relative p-6 bg-slate-900 border border-slate-800 rounded-2xl hover:border-blue-500/50 hover:bg-slate-900/80 transition-all cursor-pointer overflow-hidden shadow-lg card-hover-effect animate-in fade-in slide-in-from-bottom-3 duration-500"
+                  className="group relative p-6 bg-slate-900 border border-slate-800 rounded-2xl hover:border-blue-500/50 hover:bg-slate-900/80 transition-colors cursor-pointer overflow-hidden shadow-lg card-hover-effect animate-in fade-in slide-in-from-bottom-3 duration-500 focus-visible:ring-[3px] focus-visible:ring-blue-500/50 focus-visible:outline-none"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-600/5 to-transparent rounded-bl-full group-hover:from-blue-600/10 transition-colors" />
 
@@ -351,7 +367,7 @@ export function HomePage() {
 
                     <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
                       <span className="flex items-center gap-1">
-                        <Award className="w-3 h-3" /> {cert.main_field || "정보 없음"}
+                        <Award className="w-3 h-3" aria-hidden /> {cert.main_field || "정보 없음"}
                       </span>
                     </div>
                   </div>

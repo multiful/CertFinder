@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode, MouseEvent } from 'react';
 
-export type Route = 'home' | 'certs' | 'cert-detail' | 'recommendations' | 'ai-recommendations' | 'jobs' | 'job-detail' | 'mypage' | 'privacy' | 'terms' | 'contact' | 'about';
+export type Route = 'home' | 'certs' | 'cert-compare' | 'cert-detail' | 'recommendations' | 'ai-recommendations' | 'jobs' | 'job-detail' | 'mypage' | 'privacy' | 'terms' | 'contact' | 'about';
 
 export interface RouteState {
     route: Route;
@@ -18,6 +18,9 @@ export const getRouteFromPath = (path: string, search: string): RouteState => {
         route = 'privacy';
     } else if (path === '/terms') {
         route = 'terms';
+    } else if (path === '/certs/compare') {
+        route = 'cert-compare';
+        new URLSearchParams(search).forEach((val, key) => { params[key] = val; });
     } else if (path.startsWith('/certs/')) {
         route = 'cert-detail';
         params.qualId = path.split('/')[2];
@@ -51,7 +54,10 @@ export const RouterContext = {
     listeners: new Set<(state: RouteState) => void>(),
 
     navigate(path: string) {
-        const newState = getRouteFromPath(path, path.includes('?') ? path.split('?')[1] : '');
+        const qIdx = path.indexOf('?');
+        const pathname = qIdx >= 0 ? path.slice(0, qIdx) : path;
+        const search = qIdx >= 0 ? path.slice(qIdx + 1) : '';
+        const newState = getRouteFromPath(pathname, search);
 
         this.currentRoute = newState;
         this.listeners.forEach(listener => listener(this.currentRoute));

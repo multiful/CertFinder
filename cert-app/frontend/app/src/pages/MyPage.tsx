@@ -361,7 +361,7 @@ export function MyPage() {
 
                 {/* 1. Header & Profile Summary */}
                 <div className="relative group p-8 rounded-[3rem] bg-gradient-to-br from-slate-900/60 to-slate-800/20 border border-slate-700/30 backdrop-blur-3xl overflow-x-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] -mr-64 -mt-64 transition-all group-hover:bg-blue-500/15 duration-1000" />
+                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] -mr-64 -mt-64 transition-colors group-hover:bg-blue-500/15 duration-700" />
                     <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] -ml-48 -mb-48" />
 
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-10 relative z-10">
