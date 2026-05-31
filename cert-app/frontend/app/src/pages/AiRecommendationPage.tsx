@@ -9,7 +9,6 @@ import {
     ChevronRight,
     ChevronDown,
     Info,
-    Lock,
     LogIn,
     RefreshCw,
 } from 'lucide-react';

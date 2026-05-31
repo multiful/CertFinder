@@ -22,7 +22,7 @@ import type { QualificationDetail } from '@/types';
 
 export function CertComparePage() {
   const { navigate } = useRouter();
-  const { items, removeFromCompare, addToCompare, isInCompare } = useCompare();
+  const { removeFromCompare } = useCompare();
 
   const ids = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -64,7 +64,7 @@ export function CertComparePage() {
     const best = direction === 'max' ? Math.max(...numVals) : Math.min(...numVals);
     return new Set(
       validCerts
-        .filter((c, i) => values[i] === best)
+        .filter((_c, i) => values[i] === best)
         .map(c => c.qual_id)
     );
   };
@@ -85,11 +85,6 @@ export function CertComparePage() {
   const bestPassRate = useMemo(() => getBest('latest_pass_rate', 'max'), [validCerts]);
   const bestDifficulty = useMemo(() => getBest('avg_difficulty', 'min'), [validCerts]);
   const bestAvgPassRate = useMemo(() => getBestAvg(), [validCerts]);
-
-  const cellClass = (isBest: boolean) =>
-    isBest
-      ? 'bg-blue-500/10 rounded-lg px-3 py-1.5 inline-block text-blue-300 font-bold'
-      : '';
 
   const passRateColor = (rate: number | null) => {
     if (rate == null) return 'text-slate-500';
