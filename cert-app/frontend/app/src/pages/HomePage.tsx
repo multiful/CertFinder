@@ -104,7 +104,7 @@ export function HomePage() {
               <span>국가자격 데이터, 하이브리드 AI 추천</span>
             </div>
 
-            <h1 className="text-5xl lg:text-7xl font-extrabold text-white leading-[1.1] [letter-spacing:-0.03em]">
+            <h1 className="font-extrabold text-white leading-[1.1] [letter-spacing:-0.03em] [font-size:clamp(3rem,7vw,4.5rem)]">
               데이터로 설계하는<br />
               <span className="text-blue-400">
                 당신의 커리어 경로
@@ -302,7 +302,7 @@ export function HomePage() {
           ) : trendingCerts.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" role="list">
               {trendingCerts.map((cert, index) => (
-                <article
+                <div
                   key={cert.qual_id}
                   aria-label={cert.qual_name}
                   onClick={() => router.navigate(`/certs/${cert.qual_id}`)}
@@ -310,7 +310,7 @@ export function HomePage() {
                   role="button"
                   tabIndex={0}
                   style={{ animationDelay: `${index * 60}ms` }}
-                  className="group relative p-6 bg-slate-900 border border-slate-800 rounded-2xl hover:border-blue-500/50 hover:bg-slate-900/80 transition-colors cursor-pointer overflow-hidden shadow-lg card-hover-effect animate-in fade-in slide-in-from-bottom-3 duration-500 focus-visible:ring-[3px] focus-visible:ring-blue-500/50 focus-visible:outline-none"
+                  className="group relative p-6 bg-slate-900 border border-slate-800 rounded-2xl hover:border-blue-500/50 hover:bg-slate-900/80 transition-colors cursor-pointer overflow-hidden card-hover-effect animate-in fade-in slide-in-from-bottom-3 duration-500 focus-visible:ring-[3px] focus-visible:ring-blue-500/50 focus-visible:outline-none"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-600/5 to-transparent rounded-bl-full group-hover:from-blue-600/10 transition-colors" />
 
@@ -343,7 +343,7 @@ export function HomePage() {
                       </span>
                     </div>
                   </div>
-                </article>
+                </div>
               ))}
             </div>
           ) : trendingError ? (

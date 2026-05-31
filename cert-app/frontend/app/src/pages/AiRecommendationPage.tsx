@@ -271,7 +271,7 @@ export function AiRecommendationPage() {
                 {results && !loading && `${results.major} 전공 AI 추천 완료. ${results.results.length}개의 자격증을 찾았습니다.`}
             </div>
             {/* Hero Section */}
-            <div className="relative rounded-3xl bg-slate-900 border border-slate-800 p-8 md:p-12 shadow-2xl">
+            <div className="relative rounded-3xl bg-slate-900 border border-slate-800 p-8 md:p-12">
                 <div
                   className="absolute inset-0 rounded-3xl pointer-events-none"
                   style={{ background: 'radial-gradient(ellipse 60% 60% at 100% 0%, oklch(0.5 0.09 248 / 0.07) 0%, transparent 60%), radial-gradient(ellipse 55% 55% at 0% 100%, oklch(0.5 0.07 275 / 0.06) 0%, transparent 60%)' }}
@@ -542,24 +542,24 @@ export function AiRecommendationPage() {
                                 <div className="h-2 bg-blue-600/20 group-hover:bg-blue-600 transition-colors" />
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
-                                        <div className="w-10 h-10 rounded-lg bg-slate-950 flex items-center justify-center text-blue-400 font-bold border border-slate-800">
-                                            {idx + 1}
-                                        </div>
-                                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-10 h-10 rounded-lg bg-slate-950 flex items-center justify-center text-blue-400 font-bold border border-slate-800">
+                                                {idx + 1}
+                                            </div>
                                             {res.llm_reason && (
                                                 <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-[9px] px-1.5 py-0">
                                                     ✦ AI 생성
                                                 </Badge>
                                             )}
-                                            <Badge
-                                                className="bg-blue-500/10 text-blue-400 border-blue-500/20"
-                                                title="전공 연관성과 커리어 목표 일치도를 결합한 하이브리드 점수"
-                                            >
-                                                AI 적합도 {Math.min(100, Math.round((res.hybrid_score ?? 0) * 100))}%
-                                            </Badge>
+                                        </div>
+                                        <div className="text-right shrink-0" title="전공 연관성과 커리어 목표 일치도를 결합한 하이브리드 점수">
+                                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.1em] leading-none mb-1">AI 점수</p>
+                                            <p className="text-2xl font-black tabular-nums text-white leading-none">
+                                                {Math.min(100, Math.round((res.hybrid_score ?? 0) * 100))}<span className="text-sm text-slate-500 font-bold ml-0.5">%</span>
+                                            </p>
                                         </div>
                                     </div>
-                                    <CardTitle className="text-xl font-bold text-white mt-4 group-hover:text-blue-400 transition-colors line-clamp-2">
+                                    <CardTitle className="text-xl font-bold text-white mt-3 group-hover:text-blue-400 transition-colors line-clamp-2">
                                         {res.qual_name}
                                     </CardTitle>
                                     {res.pass_rate != null && (
@@ -567,11 +567,11 @@ export function AiRecommendationPage() {
                                             <span className="text-[11px] text-slate-500">최근합격률</span>
                                             <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden max-w-[80px]">
                                                 <div
-                                                    className={`h-full rounded-full transition-[width] duration-700 ease-out ${
+                                                    className={`h-full w-full rounded-full transition-transform duration-700 ease-out origin-left ${
                                                         res.pass_rate > 70 ? 'bg-emerald-500' :
                                                         res.pass_rate >= 30 ? 'bg-amber-500' : 'bg-rose-500'
                                                     }`}
-                                                    style={{ width: barsVisible ? `${Math.min(res.pass_rate, 100)}%` : '0%' }}
+                                                    style={{ transform: `scaleX(${barsVisible ? Math.min(res.pass_rate, 100) / 100 : 0})` }}
                                                 />
                                             </div>
                                             <span className={`text-[11px] font-bold ${
@@ -624,36 +624,36 @@ export function AiRecommendationPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between text-xs font-bold text-slate-500 pt-2">
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 pt-2">
                                         <span className="flex items-center gap-1">
-                                            <Tag className="w-3 h-3 text-blue-500" />
+                                            <Tag className="w-3 h-3 text-slate-600" />
                                             전공 연관성
                                         </span>
-                                        <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                        <div className="w-24 h-1 bg-slate-800 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-blue-500 transition-[width] duration-700 ease-out"
+                                                className="h-full w-full bg-blue-500 transition-transform duration-700 ease-out origin-left"
                                                 style={{
-                                                    width: barsVisible ? `${Math.min(100, (() => {
+                                                    transform: `scaleX(${barsVisible ? (() => {
                                                         const norm = res.major_score_normalized ?? Math.min(1, Math.max(0, res.major_score / 10));
-                                                        return 20 + 80 * Math.min(1, Math.max(0, norm));
-                                                    })())}%` : '0%',
+                                                        return (20 + 80 * Math.min(1, Math.max(0, norm))) / 100;
+                                                    })() : 0})`,
                                                 }}
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
                                         <span className="flex items-center gap-1">
-                                            <BrainCircuit className="w-3 h-3 text-emerald-500" />
+                                            <BrainCircuit className="w-3 h-3 text-slate-600" />
                                             관심도 일치
                                         </span>
-                                        <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                        <div className="w-24 h-1 bg-slate-800 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-emerald-500 transition-[width] duration-700 ease-out"
+                                                className="h-full w-full bg-emerald-500 transition-transform duration-700 ease-out origin-left"
                                                 style={{
-                                                    width: barsVisible ? `${Math.min(100, (() => {
+                                                    transform: `scaleX(${barsVisible ? (() => {
                                                         const norm = res.semantic_score_normalized ?? Math.min(1, Math.max(0, res.semantic_similarity ?? 0));
-                                                        return 20 + 80 * Math.min(1, Math.max(0, norm));
-                                                    })())}%` : '0%',
+                                                        return (20 + 80 * Math.min(1, Math.max(0, norm))) / 100;
+                                                    })() : 0})`,
                                                 }}
                                             />
                                         </div>
@@ -669,53 +669,24 @@ export function AiRecommendationPage() {
                         ))}
                     </div>
 
-                    {/* 비로그인 잠금 UI */}
+                    {/* 비로그인 — 인라인 회원가입 CTA */}
                     {results.guest_limited && (
-                        <div className="relative">
-                            {/* 블러 처리된 더미 카드들 */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pointer-events-none select-none blur-sm opacity-40">
-                                {[4, 5, 6, 7].map(i => (
-                                    <Card key={i} className="bg-slate-900/40 border-slate-800 rounded-2xl overflow-hidden">
-                                        <div className="h-2 bg-blue-600/30" />
-                                        <CardHeader className="pb-2">
-                                            <div className="flex justify-between items-start">
-                                                <div className="w-10 h-10 rounded-lg bg-slate-950 flex items-center justify-center text-blue-400 font-bold border border-slate-800">{i}</div>
-                                                <div className="h-6 w-20 bg-slate-800 rounded-full" />
-                                            </div>
-                                            <div className="h-6 w-3/4 bg-slate-800 rounded-lg mt-4" />
-                                        </CardHeader>
-                                        <CardContent className="space-y-3">
-                                            <div className="h-16 bg-slate-950/50 rounded-xl" />
-                                            <div className="h-4 w-full bg-slate-800 rounded" />
-                                            <div className="h-4 w-4/5 bg-slate-800 rounded" />
-                                        </CardContent>
-                                    </Card>
-                                ))}
+                        <div className="border border-dashed border-blue-500/20 rounded-2xl px-6 py-8 flex flex-col sm:flex-row items-center gap-6 bg-blue-500/5">
+                            <div className="flex-1 space-y-1 text-center sm:text-left">
+                                <p className="text-base font-bold text-white">상위 3개 결과를 확인했습니다.</p>
+                                <p className="text-sm text-slate-400 leading-relaxed">
+                                    로그인하면 맞춤형 추천 결과{' '}
+                                    <span className="text-white font-semibold">최대 {HYBRID_RECOMMEND_LIMIT}개</span>와
+                                    취득 이력 기반 난이도 조정을 이용할 수 있습니다.
+                                </p>
                             </div>
-
-                            {/* 잠금 오버레이 */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="bg-slate-950/90 backdrop-blur-md border border-slate-700 rounded-3xl p-8 text-center space-y-5 shadow-2xl max-w-sm mx-auto">
-                                    <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto">
-                                        <Lock className="w-7 h-7 text-blue-400" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h3 className="text-lg font-bold text-white">더 많은 자격증을 확인하려면</h3>
-                                        <p className="text-slate-400 text-sm leading-relaxed">
-                                            로그인하면 맞춤형 추천 결과를 <br />
-                                            <span className="text-blue-400 font-semibold">최대 {HYBRID_RECOMMEND_LIMIT}개</span>까지 확인할 수 있습니다.<br />
-                                            학년, 취득 자격증 기반 난이도 조정도 지원됩니다.
-                                        </p>
-                                    </div>
-                                    <Button
-                                        onClick={() => navigate('/auth/login')}
-                                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl"
-                                    >
-                                        <LogIn className="w-4 h-4 mr-2" />
-                                        로그인하고 전체 결과 보기
-                                    </Button>
-                                </div>
-                            </div>
+                            <Button
+                                onClick={() => navigate('/auth/login')}
+                                className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl px-6 h-11"
+                            >
+                                <LogIn className="w-4 h-4 mr-2" />
+                                무료 회원가입
+                            </Button>
                         </div>
                     )}
                 </div>

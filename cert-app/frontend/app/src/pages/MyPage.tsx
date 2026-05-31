@@ -100,27 +100,22 @@ function computeLocalSummary(certs: AcquiredCertItem[]): AcquiredCertSummary | n
     };
 }
 
-function XpProgressBar({ summary }: { summary: AcquiredCertSummary }) {
-    const meta = getTierMeta(summary.tier);
-    const curXp = summary.total_xp - summary.current_level_xp;
-    const rangeXp = summary.next_level_xp != null
-        ? summary.next_level_xp - summary.current_level_xp
-        : 1;
-    const pct = summary.next_level_xp == null ? 100 : Math.min(100, Math.round((curXp / rangeXp) * 100));
+function CertProgressBar({ summary }: { summary: AcquiredCertSummary }) {
+    const milestones = [3, 6, 10, 15, 20];
+    const next = milestones.find(m => m > summary.cert_count) ?? 20;
+    const pct = Math.min(100, Math.round((summary.cert_count / next) * 100));
     return (
         <div className="w-full space-y-1">
             <div className="flex justify-between items-center">
-                <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: meta.color }}>
-                    {summary.tier} Lv.{summary.level}
+                <span className="text-[10px] font-bold text-slate-400">
+                    취득 <span className="text-white">{summary.cert_count}종</span>
                 </span>
-                <span className="text-[9px] text-slate-500 font-bold">
-                    {summary.next_level_xp == null ? 'MAX' : `${Math.round(summary.total_xp)} / ${summary.next_level_xp} XP`}
-                </span>
+                <span className="text-[9px] text-slate-600 font-bold">다음 목표 {next}종</span>
             </div>
             <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
                 <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${pct}%`, background: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
+                    className="h-full rounded-full bg-blue-500 transition-all duration-700"
+                    style={{ width: `${pct}%` }}
                 />
             </div>
         </div>
@@ -360,7 +355,7 @@ export function MyPage() {
             <div className="max-w-6xl mx-auto space-y-12">
 
                 {/* 1. Header & Profile Summary */}
-                <div className="relative group p-8 rounded-[3rem] bg-gradient-to-br from-slate-900/60 to-slate-800/20 border border-slate-700/30 backdrop-blur-3xl overflow-x-hidden shadow-2xl">
+                <div className="relative group p-8 rounded-[3rem] bg-slate-900 border border-slate-800 overflow-x-hidden">
                     <div
                       className="absolute inset-0 rounded-[3rem] pointer-events-none transition-opacity duration-700 opacity-100 group-hover:opacity-[1.3]"
                       style={{ background: 'radial-gradient(ellipse 60% 55% at 100% 0%, oklch(0.5 0.09 248 / 0.08) 0%, transparent 60%), radial-gradient(ellipse 50% 50% at 0% 100%, oklch(0.5 0.06 248 / 0.05) 0%, transparent 60%)' }}
@@ -369,7 +364,7 @@ export function MyPage() {
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-10 relative z-10">
                         {/* Avatar Section */}
                         <div className="relative">
-                            <div className="w-36 h-36 rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 shadow-2xl shadow-blue-500/30 group-hover:scale-105 group-hover:rotate-3 transition-all duration-700">
+                            <div className="w-36 h-36 rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 group-hover:scale-105 group-hover:rotate-3 transition-transform duration-700">
                                 <div className="w-full h-full rounded-[2.2rem] bg-slate-950 flex items-center justify-center border border-white/10 overflow-hidden">
                                     <User className="w-20 h-20 text-white opacity-90" />
                                 </div>
@@ -544,11 +539,7 @@ export function MyPage() {
                                     if (!open) setCertSearchQuery('');
                                 }}>
                                     <div
-                                        className="p-5 rounded-3xl backdrop-blur-md flex flex-col gap-2 group/item transition-all duration-500 cursor-pointer"
-                                        style={{
-                                            background: effectiveSummary ? getTierMeta(effectiveSummary.tier).bg : 'rgba(255,255,255,0.02)',
-                                            border: `1px solid ${effectiveSummary ? getTierMeta(effectiveSummary.tier).border : 'rgba(255,255,255,0.05)'}`,
-                                        }}
+                                        className="p-5 rounded-3xl bg-slate-900/40 border border-slate-800 flex flex-col gap-2 group/item transition-all duration-500 cursor-pointer hover:border-blue-500/30"
                                         onClick={() => setIsAcquiredDialogOpen(true)}
                                     >
                                         <div className="flex items-center justify-between">
@@ -556,10 +547,10 @@ export function MyPage() {
                                             <span className="text-xs text-slate-500 font-bold">{acquiredCerts.length}개</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-2xl">{effectiveSummary ? getTierMeta(effectiveSummary.tier).gem : '🥉'}</span>
+                                            <Award className="w-6 h-6 text-blue-400 shrink-0" />
                                             <div className="flex-1 min-w-0">
                                                 {effectiveSummary ? (
-                                                    <XpProgressBar summary={effectiveSummary} />
+                                                    <CertProgressBar summary={effectiveSummary} />
                                                 ) : (
                                                     <p className="text-sm font-bold text-slate-400">자격증을 추가하세요</p>
                                                 )}
@@ -572,8 +563,8 @@ export function MyPage() {
                                             <DialogDescription className="text-sm text-slate-400">
                                                 DB 자격증 목록에서 검색해 취득한 자격증을 추가하세요.
                                                 {effectiveSummary && (
-                                                    <span className="ml-2 font-bold" style={{ color: getTierMeta(effectiveSummary.tier).color }}>
-                                                        {getTierMeta(effectiveSummary.tier).gem} {effectiveSummary.tier} Lv.{effectiveSummary.level} / {Math.round(effectiveSummary.total_xp)} XP
+                                                    <span className="ml-2 font-bold text-blue-400">
+                                                        취득 자격증 {effectiveSummary.cert_count}종
                                                     </span>
                                                 )}
                                             </DialogDescription>
@@ -784,7 +775,7 @@ export function MyPage() {
                     {/* Right: Recommendations */}
                     <aside className="space-y-8">
                         <div className="p-1.5 rounded-[3.5rem] bg-gradient-to-b from-amber-500/20 to-transparent">
-                            <div className="bg-slate-950/80 backdrop-blur-3xl rounded-[3.2rem] p-8 space-y-8 border border-white/5 shadow-2xl">
+                            <div className="bg-slate-900 rounded-[3.2rem] p-8 space-y-8 border border-slate-800">
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-500 border border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]">

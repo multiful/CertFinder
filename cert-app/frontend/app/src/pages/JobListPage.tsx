@@ -180,11 +180,11 @@ export function JobListPage() {
                                         setInputValue(e.target.value);
                                         setShowSuggestions(true);
                                     }}
-                                    className="pl-12 bg-black/60 border-slate-800 text-white h-14 rounded-2xl focus:ring-blue-500 text-lg"
+                                    className="pl-12 bg-slate-900 border-slate-800 text-white h-14 rounded-2xl focus:ring-blue-500 text-lg"
                                 />
                             </div>
                         </div>
-                        <Button type="submit" className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-900/30 transition-transform active:scale-95">
+                        <Button type="submit" className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-lg transition-transform active:scale-95">
                             검색
                         </Button>
 

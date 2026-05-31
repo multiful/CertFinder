@@ -206,9 +206,11 @@ const handleTabChange = (tab: string) => {
       : passRate < 65 ? `최근 합격률은 ${passRate}%로 적정 수준입니다.`
       : `최근 합격률이 ${passRate}%로 비교적 접근하기 수월한 자격증입니다.`;
 
+    const lastCode = cert.qual_name.charCodeAt(cert.qual_name.length - 1);
+    const eunNeun = (lastCode >= 0xAC00 && lastCode <= 0xD7A3 && (lastCode - 0xAC00) % 28 > 0) ? '은' : '는';
     const parts: string[] = [];
     parts.push(
-      `${cert.qual_name}은(는) ${cert.managing_body || cert.ncs_large} 관할 하에 시행되는 ${grade ? grade + ' ' : ''}${cert.qual_type}으로, ${cert.ncs_large} 직군의 ${cert.main_field} 분야 전문성을 국가 차원에서 공인합니다.`
+      `${cert.qual_name}${eunNeun} ${cert.managing_body || cert.ncs_large} 관할 하에 시행되는 ${grade ? grade + ' ' : ''}${cert.qual_type}으로, ${cert.ncs_large} 직군의 ${cert.main_field} 분야 전문성을 국가 차원에서 공인합니다.`
     );
     if (examStr) {
       parts.push(`시험은 ${examStr}으로 구성되며, 이론 지식과 실무 역량을 종합 평가합니다.`);

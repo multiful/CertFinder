@@ -17,8 +17,8 @@ const navItems: NavItem[] = [
   { path: '/', label: '홈', icon: <Home className="w-4 h-4" /> },
   { path: '/certs', label: '자격증', icon: <Search className="w-4 h-4" /> },
   { path: '/jobs', label: '직무', icon: <Award className="w-4 h-4" /> },
-  { path: '/recommendations', label: '전공 추천', icon: <ThumbsUp className="w-4 h-4" />, description: '학과별 자격증 DB 매핑' },
-  { path: '/ai-recommendations', label: 'AI 추천', icon: <BrainCircuit className="w-4 h-4" />, description: '커리어 목표 기반 로드맵' },
+  { path: '/recommendations', label: 'DB 추천', icon: <ThumbsUp className="w-4 h-4" />, description: '학과별 자격증 DB 매핑' },
+  { path: '/ai-recommendations', label: 'AI 커리어', icon: <BrainCircuit className="w-4 h-4" />, description: '커리어 목표 기반 로드맵' },
 ];
 
 import { CertLogo } from '../common/CertLogo';
