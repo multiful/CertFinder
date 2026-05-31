@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Search,
-  Award,
   TrendingUp,
   ArrowRight,
   CheckCircle2,
@@ -97,7 +96,7 @@ export function HomePage() {
           }}
         />
 
-        <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium animate-fade-in">
               <Sparkles className="w-4 h-4" />
@@ -175,26 +174,42 @@ export function HomePage() {
           </div>
 
           <div className="relative hidden lg:block">
-            <div className="relative z-10 bg-slate-950 rounded-2xl p-10 border border-slate-800/60 space-y-10">
-              {/* Primary stat */}
-              <div>
-                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.12em] mb-3">실시간 수집 데이터</p>
-                <p className="text-6xl font-black text-white tabular-nums tracking-tight leading-none">
+            <div className="relative z-10 bg-slate-950 rounded-2xl border border-slate-800/60 overflow-hidden">
+              {/* DB 규모 헤더 */}
+              <div className="px-8 pt-8 pb-6 border-b border-slate-800/40">
+                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.12em] mb-2">총 분석 종목</p>
+                <p className="text-5xl font-black text-white tabular-nums tracking-tight leading-none">
                   {certCatalogTotal.toLocaleString('ko-KR')}
                 </p>
-                <p className="text-sm text-slate-500 font-medium mt-2">개 국가기술자격 종목 분석 중</p>
+                <p className="text-sm text-slate-500 font-medium mt-2">개 국가기술자격</p>
               </div>
 
-              {/* Two real data points */}
-              <div className="grid grid-cols-2 gap-px bg-slate-800/40 rounded-xl overflow-hidden">
-                <div className="bg-slate-950 p-5">
-                  <p className="text-2xl font-black text-white tabular-nums leading-none">450+</p>
-                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mt-2">직무 분류</p>
+              {/* 샘플 자격증 행 — 실제 데이터 형태 미리보기 */}
+              {([
+                { name: '정보처리기사', type: '기사', passRate: 26.2, diff: 7.4 },
+                { name: '한국사능력검정 1급', type: '국가공인', passRate: 81.4, diff: 3.1 },
+                { name: '빅데이터분석기사', type: '기사', passRate: 34.7, diff: 6.2 },
+              ] as const).map((cert, i, arr) => (
+                <div key={cert.name} className={`flex items-center gap-4 px-8 py-4 ${i < arr.length - 1 ? 'border-b border-slate-800/40' : ''}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{cert.name}</p>
+                    <p className="text-[11px] text-slate-600 mt-0.5 font-medium">{cert.type}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className={`text-sm font-bold tabular-nums ${cert.passRate > 70 ? 'text-emerald-400' : cert.passRate >= 30 ? 'text-amber-400' : 'text-rose-400'}`}>
+                      합격 {cert.passRate}%
+                    </p>
+                    <p className={`text-[11px] font-medium tabular-nums ${cert.diff >= 7 ? 'text-rose-400' : cert.diff >= 5 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                      난이도 {cert.diff}/10
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-slate-950 p-5">
-                  <p className="text-2xl font-black text-white tabular-nums leading-none">10년+</p>
-                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mt-2">합격률 연속 기록</p>
-                </div>
+              ))}
+
+              {/* 푸터 */}
+              <div className="px-8 py-3 bg-slate-900/30 border-t border-slate-800/40 flex items-center justify-between">
+                <span className="text-[11px] text-slate-600">450+ 직무 · 10년+ 합격률 기록</span>
+                <span className="text-[11px] text-slate-500 font-medium">실제 데이터 예시</span>
               </div>
             </div>
           </div>
@@ -202,13 +217,13 @@ export function HomePage() {
       </section>
 
       {/* Features Section — numbered spec-sheet layout */}
-      <section className="container mx-auto px-6">
+      <section>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
           <div className="space-y-3">
             <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">핵심 기능</Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">데이터 기반 경로 설계 3단계</h2>
           </div>
-          <p className="text-sm text-slate-600 font-medium max-w-xs leading-relaxed">국가자격 데이터와 AI 분석 엔진이 결합된 세 가지 핵심 서비스입니다.</p>
+          <p className="text-sm text-slate-500 font-medium max-w-xs leading-relaxed">국가자격 데이터와 AI 분석 엔진이 결합된 세 가지 핵심 서비스입니다.</p>
         </div>
 
         <div className="divide-y divide-slate-800/50">
@@ -294,60 +309,63 @@ export function HomePage() {
           </div>
 
           {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="divide-y divide-slate-800/40">
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="h-48 rounded-2xl bg-slate-900/50 animate-pulse" />
+                <div key={i} className="flex items-center gap-5 py-5">
+                  <div className="w-9 h-6 bg-slate-900 rounded animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-slate-900 rounded animate-pulse w-3/4" />
+                    <div className="h-3 bg-slate-900 rounded animate-pulse w-1/3" />
+                  </div>
+                  <div className="w-10 h-4 bg-slate-900 rounded animate-pulse shrink-0" />
+                </div>
               ))}
             </div>
           ) : trendingCerts.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" role="list">
+            <div className="divide-y divide-slate-800/40" role="list">
               {trendingCerts.map((cert, index) => (
                 <div
                   key={cert.qual_id}
-                  aria-label={cert.qual_name}
+                  role="listitem"
                   onClick={() => router.navigate(`/certs/${cert.qual_id}`)}
-                  onKeyDown={(e) => e.key === 'Enter' && router.navigate(`/certs/${cert.qual_id}`)}
-                  role="button"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.navigate(`/certs/${cert.qual_id}`);
+                    }
+                  }}
                   tabIndex={0}
-                  style={{ animationDelay: `${index * 60}ms` }}
-                  className="group relative p-6 bg-slate-900 border border-slate-800 rounded-2xl hover:border-blue-500/50 hover:bg-slate-900/80 transition-colors cursor-pointer overflow-hidden card-hover-effect animate-in fade-in slide-in-from-bottom-3 duration-500 focus-visible:ring-[3px] focus-visible:ring-blue-500/50 focus-visible:outline-none"
+                  aria-label={cert.qual_name}
+                  style={{ animationDelay: `${index * 40}ms` }}
+                  className="group flex items-center gap-5 py-5 px-4 -mx-4 rounded-xl cursor-pointer hover:bg-slate-900/60 transition-colors duration-150 animate-in fade-in slide-in-from-bottom-2 duration-400 focus-visible:ring-[3px] focus-visible:ring-blue-500/50 focus-visible:outline-none"
                 >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-600/5 to-transparent rounded-bl-full group-hover:from-blue-600/10 transition-colors" />
-
-                  {/* Rank Badge */}
-                  <div className="absolute -top-1 -left-1 w-8 h-8 bg-blue-600 text-white rounded-br-xl flex items-center justify-center font-bold text-xs z-10">
-                    {index + 1}
-                  </div>
-
-                  <div className="relative space-y-4">
-                    <div className="flex justify-between items-start">
-                      <Badge className="bg-slate-800 text-slate-300 border-none px-2 py-0">{cert.qual_type}</Badge>
-                      <div
-                        className="flex items-center gap-1 text-blue-400 text-sm font-bold bg-blue-400/5 px-2 py-1 rounded-lg border border-blue-400/10"
-                        title="이 화면에 표시된 목록에서 1위 대비 상대 인기도입니다. (실제 상승률, 합격률과는 다릅니다)"
-                      >
-                        <TrendingUp className="w-3 h-3 shrink-0" aria-hidden />
-                        <span className="tabular-nums">
-                          {trendingRelativePctById.get(cert.qual_id) ?? 0}%
-                        </span>
-                      </div>
-                    </div>
-
-                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1">
+                  <span className="text-2xl font-black tabular-nums text-slate-800 group-hover:text-slate-700 w-9 shrink-0 leading-none select-none transition-colors">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors truncate">
                       {cert.qual_name}
                     </h3>
-
-                    <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Award className="w-3 h-3" aria-hidden /> {cert.main_field || "정보 없음"}
-                      </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className="bg-slate-800/80 text-slate-400 border-none text-[10px] px-1.5 py-0 h-4">{cert.qual_type}</Badge>
+                      {cert.main_field && (
+                        <span className="text-[11px] text-slate-600 font-medium truncate">{cert.main_field}</span>
+                      )}
                     </div>
                   </div>
+                  <div
+                    className="flex items-center gap-1.5 shrink-0 text-blue-400 tabular-nums"
+                    title="이 목록 1위 대비 상대 인기도"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" aria-hidden />
+                    <span className="text-sm font-bold">{trendingRelativePctById.get(cert.qual_id) ?? 0}%</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-blue-400 transition-colors shrink-0" />
                 </div>
               ))}
             </div>
           ) : trendingError ? (
-            <Card className="bg-red-500/5 border-red-500/20 py-12 col-span-full">
+            <Card className="bg-red-500/5 border-red-500/20 py-12">
               <CardContent className="flex flex-col items-center justify-center space-y-4">
                 <AlertCircle className="w-12 h-12 text-red-500 opacity-50" />
                 <div className="text-center">
@@ -360,26 +378,24 @@ export function HomePage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="col-span-full py-12 text-center text-slate-500 bg-slate-900/20 rounded-2xl border border-dashed border-slate-800">
-                {hasRequestedTrending
-                  ? '데이터 집계 중입니다... 자격증을 검색하거나 상세 페이지를 조회해보세요!'
-                  : '스크롤하면 최근 주목받는 자격증을 불러옵니다.'}
-              </div>
+            <div className="py-12 text-center text-slate-500 bg-slate-900/20 rounded-2xl border border-dashed border-slate-800">
+              {hasRequestedTrending
+                ? '데이터 집계 중입니다... 자격증을 검색하거나 상세 페이지를 조회해보세요!'
+                : '스크롤하면 최근 주목받는 자격증을 불러옵니다.'}
             </div>
           )}
         </div>
       </section>
 
       {/* Guide Section */}
-      <section className="container mx-auto px-6">
+      <section>
         <div className="space-y-10">
           <div className="space-y-3">
             <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">활용 가이드</Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-white">이렇게 활용하세요</h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-x-0 gap-y-0 max-w-4xl">
+          <div className="grid md:grid-cols-2 gap-x-0 gap-y-0 max-w-4xl mx-auto">
             {([
               {
                 num: '01',
@@ -415,13 +431,16 @@ export function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="container mx-auto px-6">
-        <div className="relative rounded-[2rem] overflow-hidden bg-blue-600 p-12 md:p-20 text-center">
+      <section>
+        <div className="relative rounded-[2rem] overflow-hidden bg-slate-900 border border-slate-800 p-12 md:p-20 text-center">
+          {/* 상단 강조선 */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
           <div className="relative z-10 space-y-8 max-w-3xl mx-auto">
+            <Badge variant="outline" className="border-blue-500/30 text-blue-400 px-4 py-1">지금 시작하기</Badge>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight">
               커리어의 다음 단계를<br />지금 바로 설계해 보세요
             </h2>
-            <p className="text-white/70 text-lg">
+            <p className="text-slate-400 text-lg">
               DB 통계 기반 전공 추천과 AI 맞춤 추천을 함께 쓸 수 있습니다.
               회원가입 없이 대부분의 기능을 무료로 이용할 수 있습니다.
             </p>
@@ -429,7 +448,7 @@ export function HomePage() {
               <Button
                 onClick={() => router.navigate('/ai-recommendations')}
                 size="lg"
-                className="bg-white text-blue-600 hover:bg-blue-50 text-lg font-bold rounded-xl h-14 px-10 shadow-xl"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-xl h-14 px-10 shadow-xl shadow-blue-500/20"
               >
                 AI 자격증 추천 시작
               </Button>
@@ -437,14 +456,14 @@ export function HomePage() {
                 <button
                   type="button"
                   onClick={() => router.navigate('/recommendation')}
-                  className="text-blue-200/70 hover:text-white transition-colors flex items-center gap-1 font-medium"
+                  className="text-slate-500 hover:text-white transition-colors flex items-center gap-1 font-medium"
                 >
                   전공 추천 <ChevronRight className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
                   onClick={() => router.navigate('/jobs')}
-                  className="text-blue-200/70 hover:text-white transition-colors flex items-center gap-1 font-medium"
+                  className="text-slate-500 hover:text-white transition-colors flex items-center gap-1 font-medium"
                 >
                   직업 전망 <ChevronRight className="w-3.5 h-3.5" />
                 </button>

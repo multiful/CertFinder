@@ -124,6 +124,7 @@ export function CertListPage() {
   );
   const [inputValue, setInputValue] = useState(params.q || params.managing_body || '');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedSuggestionIdx, setHighlightedSuggestionIdx] = useState(-1);
   const [favoritesItems, setFavoritesItems] = useState<any[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(true);
 
@@ -401,8 +402,8 @@ export function CertListPage() {
         >
         <form onSubmit={handleSearch} className="grid lg:grid-cols-12 gap-6 items-end">
           <div className={advancedOpen ? 'lg:col-span-5 space-y-3 relative' : 'lg:col-span-9 space-y-3 relative'}>
-            <label className="text-xs font-bold text-slate-500 flex items-center gap-2">
-              <Search className="w-3 h-3" /> 자격증 명칭
+            <label htmlFor="cert-search-input" className="text-xs font-bold text-slate-500 flex items-center gap-2">
+              <Search className="w-3 h-3" aria-hidden /> 자격증 명칭
               <span className="ml-auto font-normal">
                 <kbd className="text-[9px] bg-slate-800 border border-slate-700/60 px-1.5 py-0.5 rounded text-slate-600 font-mono leading-none">⌘K</kbd>
               </span>
@@ -451,11 +452,33 @@ export function CertListPage() {
                 aria-autocomplete={searchType === 'name' ? 'list' : undefined}
                 aria-controls={searchType === 'name' ? 'cert-suggestions' : undefined}
                 aria-haspopup={searchType === 'name' ? 'listbox' : undefined}
+                aria-activedescendant={highlightedSuggestionIdx >= 0 ? `cert-suggestion-${highlightedSuggestionIdx}` : undefined}
                 onFocus={() => setShowSuggestions(searchType === 'name')}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onBlur={() => setTimeout(() => { setShowSuggestions(false); setHighlightedSuggestionIdx(-1); }, 200)}
                 onChange={(e) => {
                   setInputValue(e.target.value);
+                  setHighlightedSuggestionIdx(-1);
                   if (searchType === 'name') setShowSuggestions(true);
+                }}
+                onKeyDown={(e) => {
+                  const suggestionsVisible = showSuggestions && searchType === 'name' && inputValue.length >= 1 && !!data && data.items.length > 0;
+                  if (!suggestionsVisible) return;
+                  const maxIdx = Math.min((data?.items.length ?? 0), 10) - 1;
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setHighlightedSuggestionIdx(prev => Math.min(prev + 1, maxIdx));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlightedSuggestionIdx(prev => Math.max(prev - 1, -1));
+                  } else if (e.key === 'Enter' && highlightedSuggestionIdx >= 0) {
+                    e.preventDefault();
+                    const cert = (data?.items ?? []).slice(0, 10)[highlightedSuggestionIdx];
+                    if (cert) handleSuggestionClick(cert.qual_name);
+                    setHighlightedSuggestionIdx(-1);
+                  } else if (e.key === 'Escape') {
+                    setShowSuggestions(false);
+                    setHighlightedSuggestionIdx(-1);
+                  }
                 }}
                 className={`pl-10 h-11 bg-slate-950/50 border-slate-800 text-white rounded-xl focus:ring-2 ${
                   searchType === 'body' ? 'focus:ring-blue-500 border-slate-700' : 'focus:ring-blue-500'
@@ -474,15 +497,17 @@ export function CertListPage() {
                 <div className="p-2 text-[10px] font-bold text-slate-500 bg-slate-950/20 border-b border-slate-800" aria-hidden>
                   추천 검색어 ({data.items.length})
                 </div>
-                {(data?.items || []).slice(0, 10).map((cert) => (
+                {(data?.items || []).slice(0, 10).map((cert, index) => (
                   <div
                     key={cert.qual_id}
+                    id={`cert-suggestion-${index}`}
                     role="option"
-                    aria-selected="false"
-                    className="px-4 py-2.5 hover:bg-slate-800 cursor-pointer text-slate-200 border-b border-slate-800/50 last:border-0 flex items-center justify-between group/item transition-colors"
+                    aria-selected={highlightedSuggestionIdx === index}
+                    className={`px-4 py-2.5 cursor-pointer text-slate-200 border-b border-slate-800/50 last:border-0 flex items-center justify-between group/item transition-colors ${highlightedSuggestionIdx === index ? 'bg-slate-800' : 'hover:bg-slate-800/60'}`}
                     onMouseDown={() => handleSuggestionClick(cert.qual_name)}
+                    onMouseEnter={() => setHighlightedSuggestionIdx(index)}
                   >
-                    <span className="text-sm font-medium group-hover/item:text-blue-400">{cert.qual_name}</span>
+                    <span className={`text-sm font-medium transition-colors ${highlightedSuggestionIdx === index ? 'text-blue-400' : 'group-hover/item:text-blue-400'}`}>{cert.qual_name}</span>
                     <TrendingUp className="w-3 h-3 text-slate-600 opacity-0 group-hover/item:opacity-100 transition-opacity" aria-hidden />
                   </div>
                 ))}

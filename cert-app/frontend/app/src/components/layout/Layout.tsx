@@ -230,7 +230,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <p className="text-slate-500 text-sm font-medium text-center sm:text-left max-w-md leading-snug">
               {PRODUCT_FOOTER_LINE}
             </p>
-            <div className="flex gap-4 text-xs font-bold text-slate-600">
+            <div className="flex gap-4 text-xs font-bold text-slate-400">
               <Link to="/about" className="hover:text-slate-400 cursor-pointer transition-colors">서비스 소개</Link>
               <Link to="/privacy" className="hover:text-slate-400 cursor-pointer transition-colors">개인정보 처리방침</Link>
               <Link to="/terms" className="hover:text-slate-400 cursor-pointer transition-colors">이용약관</Link>
