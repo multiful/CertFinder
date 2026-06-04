@@ -21,7 +21,7 @@ import { mockApi } from './mockApi';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (import.meta as any).env?.VITE_API_BASE_URL ||
   (import.meta as any).env?.NEXT_PUBLIC_API_URL ||
-  'https://api.certfinder.cloud/api/v1';
+  (import.meta.env.DEV ? '/api/v1' : 'https://api.certfinder.cloud/api/v1');
 
 /** 요청 타임아웃 (ms). */
 const DEFAULT_REQUEST_TIMEOUT_MS = 15000;

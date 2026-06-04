@@ -2,11 +2,11 @@
 
 **대한민국 국가자격증 통합 분석 및 AI 경력 경로 추천 시스템**
 
-[![Deploy: Vercel](https://img.shields.io/badge/Deploy-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com/)
+[![Deploy: Vercel](https://img.shields.io/badge/Deploy-Vercel-black?style=flat-square&logo=vercel)](https://www.certfinder.cloud/)
 [![Backend: FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![DB: Supabase](https://img.shields.io/badge/DB-Supabase-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com/)
 [![Cache: Redis](https://img.shields.io/badge/Cache-Redis-DC382D?style=flat-square&logo=redis)](https://redis.io/)
-[![API: Railway](https://img.shields.io/badge/API-Railway-0B0D0E?style=flat-square&logo=railway)](https://certfinder-production.up.railway.app/health)
+[![API: Render](https://img.shields.io/badge/API-Render-46E3B7?style=flat-square&logo=render)](https://api.certfinder.cloud/health)
 
 ---
 
@@ -16,9 +16,9 @@
 
 | 환경 | URL |
 |------|-----|
-| **프론트엔드** | https://cert-web-sand.vercel.app |
-| **백엔드 API** | https://certfinder-production.up.railway.app *(도메인은 변경될 수 있음)* |
-| **헬스 체크** | https://certfinder-production.up.railway.app/health |
+| **서비스** | https://www.certfinder.cloud |
+| **백엔드 API** | https://api.certfinder.cloud |
+| **헬스 체크** | https://api.certfinder.cloud/health |
 
 ---
 
@@ -31,6 +31,7 @@
 - **북마크**: 관심 자격증 저장 (로그인 시)
 - **취득 자격증 제외**: 로그인 사용자 — “취득 자격증 제외” 토글로 이미 취득한 항목 숨기기, 카드에 “취득” 뱃지 표시
 - **상세 페이지**: 연도/회차별 합격률·난이도, Recharts 시각화, 연관 직무
+- **시험 일정**: HRDK 공공데이터 API 연동 — 자격증 상세에서 연도별 시험 일정 탭으로 조회
 
 ### 2. 진로·직무 매칭
 
@@ -45,18 +46,25 @@
 - **퍼지 전공 매칭**: DB에 없는 전공명은 pg_trgm 유사도로 근접 전공 사용
 - **취득 자격증 제외**: 로그인 시 이미 취득한 자격증은 추천 후보에서 제외(하드 제외·개인화 감점 등 설정 가능)
 - **게스트**: 비로그인 시 결과 3개 제한; 로그인 시 **최대 15개** 결과 제공
-- **개발자 문서**: `cert-app/backend/docs/Final_RAG_TECHNIQUES_SUMMARY.md`(기법 요약·종료본), `cert-app/backend/docs/Final_RAG_FEATURES.md`(표 형 카탈로그)
+- **개발자 문서**: `cert-app/backend/RAG_Indexing.md`(인덱싱 가이드), `cert-app/backend/RAG_LATEST_DOCS_RECORD.md`(최신 문서 기준 기록)
 
 ### 4. 계정·마이페이지
 
 - **인증**: Supabase Auth (이메일 OTP, Google OAuth)
-- **마이페이지**: 닉네임·전공·학년, 북마크·취득 자격증, XP·레벨·티어. 탭 전환 후 복귀 시 90초 캐시로 즉시 표시 후 백그라운드 갱신
+- **마이페이지**: 닉네임·전공·학년, 북마크·취득 자격증, XP·레벨·티어. 탭 전환 후 복귀 시 5분 캐시로 즉시 표시 후 백그라운드 갱신
 - **취득 자격증**: DB 자격증 검색 후 등록·삭제, XP 누적
 - **문의하기**: Naver SMTP 이메일 발송 (백엔드 비동기 처리)
 
-### 5. 인프라·성능
+### 5. 부가 페이지
 
-- **Redis**: 직무/자격증 목록 등 캐시 (1시간 TTL)
+- **AboutPage** — 서비스 소개, 팀·기술 스택 안내
+- **ContactPage** — 문의 폼 (이메일 발송)
+- **PrivacyPolicyPage** — 개인정보 처리방침
+- **TermsOfServicePage** — 이용약관
+
+### 6. 인프라·성능
+
+- **Redis**: 자격증·직무 목록/필터 옵션 10분, 상세/통계 1시간 TTL 캐시 (orjson 직렬화)
 - **Rate limiting**: IP 기반 요청 제한
 - **CORS**: Bearer 인증 기반, `allow_origins=["*"]`, `allow_credentials=False`
 
@@ -66,13 +74,14 @@
 
 | 영역 | 기술 |
 |------|------|
-| **Frontend** | React 19, TypeScript, Vite 7, Tailwind CSS, shadcn/ui (Radix), Recharts |
+| **Frontend** | React 19, TypeScript, Vite 7, Tailwind CSS, shadcn/ui (Radix), Recharts, TanStack Query v5 |
 | **Backend** | FastAPI, SQLAlchemy 2, Pydantic v2, orjson |
 | **DB** | PostgreSQL (Supabase), pgvector |
 | **캐시** | Redis Cloud |
 | **Auth** | Supabase Auth (JWT, Google OAuth) |
 | **AI** | OpenAI text-embedding-3-small (검색·추천), 선택적 GPT 계열 모델(법령 요약·벡터 인덱싱 파이프라인) |
-| **배포** | Vercel (Frontend), Railway (Backend, 임시 도메인 가능) |
+| **배포** | Vercel (Frontend), Render (Backend) |
+| **모니터링** | Vercel Speed Insights (Core Web Vitals) |
 | **이메일** | Naver SMTP (문의 폼) |
 
 ---
@@ -80,28 +89,46 @@
 ## 디렉토리 구조
 
 ```
-CertWeb/
+CertFinder/
 ├── cert-app/
 │   ├── backend/                    # FastAPI
 │   │   ├── app/
-│   │   │   ├── api/                # 라우터 (certs, jobs, recommendations, ai_recommendations, contact, me, ...)
-│   │   │   ├── crud.py, models.py
+│   │   │   ├── api/                # 라우터 (certs, jobs, recommendations, ai_recommendations,
+│   │   │   │                       #   acquired_certs, favorites, auth, contact, majors,
+│   │   │   │                       #   exam_schedule, admin, fast_certs, ...)
+│   │   │   ├── rag/                # 하이브리드 RAG 파이프라인
+│   │   │   │   ├── retrieve/       # hybrid(BM25+Vector+Contrastive), RRF 융합
+│   │   │   │   ├── rerank/         # Cross-Encoder 리랭킹
+│   │   │   │   ├── generate/       # evidence-first 생성
+│   │   │   │   ├── index/          # BM25 인덱스, vector_index
+│   │   │   │   └── contrastive/    # Contrastive 768-dim 검색
+│   │   │   ├── services/           # vector_service, email_service, fast_sync, law_update 등
+│   │   │   ├── utils/              # ai.py, auth.py, rag_hybrid.py, xp.py, stream_producer.py
 │   │   │   ├── schemas/
-│   │   │   ├── utils/               # ai.py (embedding, query expansion, LLM rerank/reason)
-│   │   │   └── services/
+│   │   │   ├── crud.py, models.py, database.py, redis_client.py
+│   │   │   └── scheduler.py
 │   │   ├── main.py
 │   │   ├── requirements.txt
-│   │   └── scripts/                # 평가(eval_three_models_no_reranker), 적용 검증(bench_apply_verification) 등
+│   │   ├── Dockerfile
+│   │   ├── RAG_Indexing.md         # RAG 인덱싱 가이드
+│   │   └── scripts/                # ab_test_golden_mapping.py 등 평가 스크립트
 │   └── frontend/
-│       └── app/                     # Vite + React
+│       └── app/                    # Vite + React
 │           ├── src/
-│           │   ├── pages/           # Home, CertList, CertDetail, JobList, JobDetail, AiRecommendation, MyPage, Contact, ...
-│           │   ├── components/
-│           │   ├── lib/             # api.ts, router, supabase
+│           │   ├── pages/          # Home, CertList, CertDetail, CertCompare,
+│           │   │                   #   Recommendation, AiRecommendation,
+│           │   │                   #   JobList, JobDetail, MyPage,
+│           │   │                   #   About, Contact, PrivacyPolicy, TermsOfService
+│           │   ├── components/     # layout/, ui/(shadcn), common/, ErrorBoundary
+│           │   ├── contexts/       # CompareContext
+│           │   ├── hooks/          # useAuth, useCerts, useRecommendations
+│           │   ├── lib/            # api.ts, router.tsx, supabase.ts, queryKeys.ts, utils.ts
 │           │   └── types/
+│           ├── vercel.json
 │           ├── index.html
 │           └── package.json
-├── .cursor/rules/                  # 배포·uv·플러그인 규칙
+├── PRODUCT.md                      # 제품 목적·디자인 원칙
+├── DESIGN.md                       # 디자인 시스템 전체 스펙
 └── README.md
 ```
 
@@ -109,12 +136,12 @@ CertWeb/
 
 ## 운영/유지보수 메모 (내부용)
 
-이 서비스는 **Vercel(프론트) + Railway(백엔드) + Supabase(Postgres) + Redis Cloud** 환경에 배포된 상태로 운영되며,  
+이 서비스는 **Vercel(프론트) + Render(백엔드) + Supabase(Postgres) + Redis Cloud** 환경에 배포된 상태로 운영되며,  
 일반 사용자가 로컬에서 직접 서버를 띄우는 것을 전제로 하지 않습니다. 아래 내용은 **운영자용 메모**입니다.
 
 - **환경 변수 분리**
   - 프론트(Vercel): `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 등 브라우저에서 필요한 값만 저장.
-  - 백엔드(Railway 등): `DATABASE_URL`, `REDIS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `OPENAI_API_KEY` 등 비밀 키는 모두 호스트 환경변수에만 저장.
+  - 백엔드(Render): `DATABASE_URL`, `REDIS_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `OPENAI_API_KEY` 등 비밀 키는 모두 호스트 환경변수에만 저장.
   - DB 접속 정보나 Service Role Key, JWT Secret은 Vercel에 두지 않고 노출 시 즉시 키를 회전(재발급)한다.
 
 - **RAG 임베딩 관리**
@@ -134,12 +161,12 @@ CertWeb/
 
 | 구분 | 서비스 | 비고 |
 |------|--------|------|
-| **Frontend** | Vercel | GitHub 연동 시 자동 배포, `VITE_API_BASE_URL` (Railway API URL + `/api/v1`) |
-| **Backend** | Railway | Root: `cert-app/backend`, Start: `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+| **Frontend** | Vercel | GitHub 연동 자동 배포, 커스텀 도메인 `www.certfinder.cloud` |
+| **Backend** | Render | Root: `cert-app/backend`, Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`, 커스텀 도메인 `api.certfinder.cloud` |
 | **DB** | Supabase | PostgreSQL + pgvector |
 | **Cache** | Redis Cloud | `REDIS_URL` |
 
-Railway/호스트별로 슬립 정책이 다를 수 있음. `/health`로 UptimeRobot 등 모니터링 권장.
+Render Free tier는 비활동 시 슬립될 수 있음. `/health`로 UptimeRobot 등 모니터링 권장.
 
 ---
 

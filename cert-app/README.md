@@ -14,7 +14,7 @@
    - **pgvector & Supabase**: `certificates_vectors` 임베딩 검색, BM25·Vector·Contrastive **다채널 융합**(Linear 기본), 선택적 Cross-Encoder 리랭킹
    - **OpenAI API**: 임베딩·dense query rewrite·(옵션) HyDE/CoT 등 확장 경로
    - **RAG 파이프라인**: `app/rag` — `hybrid_retrieve`, 메타/개인화 soft, 계층 BM25, Redis 캐시, evidence-first 생성
-   - **기능 목록**: `backend/docs/Final_RAG_FEATURES.md`
+   - **기능 목록·인덱싱**: `backend/RAG_Indexing.md`
 3. **취득 자격증 & XP·레벨·티어 시스템**
    - **취득 자격증 (Acquired Certs)**: DB 검색으로 등록·관리 (`user_acquired_certs`), 마이페이지 취득 자격증·XP 요약
    - **난이도 기반 XP**: `app/utils/xp.py` — 난이도 구간별 가중치, 최소 0.5 XP
@@ -22,8 +22,8 @@
 4. **인증 및 보안 (Auth & Security)**
    - **JWT 알고리즘 고정**: `SUPABASE_JWT_ALGORITHM=ES256` 설정으로 알고리즘 혼동 공격(HS256 위조) 방지
    - **이메일 열거 방지**: 회원 여부와 무관하게 동일 응답 반환 (find-userid 엔드포인트)
-   - **비활동 세션 관리**: 3시간 이상 비활동 시 자동 로그아웃 (하드 만료 3시간)
-   - **Supabase Auth**: JWT 세션, OTP·이메일/비밀번호, 프로필·전공·학년
+   - **세션 만료**: 로그인 후 3시간 하드 만료 자동 로그아웃 (활동 여부 무관, 매 1분 체크)
+   - **Supabase Auth**: JWT 세션, OTP·이메일/비밀번호·Google OAuth, 프로필·전공·학년
 5. **모던 UI/UX (Frontend)**
    - **React + Vite**, TailwindCSS + Shadcn UI
    - **Vercel Speed Insights**: Core Web Vitals (LCP·FID·CLS) 자동 수집
@@ -48,7 +48,7 @@
 - **ORM**: SQLAlchemy 2.x
 - **Vector Search**: pgvector (Supabase), `certificates_vectors`
 - **Cache & 공통**: Redis (`redis-py` 싱글톤, orjson), Rate limiting
-- **Auth**: Supabase Auth (OTP, 이메일/비밀번호)
+- **Auth**: Supabase Auth (OTP, 이메일/비밀번호, Google OAuth)
 - **External API**: OpenAI API (임베딩·AI 추천·시맨틱·LLM 리랭킹)
 - **기타**: GZip·TrustedHost·CORS, Admin API (`X-Job-Secret`), RAG reranker 캐시(Redis)
 
@@ -89,12 +89,11 @@ cert-app/
 │   │   │   ├── vector_service.py   # pgvector 임베딩·유사도 검색 (content/metadata 선택 조회)
 │   │   │   ├── law_update_pipeline.py # 법령/자격 요약 파이프라인
 │   │   │   └── email_service.py    # 문의 메일 발송
-│   │   ├── utils/                   # xp.py(레벨·티어), ai.py, auth.py, stream_producer.py
-│   │   ├── config.py, database.py, crud.py, models.py
+│   │   ├── utils/                   # xp.py(레벨·티어), ai.py, auth.py, rag_hybrid.py, stream_producer.py
+│   │   ├── config.py, database.py, crud.py, models.py, logging_config.py
 │   │   ├── redis_client.py          # 캐시·레이트리밋·트렌딩·최근 본·RAG 캐시 키
 │   │   ├── redis_sync_worker.py     # cert_updates 구독 동기화 (선택)
 │   │   └── scheduler.py
-│   ├── docs/                        # Final_RAG_*.md, 성능·RAG 검토 문서
 │   ├── main.py
 │   ├── init.sql                     # 스키마·인덱스·샘플 데이터
 │   ├── vector_migration.sql         # pgvector·certificates_vectors
@@ -103,11 +102,15 @@ cert-app/
 ├── frontend/
 │   └── app/                         # Vite + React 앱
 │       ├── src/
-│       │   ├── components/          # UI (Shadcn), Layout, ChunkLoadError
-│       │   ├── hooks/               # useAuth, useCerts, useRecommendations, useMajors, usePopularMajors
-│       │   ├── pages/               # Home, CertList, CertDetail, Recommendation, AiRecommendation, JobList, JobDetail, MyPage 등
-│       │   ├── lib/                 # api.ts, router.tsx, queryKeys, mockApi.ts, utils
+│       │   ├── components/          # layout/(Layout, UserMenu, CompareTray), ui/(Shadcn), common/, ErrorBoundary
+│       │   ├── hooks/               # useAuth, useCerts (useCertDetail·useFilterOptions 포함), useRecommendations (useMajors·usePopularMajors 포함)
+│       │   ├── contexts/            # CompareContext (자격증 비교 최대 3개, sessionStorage)
+│       │   ├── pages/               # Home, CertList, CertDetail, CertCompare, Recommendation,
+│       │   │                        #   AiRecommendation, JobList, JobDetail, MyPage,
+│       │   │                        #   About, Contact, PrivacyPolicy, TermsOfService
+│       │   ├── lib/                 # api.ts, router.tsx, supabase.ts, queryKeys.ts, mockApi.ts, utils.ts
 │       │   └── types/               # API·추천 타입
+│       ├── vercel.json
 │       ├── package.json
 │       ├── vite.config.ts
 │       ├── tsconfig.*.json
@@ -169,5 +172,5 @@ Redis 미연결 시 캐시·트렌딩·레이트리밋은 비활성화되고, DB
 - **JWT 검증**: `app/utils/auth.py`에서 Supabase `/auth/v1/user` REST API에 위임.
 - **시퀀스 중복**: 대량 import 후 `qualification` 등 SERIAL 시퀀스 꼬리면  
   `SELECT SETVAL(pg_get_serial_sequence('public.qualification','qual_id'), (SELECT MAX(qual_id) FROM qualification)+1);` 로 동기화.
-- **성능·캐시·RAG**: RAG 스위치·모듈 전체는 `backend/docs/Final_RAG_FEATURES.md`. 인덱싱은 `backend/RAG_Indexing.md`.
-- **배포**: Vercel(프론트)·Railway(백엔드)·Supabase·Redis Cloud·환경변수는 `.cursor/rules/deployment.mdc` 참고.
+- **성능·캐시·RAG**: 인덱싱 및 파라미터는 `backend/RAG_Indexing.md`, 문서 기준은 `backend/RAG_LATEST_DOCS_RECORD.md` 참고.
+- **배포**: Vercel(프론트)·Render(백엔드)·Supabase·Redis Cloud·환경변수는 `.cursor/rules/deployment.mdc` 참고.
