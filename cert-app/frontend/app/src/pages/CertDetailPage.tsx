@@ -679,7 +679,13 @@ const handleTabChange = (tab: string) => {
                   <div className="text-slate-400 leading-relaxed font-medium">
                     본 자격증은 최근 {stats.length}개 회차 평균 합격률 <span className="text-white font-bold">{avgPassRate}%</span> 내외를 보이고 있으며,
                     자격 등급과 합격률 추이를 종합 분석한 결과
-                    <span className="text-amber-400 font-bold ml-1"> {
+                    <span className={`font-bold ml-1 ${
+                      cert.avg_difficulty && cert.avg_difficulty >= 7.0
+                        ? 'text-rose-400'
+                        : cert.avg_difficulty && cert.avg_difficulty >= 5.0
+                          ? 'text-orange-400'
+                          : 'text-emerald-400'
+                    }`}>{
                       cert.avg_difficulty && cert.avg_difficulty >= 8.5 ? '최상급 (Expert)' :
                         cert.avg_difficulty && cert.avg_difficulty >= 7.0 ? '심화 (Advanced)' :
                           cert.avg_difficulty && cert.avg_difficulty >= 5.0 ? '중등 (Intermediate)' :
