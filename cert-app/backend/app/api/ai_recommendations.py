@@ -1154,6 +1154,7 @@ async def hybrid_recommendation(
                 pass_rate=c.get("pass_rate"),
                 rrf_score=c.get("rrf_score"),
                 llm_reason=False,
+                interest_level=c.get("interest_level"),
                 major_score_normalized=c.get("major_score_normalized"),
                 semantic_score_normalized=c.get("semantic_score_normalized"),
             )
