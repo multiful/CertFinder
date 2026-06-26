@@ -150,7 +150,8 @@ def _run_enhanced_rag_sync(
         trace_on = getattr(get_rag_settings(), "RAG_PRE_RETRIEVAL_TRACE_ENABLE", False)
         pre_trace: Optional[Dict[str, Any]] = {} if trace_on else None
         hybrid_kw: Dict[str, Any] = {
-            "use_reranker": None,  # Cohere 자동 선택 (natural/mixed 쿼리에서 변호사 등 무관 결과 제거)
+            "use_reranker": None,   # Cohere 자동 선택 (변호사 등 무관 결과 제거)
+            "skip_expansion": True,  # 추천 플로우: HyDE+Step-back 스킵 → 지연 ~1.2s 절감
             "dedup_per_cert_override": True,
             "user_profile": user_profile,
             "pre_retrieval_trace_out": pre_trace,
@@ -314,7 +315,7 @@ async def hybrid_recommendation(
 
     # Redis: v1은 tier=guest|user 만 구분해 로그인 사용자끼리 캐시를 공유 → 취득 제외·개인화가 깨질 수 있음. v2는 user(또는 guest) 단위.
     cache_key = redis_client.make_cache_key(
-        "ai:hybrid:v2",
+        "ai:hybrid:v3",  # v2→v3: Cohere 추천 적용 + skip_expansion 캐시 무효화
         major=major,
         interest=interest or "",
         user=user_id or "guest",

@@ -1064,6 +1064,7 @@ def hybrid_retrieve(
     channels_override: Optional[List[str]] = None,
     force_reranker: bool = False,
     use_hyde: Optional[bool] = None,
+    skip_expansion: Optional[bool] = None,
     fusion_method_override: Optional[str] = None,
     pre_retrieval_budget_ms: Optional[int] = None,
     pre_retrieval_trace_out: Optional[Dict[str, Any]] = None,
@@ -1121,8 +1122,10 @@ def hybrid_retrieve(
     index_dir = bm25_index_path or (get_rag_index_dir() / "bm25.pkl")
     short_keyword = _is_short_query((query or "").strip())
     identifier_heavy = query_suggests_identifier_heavy(query or "")
-    skip_expansion = bool(
-        getattr(settings, "RAG_SKIP_EXPANSION_ON_IDENTIFIER_HEAVY", True) and identifier_heavy
+    skip_expansion = (
+        bool(skip_expansion)
+        if skip_expansion is not None
+        else bool(getattr(settings, "RAG_SKIP_EXPANSION_ON_IDENTIFIER_HEAVY", True) and identifier_heavy)
     )
 
     # §2 규칙 4·7: 식별자 질의는 dense rewrite 생략; 총 예산이 너무 작으면 rewrite 생략(규칙 7: 확장 전 단계 비용 절감).
