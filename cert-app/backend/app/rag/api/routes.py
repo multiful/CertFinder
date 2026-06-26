@@ -96,7 +96,7 @@ def _run_retrieval_sync(
             else:
                 chunk_ids_with_scores = chunk_ids_with_scores[:top_k]
         elif baseline_id == "enhanced_reranker":
-            candidates = hybrid_retrieve(db, question, top_k=top_k, filters=filters, use_reranker=True, user_profile=user_profile)
+            candidates = hybrid_retrieve(db, question, top_k=top_k, filters=filters, use_reranker=None, user_profile=user_profile)
             chunk_ids_with_scores = [(c[0], c[1]) for c in candidates]
         else:
             vector_results = get_vector_search(db, question, top_k=top_k, threshold=None)

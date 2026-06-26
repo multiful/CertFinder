@@ -561,6 +561,9 @@ export function AiRecommendationPage() {
                                     <CardTitle className="text-xl font-bold text-white mt-3 group-hover:text-blue-400 transition-colors line-clamp-2">
                                         {res.qual_name}
                                     </CardTitle>
+                                    {(res.hybrid_score ?? 0) < 0.3 && (
+                                        <span className="text-[10px] text-slate-500 font-medium">연관성이 낮습니다</span>
+                                    )}
                                     {res.pass_rate != null && (
                                         <div className="flex items-center gap-2 mt-1">
                                             <span className="text-[11px] text-slate-500">최근합격률</span>
@@ -605,7 +608,7 @@ export function AiRecommendationPage() {
                                         <Info className="w-4 h-4 text-blue-400/60 mt-0.5 flex-shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-sm text-slate-400 leading-relaxed italic ${expandedReasons.has(res.qual_id) ? '' : 'line-clamp-3'}`}>
-                                                {res.reason || "귀하의 전공 역량과 관심사를 고려하여 추천된 자격증입니다."}
+                                                {(res.reason && !res.reason.startsWith('dataset:')) ? res.reason : "귀하의 전공 역량과 관심사를 고려하여 추천된 자격증입니다."}
                                             </p>
                                             <span className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-slate-500">
                                                 {expandedReasons.has(res.qual_id) ? (
@@ -807,7 +810,10 @@ export function AiRecommendationPage() {
                                                     <p className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
                                                         {res.qual_name}
                                                     </p>
-                                                    {res.reason && (
+                                                    {(res.hybrid_score ?? 0) < 0.3 && (
+                                                        <span className="text-[10px] text-slate-500 font-medium">연관성이 낮습니다</span>
+                                                    )}
+                                                    {res.reason && !res.reason.startsWith('dataset:') && (
                                                         <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2 italic">
                                                             {res.reason}
                                                         </p>

@@ -704,8 +704,10 @@ def _hybrid_run_vector_and_hyde(
     budget_deadline: Optional[float] = None,
     skip_expansion: bool = False,
     trace: Optional[Dict[str, Any]] = None,
-) -> Tuple[List[Tuple[str, float]], List[Tuple[str, float]]]:
-    """벡터 채널(+키워드/COT/stepback) 및 HyDE. DB 세션은 호출 스레드 전용."""
+    use_hyde_override: Optional[bool] = None,
+    user_profile: Optional[UserProfile] = None,
+) -> List[Tuple[str, float]]:
+    """Dense 채널(MQE + Step-back). HyDE는 _hybrid_run_hyde 독립 스레드로 분리됨."""
     settings = get_rag_settings()
     vector_results: List[Tuple[str, float]] = []
 
@@ -912,30 +914,52 @@ def _hybrid_run_vector_and_hyde(
     else:
         sf["contextual_child"] = False
 
-    hyde_results: List[Tuple[str, float]] = []
-    if (
-        use_vector
-        and not skip_expansion
-        and _budget_ok()
-        and getattr(settings, "RAG_HYDE_ENABLE", False)
-    ):
-        use_hyde = not (getattr(settings, "RAG_HYDE_LONG_QUERY_ONLY", True) and short_keyword)
-        hyde_doc = generate_hyde_document(query) if use_hyde else None
-        sf["hyde"] = bool(hyde_doc)
-        if hyde_doc:
-            try:
-                hyde_results = get_vector_search(
-                    db, hyde_doc, top_k=vec_top_k, threshold=vec_threshold, use_rewrite=False
-                )
-            except Exception as e:
-                logger.debug("HyDE vector search failed: %s", e)
-                hyde_results = []
-    else:
-        sf["hyde"] = False
+    sf["hyde"] = False  # HyDE는 독립 스레드(_hybrid_run_hyde)에서 처리됨
 
     if trace is not None:
         sf["budget_ok_at_end"] = _budget_ok()
-    return vector_results, hyde_results
+    return vector_results
+
+
+def _hybrid_run_hyde(
+    db: Session,
+    *,
+    query: str,
+    short_keyword: bool,
+    vec_top_k: int,
+    vec_threshold: float,
+    budget_deadline: Optional[float] = None,
+    skip_expansion: bool = False,
+    use_hyde_override: Optional[bool] = None,
+    user_profile: Optional[UserProfile] = None,
+) -> List[Tuple[str, float]]:
+    """HyDE 독립 스레드: 가상문서 생성(LLM) → Dense 검색. DB 세션은 호출 스레드 전용."""
+    settings = get_rag_settings()
+
+    def _budget_ok() -> bool:
+        return budget_deadline is None or time.monotonic() < budget_deadline
+
+    _hyde_globally_enabled = (
+        use_hyde_override if use_hyde_override is not None
+        else getattr(settings, "RAG_HYDE_ENABLE", False)
+    )
+    if not (_hyde_globally_enabled and not skip_expansion and _budget_ok()):
+        return []
+    if getattr(settings, "RAG_HYDE_LONG_QUERY_ONLY", True) and short_keyword:
+        return []
+
+    hyde_doc = generate_hyde_document(
+        query, user_profile=dict(user_profile) if user_profile else None
+    )
+    if not hyde_doc:
+        return []
+    try:
+        return get_vector_search(
+            db, hyde_doc, top_k=vec_top_k, threshold=vec_threshold, use_rewrite=False
+        )
+    except Exception as e:
+        logger.debug("HyDE vector search failed: %s", e)
+        return []
 
 
 def _hybrid_run_bm25(
@@ -1039,6 +1063,8 @@ def hybrid_retrieve(
     vector_threshold_override: Optional[float] = None,
     channels_override: Optional[List[str]] = None,
     force_reranker: bool = False,
+    use_hyde: Optional[bool] = None,
+    fusion_method_override: Optional[str] = None,
     pre_retrieval_budget_ms: Optional[int] = None,
     pre_retrieval_trace_out: Optional[Dict[str, Any]] = None,
     hybrid_phase_timings_out: Optional[Dict[str, float]] = None,
@@ -1281,6 +1307,8 @@ def hybrid_retrieve(
                     budget_deadline=budget_deadline,
                     skip_expansion=skip_expansion,
                     trace=vec_trace,
+                    use_hyde_override=use_hyde,
+                    user_profile=user_profile,
                 )
             finally:
                 s.close()
@@ -1308,12 +1336,35 @@ def hybrid_retrieve(
                 logger.debug("contrastive_search failed (parallel arm)", exc_info=True)
                 return []
 
-        _max_workers = 3 if run_ct_parallel else 2
+        _hyde_for_parallel = (
+            use_hyde if use_hyde is not None else getattr(settings, "RAG_HYDE_ENABLE", False)
+        )
+        run_hyde_parallel = bool(_hyde_for_parallel and use_vector and not skip_expansion)
+        _max_workers = 2 + int(run_ct_parallel) + int(run_hyde_parallel)
+
+        def _run_hyde_thread() -> List[Tuple[str, float]]:
+            s = SessionLocal()
+            try:
+                return _hybrid_run_hyde(
+                    s,
+                    query=query or "",
+                    short_keyword=short_keyword,
+                    vec_top_k=vec_top_k,
+                    vec_threshold=vec_threshold,
+                    budget_deadline=budget_deadline,
+                    skip_expansion=skip_expansion,
+                    use_hyde_override=use_hyde,
+                    user_profile=user_profile,
+                )
+            finally:
+                s.close()
+
         with ThreadPoolExecutor(max_workers=_max_workers) as ex:
             fv = ex.submit(_run_vec)
             fb = ex.submit(_run_bm)
             fct = ex.submit(_run_ct) if run_ct_parallel else None
-            vector_results, hyde_results = fv.result()
+            fhyde = ex.submit(_run_hyde_thread) if run_hyde_parallel else None
+            vector_results = fv.result()
             bm25_scores = fb.result()
             if fct is not None:
                 contrastive_results = fct.result()
@@ -1322,8 +1373,12 @@ def hybrid_retrieve(
                     "contrastive arm ran in parallel with bm25/vector (single_only=%s)",
                     single_contrastive_only,
                 )
+            if fhyde is not None:
+                hyde_results = fhyde.result()
+                if hyde_results:
+                    vec_trace.setdefault("strategy_flags", {})["hyde"] = True
     else:
-        vector_results, hyde_results = _hybrid_run_vector_and_hyde(
+        vector_results = _hybrid_run_vector_and_hyde(
             db,
             use_vector=use_vector,
             query=query or "",
@@ -1335,6 +1390,8 @@ def hybrid_retrieve(
             budget_deadline=budget_deadline,
             skip_expansion=skip_expansion,
             trace=vec_trace,
+            use_hyde_override=use_hyde,
+            user_profile=user_profile,
         )
         bm25_scores = _hybrid_run_bm25(
             db,
@@ -1346,6 +1403,25 @@ def hybrid_retrieve(
             query_type=query_type or "",
             enable_prf=True,
         )
+        # 비병렬 경로: HyDE 순차 실행
+        _hyde_for_seq = (
+            use_hyde if use_hyde is not None else getattr(settings, "RAG_HYDE_ENABLE", False)
+        )
+        if _hyde_for_seq and use_vector and not skip_expansion:
+            _hyde_seq = _hybrid_run_hyde(
+                db,
+                query=query or "",
+                short_keyword=short_keyword,
+                vec_top_k=vec_top_k,
+                vec_threshold=vec_threshold,
+                budget_deadline=budget_deadline,
+                skip_expansion=skip_expansion,
+                use_hyde_override=use_hyde,
+                user_profile=user_profile,
+            )
+            if _hyde_seq:
+                hyde_results = _hyde_seq
+                vec_trace.setdefault("strategy_flags", {})["hyde"] = True
 
     t_after_parallel = time.perf_counter()
     if getattr(settings, "RAG_HYBRID_DEBUG_LOG", False):
@@ -1480,9 +1556,13 @@ def hybrid_retrieve(
         else:
             w_bm25, w_vector = 0.5, 0.5
 
-    # Fusion: 2-way / 3-way. RRF 제거 → "rrf" 설정 시 Linear로 동작.
-    _raw_fusion = (getattr(settings, "RAG_FUSION_METHOD", None) or "linear").strip().lower()
-    fusion_method = "linear" if _raw_fusion == "rrf" else _raw_fusion
+    # Fusion method: fusion_method_override(평가/디버깅용)이 있으면 우선. 없으면 환경변수.
+    # 프로덕션에서는 RAG_FUSION_METHOD=linear 고정 ("rrf" 설정 시에도 linear로 동작하도록 유지).
+    if fusion_method_override:
+        fusion_method = fusion_method_override.strip().lower()
+    else:
+        _raw_fusion = (getattr(settings, "RAG_FUSION_METHOD", None) or "linear").strip().lower()
+        fusion_method = "linear" if _raw_fusion == "rrf" else _raw_fusion
     # Query-type adaptive linear fusion용 3-way 가중치 (BM25, Dense, Contrastive)
     linear_w_bm25, linear_w_dense, linear_w_contrastive = _linear_weights_by_query_type(
         query, query_type, settings
@@ -1567,7 +1647,49 @@ def hybrid_retrieve(
             mul = CONTRASTIVE_QUERY_TYPE_WEIGHTS.get(query_type)
             if mul is not None:
                 w_c *= mul
-        if fusion_method == "linear":
+
+        # 4-way 융합: Contrastive + HyDE 동시 활성 시 BM25+Vector+Contrastive+HyDE 병합
+        _do_4way_hyde = (
+            bool(hyde_results)
+            and (use_hyde if use_hyde is not None else getattr(settings, "RAG_HYDE_ENABLE", False))
+        )
+        if _do_4way_hyde:
+            w_h = getattr(settings, "RAG_HYDE_WEIGHT", 0.2)
+            total_bvc = (w_b + w_v + w_c) or 1.0
+            scale = 1.0 - w_h
+            w_b4 = w_b / total_bvc * scale
+            w_v4 = w_v / total_bvc * scale
+            w_c4 = w_c / total_bvc * scale
+            if fusion_method == "combmnz":
+                combined = _combmnz_merge_n(
+                    [bm25_scores, vector_results, contrastive_results, hyde_results],
+                    weights=[w_b4, w_v4, w_c4, w_h],
+                    norm_mode=getattr(settings, "RAG_COMBMNZ_NORM_MODE", "minmax"),
+                    zero_mode=getattr(settings, "RAG_COMBMNZ_ZERO_MODE", "topn"),
+                    zero_threshold=getattr(settings, "RAG_COMBMNZ_ZERO_THRESHOLD", 0.0),
+                    rank_exponent=getattr(settings, "RAG_COMBMNZ_RANK_EXPONENT", 1.0),
+                )
+            elif fusion_method in ("linear", "combsum"):
+                # linear의 3-way 가중치를 scale하고 HyDE w_h 추가
+                s = linear_w_bm25 + linear_w_dense + linear_w_contrastive
+                if s <= 0:
+                    s = 1.0
+                combined = _combsum_merge_n(
+                    [bm25_scores, vector_results, contrastive_results, hyde_results],
+                    weights=[
+                        linear_w_bm25 / s * scale,
+                        linear_w_dense / s * scale,
+                        linear_w_contrastive / s * scale,
+                        w_h,
+                    ],
+                )
+            else:
+                combined = _rrf_merge_n(
+                    [bm25_scores, vector_results, contrastive_results, hyde_results],
+                    weights=[w_b4, w_v4, w_c4, w_h],
+                    rrf_k=rrf_k,
+                )
+        elif fusion_method == "linear":
             # Query-type adaptive 3-way linear fusion (bm25/vector/contrastive 모두 활성 경로)
             s = linear_w_bm25 + linear_w_dense + linear_w_contrastive
             if s <= 0:
@@ -1816,6 +1938,48 @@ def hybrid_retrieve(
     t_pre_rerank = time.perf_counter()
     if hybrid_phase_timings_out is not None:
         hybrid_phase_timings_out["fusion_ranking_ms"] = (t_pre_rerank - t_after_parallel) * 1000.0
+
+    # (선택) Cohere Reranker — RAG_COHERE_ENABLE=True 시 HF 리랭커보다 먼저 실행됨.
+    # dense_rewrite(query, user_profile) 결과를 Cohere rerank-v3.5에 전달.
+    # 자연어/혼합 쿼리에만 적용 (keyword는 기존 HF 경로 유지).
+    # use_reranker=False(AI 추천 경로)이면 Cohere도 스킵 → 불필요한 API 지연 방지.
+    do_cohere = getattr(settings, "RAG_COHERE_ENABLE", False) and (use_reranker is not False)
+    if do_cohere:
+        cohere_allowed_raw = getattr(settings, "RAG_COHERE_ALLOWED_QUERY_TYPES", "natural,mixed") or ""
+        cohere_allowed = {t.strip() for t in cohere_allowed_raw.split(",") if t.strip()}
+        if not cohere_allowed or query_type in cohere_allowed:
+            cohere_api_key = getattr(settings, "RAG_COHERE_API_KEY", "")
+            cohere_pool = getattr(settings, "RAG_COHERE_POOL_SIZE", 20)
+            cohere_model = getattr(settings, "RAG_COHERE_MODEL", "rerank-v3.5")
+            if cohere_api_key and candidates:
+                try:
+                    from app.rag.rerank.cohere_reranker import rerank_with_cohere
+                    cohere_pool_cands = candidates[:cohere_pool]
+                    cohere_chunk_ids = [c[0] for c in cohere_pool_cands]
+                    cohere_contents = _fetch_contents_by_chunk_ids(db, cohere_chunk_ids)
+                    cohere_pairs = [(cid, cohere_contents.get(cid, "")) for cid in cohere_chunk_ids]
+                    # dense_query + profile 컨텍스트로 Cohere 입력 구성
+                    cohere_reranker_q = _build_reranker_query(
+                        dense_query, user_profile,
+                        slots=_ensure_query_slots_for_scoring(),
+                    )
+                    cohere_reranked = rerank_with_cohere(
+                        cohere_reranker_q, cohere_pairs,
+                        api_key=cohere_api_key, top_k=top_k, model=cohere_model,
+                    )
+                    if cohere_reranked:
+                        logger.info(
+                            "cohere rerank applied (query_type=%s pool=%d top_k=%d)",
+                            query_type, cohere_pool, top_k,
+                        )
+                        return cohere_reranked
+                except Exception as _cohere_err:
+                    logger.warning("cohere rerank failed, falling back: %s", _cohere_err)
+        else:
+            logger.debug(
+                "cohere rerank skipped (query_type=%s not in allowed=%s)",
+                query_type, sorted(cohere_allowed),
+            )
 
     # (선택) 경량 Cross-Encoder Reranker
     do_rerank = use_reranker if use_reranker is not None else getattr(settings, "RAG_USE_CROSS_ENCODER_RERANKER", False)

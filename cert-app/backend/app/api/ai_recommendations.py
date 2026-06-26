@@ -150,7 +150,7 @@ def _run_enhanced_rag_sync(
         trace_on = getattr(get_rag_settings(), "RAG_PRE_RETRIEVAL_TRACE_ENABLE", False)
         pre_trace: Optional[Dict[str, Any]] = {} if trace_on else None
         hybrid_kw: Dict[str, Any] = {
-            "use_reranker": False,
+            "use_reranker": None,  # Cohere 자동 선택 (natural/mixed 쿼리에서 변호사 등 무관 결과 제거)
             "dedup_per_cert_override": True,
             "user_profile": user_profile,
             "pre_retrieval_trace_out": pre_trace,
@@ -857,11 +857,13 @@ async def hybrid_recommendation(
         # mapping_weight 가 있으면 score 보정에 반영 (기본 1.0)
         w = float(r.mapping_weight or 1.0)
         base_major_score = max(float(r.mapping_score or 0) * min(w, 1.5), m_sim * 10.0)
+        raw_reason = (r.reason or "").strip()
+        clean_reason = "" if raw_reason.lower().startswith("dataset:") else raw_reason
         candidate_map[r.qual_id] = {
             "qual_id": r.qual_id,
             "qual_name": r.qual_name,
             "major_score": base_major_score,
-            "reason": r.reason or "전공 맞춤형 자격증",
+            "reason": clean_reason or "전공 맞춤형 자격증",
             "semantic_similarity": 0.0,
         }
 

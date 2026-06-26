@@ -186,9 +186,9 @@ export function HomePage() {
 
               {/* 샘플 자격증 행 — 실제 데이터 형태 미리보기 */}
               {([
-                { name: '정보처리기사', type: '기사', passRate: 26.2, diff: 7.4 },
-                { name: '한국사능력검정 1급', type: '국가공인', passRate: 81.4, diff: 3.1 },
-                { name: '빅데이터분석기사', type: '기사', passRate: 34.7, diff: 6.2 },
+                { name: '정보처리기사', type: '기사', passRate: 41.1, diff: 7.1 },
+                { name: '컴퓨터활용능력 1급', type: '국가기술자격', passRate: 20.2, diff: 8.7 },
+                { name: '빅데이터분석기사', type: '기사', passRate: 54.9, diff: 5.5 },
               ] as const).map((cert, i, arr) => (
                 <div key={cert.name} className={`flex items-center gap-4 px-8 py-4 ${i < arr.length - 1 ? 'border-b border-slate-800/40' : ''}`}>
                   <div className="flex-1 min-w-0">
@@ -208,7 +208,7 @@ export function HomePage() {
 
               {/* 푸터 */}
               <div className="px-8 py-3 bg-slate-900/30 border-t border-slate-800/40 flex items-center justify-between">
-                <span className="text-[11px] text-slate-600">450+ 직무 · 10년+ 합격률 기록</span>
+                <span className="text-[11px] text-slate-600">450+ 직무 · 최근 3개년 합격률 데이터</span>
                 <span className="text-[11px] text-slate-500 font-medium">실제 데이터 예시</span>
               </div>
             </div>

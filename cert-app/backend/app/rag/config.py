@@ -142,6 +142,18 @@ class RAGSettings(BaseSettings):
     RAG_RERANK_INPUT_ADD_CONTEXT: bool = True   # True=재질의 ON. 쿼리에 "전공: X 목적: Y 직무: Z 질의: ..." 추가 후 리랭커 호출.
     RAG_RERANK_INPUT_ADD_QUAL_NAME: bool = False  # True면 passage 앞에 "자격증: {qual_name}. " 추가. 학습이 "[자격증명:...]만"이었다면 False.
     RAG_RERANK_INPUT_ADD_QUERY_TYPE: bool = True  # True면 리랭커 쿼리 앞에 "쿼리유형: {query_type}" 추가. 리랭커가 자연어/키워드형 힌트 활용.
+
+    # Cohere Rerank (rerank-v3.5) — HF Cross-Encoder 대체 옵션.
+    # RAG_COHERE_ENABLE=True 설정 시 HF 리랭커 대신 Cohere API를 사용.
+    # 입력: dense_rewrite(query, profile={major, grade_level}) → Cohere에 전달.
+    # 평가 결과 (47개 자연어 골든셋): NDCG@4 +0.041, R@5 +0.049 (vs RAG only).
+    # 레이턴시 오버헤드 약 +700ms. RAG_COHERE_POOL_SIZE=20 권장 (30은 성능 저하).
+    RAG_COHERE_ENABLE: bool = False
+    RAG_COHERE_API_KEY: str = ""
+    RAG_COHERE_POOL_SIZE: int = 20   # pool=20 권장 (eval 기준 최적), 30은 NDCG@4 -0.017 저하
+    RAG_COHERE_MODEL: str = "rerank-v3.5"
+    RAG_COHERE_ALLOWED_QUERY_TYPES: str = "natural,mixed"  # natural/mixed에만 적용 (keyword는 HF가 더 안전)
+
     RAG_INDEX_DIR: str = "data/rag_index"  # BM25 인덱스 등 디스크 저장 경로
 
     # BM25 검색과 벡터(HyDE 포함) 검색을 스레드로 병렬 실행 → p95 지연 완화 (PRF 사용 시 순차 유지)

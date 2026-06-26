@@ -1,6 +1,31 @@
 # Cert-App
 
-**" 맞춤형 자격증 추천 플랫폼"**
+**"맞춤형 자격증 추천 플랫폼"**
+
+---
+
+## 배포 현황 (Deployment)
+
+| 서비스 | 플랫폼 | URL |
+|--------|--------|-----|
+| **백엔드 (FastAPI)** | Render | `certfinder-production.up.railway.app` (또는 Render 서비스 URL) |
+| **프론트엔드 (React)** | Vercel | `cert-web-sand.vercel.app` |
+| **데이터베이스** | Supabase (PostgreSQL + pgvector) | — |
+| **캐시** | Redis Cloud | — |
+| **AI 검색 리랭커** | Hugging Face Spaces | `multifuly-certweb-reranker.hf.space` |
+| **컨텍스트 임베딩** | Hugging Face Spaces | `multifuly-cert-contrasitive-embedding.hf.space` |
+
+### 환경변수 주요 키
+
+```
+RAG_COHERE_ENABLE=true
+RAG_COHERE_API_KEY=<Cohere API 키>
+RAG_COHERE_POOL_SIZE=20
+RAG_COHERE_MODEL=rerank-v3.5
+RAG_COHERE_ALLOWED_QUERY_TYPES=natural,mixed
+```
+
+> `.env.example` 또는 `.cursor/rules/deployment.mdc` 참고.
 
 ---
 
@@ -12,6 +37,8 @@
    - **선택적 Fast path**: `fast_certs.py` — Redis 동기화 구독 시 초저지연 목록 응답 (Sync Worker 연동)
 2. **AI 기반 자격증 맞춤 추천 (Hybrid RAG)**
    - **pgvector & Supabase**: `certificates_vectors` 임베딩 검색, BM25·Vector·Contrastive **다채널 융합**(Linear 기본), 선택적 Cross-Encoder 리랭킹
+   - **HyDE** (Hypothetical Document Embeddings): 쿼리 → LLM 가상 문서 생성 → 4-way 융합 (BM25+Dense+Contrastive+HyDE, w=0.2). pool miss +15% 개선 (R@5 +0.049)
+   - **Cohere rerank-v3.5**: 자연어/혼합 쿼리에 대해 dense_rewrite + 전공/학년 컨텍스트 기반 리랭킹 적용 (pool=20, NDCG@4 +0.041 개선)
    - **OpenAI API**: 임베딩·dense query rewrite·(옵션) HyDE/CoT 등 확장 경로
    - **RAG 파이프라인**: `app/rag` — `hybrid_retrieve`, 메타/개인화 soft, 계층 BM25, Redis 캐시, evidence-first 생성
    - **기능 목록·인덱싱**: `backend/RAG_Indexing.md`
@@ -50,7 +77,32 @@
 - **Cache & 공통**: Redis (`redis-py` 싱글톤, orjson), Rate limiting
 - **Auth**: Supabase Auth (OTP, 이메일/비밀번호, Google OAuth)
 - **External API**: OpenAI API (임베딩·AI 추천·시맨틱·LLM 리랭킹)
+- **Cohere**: rerank-v3.5 — 자연어/혼합 쿼리 리랭커 (pool=20, `RAG_COHERE_ENABLE=true`)
+- **HF Reranker**: `multifuly/certweb-reranker-model` — 도메인 파인튜닝 Cross-Encoder (keyword 쿼리)
 - **기타**: GZip·TrustedHost·CORS, Admin API (`X-Job-Secret`), RAG reranker 캐시(Redis)
+
+### **AI RAG 파이프라인 (검색 경로)**
+
+```
+자연어/혼합 쿼리 → BM25 + Dense(1536) + Contrastive(768) + HyDE 병렬 검색
+                 → 4-way Linear 융합 (상위 88개)
+                 → dense_rewrite + 전공/학년 컨텍스트
+                 → Cohere rerank-v3.5 (pool=20)
+                 → 최종 top-k 반환
+
+keyword 쿼리    → BM25 + Dense + Contrastive
+                 → 3-way RRF 융합
+                 → 최종 top-k 반환
+```
+
+**평가 결과** (47개 자연어 골든셋, NDCG@4 기준):
+
+| 파이프라인 | NDCG@4 | R@5 | 비고 |
+|-----------|--------|-----|------|
+| RAG only | 0.4022 | 0.363 | 기준선 |
+| RAG + Cohere (pool=20) | 0.4431 | 0.412 | +Cohere rerank |
+| RAG + Cohere (no HyDE) | 0.6348 | 0.327 | +dense_rewrite+전공 컨텍스트 |
+| **RAG + HyDE + Cohere (pool=20)** | **0.6527** | **0.376** | 최종 프로덕션 |
 
 ---
 
@@ -75,12 +127,12 @@ cert-app/
 │   │   │   └── deps.py              # DB 세션, rate limit, 인증 의존성
 │   │   ├── rag/                     # RAG 파이프라인
 │   │   │   ├── retrieve/            # hybrid(BM25+Vector+Contrastive), RRF, 메타데이터 필터
-│   │   │   ├── rerank/              # Cross-Encoder API, 캐시(Redis·LRU)
+│   │   │   ├── rerank/              # Cross-Encoder API, Cohere reranker, 캐시(Redis·LRU)
 │   │   │   ├── generate/            # evidence-first 답변 생성, gating
 │   │   │   ├── index/               # BM25 인덱스 빌더, vector_index
 │   │   │   ├── eval/                # 골든 평가, retrieval/generation 메트릭
 │   │   │   ├── api/routes.py        # RAG 질의 엔드포인트
-│   │   │   ├── config.py            # RAG_TOP_N, RERANK_POOL_SIZE 등
+│   │   │   ├── config.py            # RAG_TOP_N, RERANK_POOL_SIZE, RAG_COHERE_* 등
 │   │   │   └── utils/               # query 처리, dense rewrite, golden 매핑
 │   │   ├── schemas/                 # Pydantic 스키마
 │   │   ├── services/
@@ -170,7 +222,8 @@ Redis 미연결 시 캐시·트렌딩·레이트리밋은 비활성화되고, DB
 
 - **회원가입·제약**: `check constraint "chk_userid_len"` 등 글자 수 제한은 Supabase SQL Editor에서 제약 조정 가능.
 - **JWT 검증**: `app/utils/auth.py`에서 Supabase `/auth/v1/user` REST API에 위임.
-- **시퀀스 중복**: 대량 import 후 `qualification` 등 SERIAL 시퀀스 꼬리면  
+- **시퀀스 중복**: 대량 import 후 `qualification` 등 SERIAL 시퀀스 꼬이면  
   `SELECT SETVAL(pg_get_serial_sequence('public.qualification','qual_id'), (SELECT MAX(qual_id) FROM qualification)+1);` 로 동기화.
 - **성능·캐시·RAG**: 인덱싱 및 파라미터는 `backend/RAG_Indexing.md`, 문서 기준은 `backend/RAG_LATEST_DOCS_RECORD.md` 참고.
+- **Cohere 리랭커**: `RAG_COHERE_ENABLE=true` + `RAG_COHERE_API_KEY` 환경변수 설정 필요. `natural/mixed` 쿼리에만 적용되며, 실패 시 자동 fallback. AI 추천 경로(`use_reranker=False`)에서는 Cohere 스킵됨.
 - **배포**: Vercel(프론트)·Render(백엔드)·Supabase·Redis Cloud·환경변수는 `.cursor/rules/deployment.mdc` 참고.

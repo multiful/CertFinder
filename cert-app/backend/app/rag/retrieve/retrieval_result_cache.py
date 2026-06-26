@@ -34,6 +34,9 @@ def _settings_fingerprint() -> str:
         str(getattr(s, "RAG_RRF_W_CONTRASTIVE768", "")),
         str(getattr(s, "RAG_BM25_TOP_N", "")),
         str(getattr(s, "RAG_CONTRASTIVE_TOP_N", "")),
+        str(getattr(s, "RAG_COHERE_ENABLE", "")),
+        str(getattr(s, "RAG_COHERE_POOL_SIZE", "")),
+        str(getattr(s, "RAG_COHERE_MODEL", "")),
     ]
     raw = "|".join(parts)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
@@ -61,6 +64,9 @@ def eligible_for_retrieval_cache(
         s, "RAG_USE_CROSS_ENCODER_RERANKER", False
         )
     if will_rerank:
+        return False
+    # Cohere 활성화 시 캐시 비활성: Cohere 결과는 별도 캐시 없음, 캐시 히트 시 Cohere가 스킵됨
+    if getattr(s, "RAG_COHERE_ENABLE", False):
         return False
     return True
 

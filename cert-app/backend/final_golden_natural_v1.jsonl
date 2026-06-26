@@ -1,0 +1,47 @@
+{"id": "n001", "query_type": "natural", "major": "컴퓨터공학과", "grade_level": 4, "query_text": "AI 연구원으로 취업하고 싶어요.", "expected_certs": ["정보처리기사", "빅데이터분석기사", "데이터분석전문가(ADP)", "SQL개발자(SQLD)", "데이터아키텍처전문가(DAP)", "SW테스트전문가(CSTS) 고급", "정보보안기사"]}
+{"id": "n002", "query_type": "natural", "major": "컴퓨터공학과", "grade_level": 4, "query_text": "데이터 엔지니어를 목표로 준비 중입니다.", "expected_certs": ["SQL개발자(SQLD)", "데이터아키텍처준전문가(DAsP)", "빅데이터분석기사", "정보처리기사", "SQL전문가(SQLP)", "데이터아키텍처전문가(DAP)", "데이터분석전문가(ADP)"]}
+{"id": "n003", "query_type": "natural", "major": "통계학과", "grade_level": 3, "query_text": "데이터 분석가가 되고 싶어요.", "expected_certs": ["데이터분석준전문가(ADsP)", "빅데이터분석기사", "SQL개발자(SQLD)", "데이터분석전문가(ADP)", "데이터아키텍처전문가(DAP)", "데이터아키텍처준전문가(DAsP)", "SQL전문가(SQLP)"]}
+{"id": "n004", "query_type": "natural", "major": "소프트웨어학과", "grade_level": 4, "query_text": "백엔드 개발자로 취업하고 싶습니다.", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "리눅스마스터 1급"]}
+{"id": "n005", "query_type": "natural", "major": "정보보안학과", "grade_level": 4, "query_text": "정보보안 전문가를 목표로 하고 있습니다.", "expected_certs": ["정보보안기사", "정보보안산업기사", "리눅스마스터 1급", "네트워크관리사"]}
+{"id": "n006", "query_type": "natural", "major": "정보통신공학과", "grade_level": 4, "query_text": "네트워크 엔지니어가 되고 싶어요.", "expected_certs": ["네트워크관리사", "리눅스마스터 1급", "정보처리기사"]}
+{"id": "n007", "query_type": "natural", "major": "컴퓨터공학과", "grade_level": 4, "query_text": "클라우드 엔지니어로 취업하고 싶습니다.", "expected_certs": ["리눅스마스터 1급", "네트워크관리사", "정보처리기사"]}
+{"id": "n008", "query_type": "natural", "major": "정보통신공학과", "grade_level": 4, "query_text": "DBA가 제 커리어 목표입니다.", "expected_certs": ["SQL전문가(SQLP)", "데이터아키텍처전문가(DAP)", "SQL개발자(SQLD)"]}
+{"id": "n009", "query_type": "natural", "major": "컴퓨터공학과", "grade_level": 4, "query_text": "데이터 아키텍트가 되고 싶어요.", "expected_certs": ["데이터아키텍처전문가(DAP)", "데이터아키텍처준전문가(DAsP)", "SQL전문가(SQLP)"]}
+{"id": "n010", "query_type": "natural", "major": "인공지능학과", "grade_level": 4, "query_text": "머신러닝 엔지니어를 희망합니다.", "expected_certs": ["빅데이터분석기사", "데이터분석전문가(ADP)", "정보처리기사", "SQL개발자(SQLD)"]}
+{"id": "n011", "query_type": "natural", "major": "소프트웨어학과", "grade_level": 4, "query_text": "웹 개발자로 취업하고 싶어요.", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "리눅스마스터 1급"]}
+{"id": "n013", "query_type": "natural", "major": "게임공학과", "grade_level": 4, "query_text": "게임 프로그래머가 되고 싶습니다.", "expected_certs": ["정보처리기사", "리눅스마스터 1급", "SQL개발자(SQLD)", "게임프로그래밍전문가"]}
+{"id": "n015", "query_type": "natural", "major": "경영학과", "grade_level": 4, "query_text": "회계 직무로 취업하고 싶어요.", "expected_certs": ["전산세무회계 전산회계 1급", "전산세무회계 전산세무 2급", "재경관리사", "ERP회계정보관리사 1급", "ERP회계정보관리사 2급", "세무사"]}
+{"id": "n016", "query_type": "natural", "major": "세무학과", "grade_level": 4, "query_text": "세무사무소에서 일하고 싶습니다.", "expected_certs": ["전산세무회계 전산세무 1급", "전산세무회계 전산세무 2급", "재경관리사", "전산세무회계 전산회계 1급", "전산세무회계 전산회계 2급", "세무회계 1급"]}
+{"id": "n017", "query_type": "natural", "major": "경영학과", "grade_level": 4, "query_text": "재무팀 취업을 준비하고 있습니다.", "expected_certs": ["재경관리사", "전산세무회계 전산회계 1급", "전산세무회계 전산세무 2급", "AFPK(재무설계사)", "ERP회계정보관리사 1급", "ERP회계정보관리사 2급"]}
+{"id": "n018", "query_type": "natural", "major": "산업공학과", "grade_level": 4, "query_text": "품질관리 엔지니어가 목표입니다.", "expected_certs": ["품질경영기사", "품질경영산업기사", "산업안전기사", "품질관리기술사"]}
+{"id": "n019", "query_type": "natural", "major": "산업공학과", "grade_level": 4, "query_text": "생산관리 직무를 희망합니다.", "expected_certs": ["품질경영기사", "산업안전기사", "ERP생산정보관리사 1급", "ERP생산정보관리사 2급", "경영지도사(생산관리)"]}
+{"id": "n020", "query_type": "natural", "major": "화학공학과", "grade_level": 4, "query_text": "공정기술 엔지니어로 취업하고 싶어요.", "expected_certs": ["품질경영기사", "산업안전기사"]}
+{"id": "n021", "query_type": "natural", "major": "전자공학과", "grade_level": 4, "query_text": "반도체 공정 엔지니어가 되고 싶습니다.", "expected_certs": ["품질경영기사", "산업안전기사", "전기기사", "위험물산업기사", "반도체설계산업기사", "반도체설비보전기능사"]}
+{"id": "n022", "query_type": "natural", "major": "기계공학과", "grade_level": 4, "query_text": "자동차 생산기술 직무를 준비 중입니다.", "expected_certs": ["품질경영기사", "산업안전기사", "일반기계기사"]}
+{"id": "n023", "query_type": "natural", "major": "전기공학과", "grade_level": 4, "query_text": "전기 엔지니어를 희망합니다.", "expected_certs": ["전기기사", "전기공사기사", "산업안전기사"]}
+{"id": "n024", "query_type": "natural", "major": "전기공학과", "grade_level": 4, "query_text": "전력회사 취업을 목표로 하고 있습니다.", "expected_certs": ["전기기사", "전기공사기사", "산업안전기사"]}
+{"id": "n025", "query_type": "natural", "major": "전기공학과", "grade_level": 4, "query_text": "PLC 자동화 엔지니어가 되고 싶어요.", "expected_certs": ["전기기사", "전기공사기사", "산업안전기사"]}
+{"id": "n026", "query_type": "natural", "major": "기계공학과", "grade_level": 4, "query_text": "기계설계 직무에 지원하려고 합니다.", "expected_certs": ["일반기계기사", "기계설계산업기사", "산업안전기사"]}
+{"id": "n027", "query_type": "natural", "major": "기계공학과", "grade_level": 4, "query_text": "기계 엔지니어가 되고 싶습니다.", "expected_certs": ["일반기계기사", "기계설계산업기사", "품질경영기사"]}
+{"id": "n028", "query_type": "natural", "major": "건축공학과", "grade_level": 4, "query_text": "건설회사 취업이 목표입니다.", "expected_certs": ["건축기사", "건설안전기사", "토목기사", "건설기계기술사", "건설기계설비기사", "건설재료시험기사"]}
+{"id": "n029", "query_type": "natural", "major": "건축학과", "grade_level": 4, "query_text": "건축 설계사가 되고 싶어요.", "expected_certs": ["건축기사", "건설안전기사", "건축사", "건축구조기술사", "건축설비기사"]}
+{"id": "n030", "query_type": "natural", "major": "토목공학과", "grade_level": 4, "query_text": "토목 엔지니어를 희망합니다.", "expected_certs": ["토목기사", "건설안전기사", "건설기계기술사", "건설재료시험기사", "토목품질시험기술사"]}
+{"id": "n031", "query_type": "natural", "major": "환경공학과", "grade_level": 4, "query_text": "환경 분야에서 일하고 싶습니다.", "expected_certs": ["대기환경기사", "환경영향평가사", "환경측정분석사", "수질환경기사"]}
+{"id": "n032", "query_type": "natural", "major": "화학공학과", "grade_level": 4, "query_text": "화학 공정 엔지니어를 목표로 하고 있습니다.", "expected_certs": ["화공기사", "위험물산업기사", "산업안전기사", "화공기술사", "화공안전기술사", "화학분석기사"]}
+{"id": "n033", "query_type": "natural", "major": "화학공학과", "grade_level": 4, "query_text": "배터리 기업 연구직을 희망합니다.", "expected_certs": ["화공기사", "위험물산업기사", "산업안전기사"]}
+{"id": "n034", "query_type": "natural", "major": "경영학과", "grade_level": 4, "query_text": "물류관리 직무로 취업하고 싶어요.", "expected_certs": ["물류관리사", "유통관리사 2급", "ERP물류정보관리사 1급", "ERP물류정보관리사 2급", "스마트해상물류관리사"]}
+{"id": "n035", "query_type": "natural", "major": "경영학과", "grade_level": 4, "query_text": "유통회사 MD가 되고 싶습니다.", "expected_certs": ["유통관리사 2급", "물류관리사", "ERP물류정보관리사 1급", "ERP물류정보관리사 2급", "스마트해상물류관리사"]}
+{"id": "n036", "query_type": "natural", "major": "국제통상학과", "grade_level": 4, "query_text": "무역회사 취업을 준비 중입니다.", "expected_certs": ["무역영어 1급", "무역영어 2급", "무역영어 3급", "물류관리사"]}
+{"id": "n037", "query_type": "natural", "major": "무역학과", "grade_level": 4, "query_text": "관세사 사무소에서 일하고 싶어요.", "expected_certs": ["무역영어 1급"]}
+{"id": "n038", "query_type": "natural", "major": "경제학과", "grade_level": 4, "query_text": "은행 취업을 목표로 하고 있습니다.", "expected_certs": ["AFPK(재무설계사)", "경제.금융이해력인증시험틴매경TEST", "보험계리사", "공인회계사"]}
+{"id": "n040", "query_type": "natural", "major": "통계학과", "grade_level": 4, "query_text": "금융권 데이터 분석 직무를 희망합니다.", "expected_certs": ["SQL개발자(SQLD)", "데이터분석준전문가(ADsP)", "SQL전문가(SQLP)", "데이터분석전문가(ADP)", "데이터아키텍처전문가(DAP)"]}
+{"id": "n041", "query_type": "natural", "major": "행정학과", "grade_level": 4, "query_text": "공기업 사무직을 준비 중입니다.", "expected_certs": ["컴퓨터활용능력 1급", "한국사능력검정시험"]}
+{"id": "n042", "query_type": "natural", "major": "행정학과", "grade_level": 4, "query_text": "행정직 공무원을 준비하고 있습니다.", "expected_certs": ["컴퓨터활용능력 1급", "한국사능력검정시험", "행정관리사 1급", "행정관리사 2급", "행정관리사 3급"]}
+{"id": "n043", "query_type": "natural", "major": "컴퓨터공학과", "grade_level": 4, "query_text": "해외 취업을 목표로 개발 공부를 하고 있습니다.", "expected_certs": ["정보처리기사", "리눅스마스터 1급"]}
+{"id": "n044", "query_type": "natural", "major": "소프트웨어학과", "grade_level": 4, "query_text": "스타트업에서 풀스택 개발자로 일하고 싶어요.", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)"]}
+{"id": "n045", "query_type": "natural", "major": "산업공학과", "grade_level": 4, "query_text": "스마트팩토리 엔지니어가 되고 싶습니다.", "expected_certs": ["품질경영기사", "정보처리기사", "스마트공장기능사", "스마트공장산업기사"]}
+{"id": "n046", "query_type": "natural", "major": "산업공학과", "grade_level": 4, "query_text": "MES 구축 업무를 하고 싶습니다.", "expected_certs": ["정보처리기사", "ERP생산정보관리사 1급", "ERP생산정보관리사 2급", "스마트공장산업기사"]}
+{"id": "n047", "query_type": "natural", "major": "산업공학과", "grade_level": 4, "query_text": "생산 데이터 분석 업무를 희망합니다.", "expected_certs": ["빅데이터분석기사", "데이터분석준전문가(ADsP)", "품질경영기사", "ERP생산정보관리사 1급", "ERP생산정보관리사 2급", "데이터분석전문가(ADP)"]}
+{"id": "n048", "query_type": "natural", "major": "산업공학과", "grade_level": 4, "query_text": "제조 AI 엔지니어가 되고 싶습니다.", "expected_certs": ["빅데이터분석기사", "품질경영기사", "정보처리기사"]}
+{"id": "n049", "query_type": "natural", "major": "산업공학과", "grade_level": 4, "query_text": "산업데이터 분석 직무를 준비하고 있습니다.", "expected_certs": ["빅데이터분석기사", "SQL개발자(SQLD)", "데이터분석준전문가(ADsP)", "품질경영기사", "ERP생산정보관리사 1급", "ERP생산정보관리사 2급", "데이터분석전문가(ADP)"]}
+{"id": "n050", "query_type": "natural", "major": "경영정보학과", "grade_level": 4, "query_text": "디지털 전환(DX) 컨설턴트가 되고 싶어요.", "expected_certs": ["정보처리기사", "SQL개발자(SQLD)", "데이터아키텍처준전문가(DAsP)"]}
