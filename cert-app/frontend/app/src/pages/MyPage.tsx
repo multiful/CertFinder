@@ -40,9 +40,6 @@ const TIER_META: Record<string, { color: string; bg: string; border: string; gem
     Diamond:  { color: '#b9f2ff', bg: 'rgba(185,242,255,0.10)', border: 'rgba(77,217,255,0.5)',   gem: '💎' },
 };
 
-function getTierMeta(tier: string | null | undefined) {
-    return TIER_META[tier ?? ''] ?? TIER_META['Bronze'];
-}
 
 const MYPAGE_CACHE_KEY = 'certfinder-mypage-cache';
 const MYPAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5분: 관심/최근본/전공추천 전체 섹션 공통 캐시
