@@ -46,6 +46,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { checkFavorite, addFavorite, removeFavorite, getExamSchedule, getQualInfo } from '@/lib/api';
 import type { ExamScheduleResponse, QualInfoResponse } from '@/lib/api';
 
+const CT = {
+  grid:    '#1e293b',
+  axis:    '#475569',
+  axisLabel: '#64748b',
+  blue:    '#3b82f6',
+  green:   '#10b981',
+  amber:   '#f59e0b',
+  tooltipBg:     '#0f172a',
+  tooltipBorder: '#1e293b',
+  tooltipDeepBg: '#020617',
+} as const;
+
 export function CertDetailPage({ id }: { id: string }) {
   const router = useRouter();
   const certId = parseInt(id, 10) || 0;
@@ -325,7 +337,7 @@ const handleTabChange = (tab: string) => {
         <div className="p-8 bg-slate-900 rounded-full w-fit mx-auto">
           <Info className="w-16 h-16 text-slate-700" />
         </div>
-        <h2 className="text-3xl font-bold text-white">정보를 찾을 수 없습니다</h2>
+        <h1 className="text-3xl font-bold text-white">정보를 찾을 수 없습니다</h1>
         <Button onClick={() => router.navigate('/certs')} variant="outline" className="rounded-xl border-slate-800">목록으로 돌아가기</Button>
       </div>
     );
@@ -544,22 +556,22 @@ const handleTabChange = (tab: string) => {
                   <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorWritten" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        <stop offset="5%" stopColor={CT.blue} stopOpacity={0.2} />
+                        <stop offset="95%" stopColor={CT.blue} stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorPractical" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        <stop offset="5%" stopColor={CT.green} stopOpacity={0.2} />
+                        <stop offset="95%" stopColor={CT.green} stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorInterview" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                        <stop offset="5%" stopColor={CT.amber} stopOpacity={0.2} />
+                        <stop offset="95%" stopColor={CT.amber} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={CT.grid} vertical={false} />
                     <XAxis
                       dataKey="label"
-                      stroke="#475569"
+                      stroke={CT.axis}
                       fontSize={11}
                       fontWeight={700}
                       tickLine={false}
@@ -567,7 +579,7 @@ const handleTabChange = (tab: string) => {
                       dy={10}
                     />
                     <YAxis
-                      stroke="#475569"
+                      stroke={CT.axis}
                       fontSize={11}
                       fontWeight={700}
                       tickLine={false}
@@ -576,14 +588,14 @@ const handleTabChange = (tab: string) => {
                       domain={[0, 100]}
                     />
                     <RechartsTooltip
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '16px', color: '#fff' }}
+                      contentStyle={{ backgroundColor: CT.tooltipBg, borderColor: CT.tooltipBorder, borderRadius: '16px', color: '#f1f5f9' }}
                     />
                     {visibleStages.includes('필기') && (
                       <Area
                         type="monotone"
                         dataKey="written"
                         name="필기 합격률"
-                        stroke="#3b82f6"
+                        stroke={CT.blue}
                         strokeWidth={3}
                         fillOpacity={1}
                         fill="url(#colorWritten)"
@@ -595,7 +607,7 @@ const handleTabChange = (tab: string) => {
                         type="monotone"
                         dataKey="practical"
                         name="실기 합격률"
-                        stroke="#10b981"
+                        stroke={CT.green}
                         strokeWidth={3}
                         fillOpacity={1}
                         fill="url(#colorPractical)"
@@ -607,7 +619,7 @@ const handleTabChange = (tab: string) => {
                         type="monotone"
                         dataKey="interview"
                         name="면접 합격률"
-                        stroke="#f59e0b"
+                        stroke={CT.amber}
                         strokeWidth={3}
                         fillOpacity={1}
                         fill="url(#colorInterview)"
@@ -1009,19 +1021,19 @@ const handleTabChange = (tab: string) => {
                           <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                               <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                                <PolarGrid stroke="#1e293b" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} />
+                                <PolarGrid stroke={CT.grid} />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: CT.axisLabel, fontSize: 10, fontWeight: 700 }} />
                                 <Radar
                                   name="역량 지수"
                                   dataKey="A"
-                                  stroke="#3b82f6"
-                                  fill="#3b82f6"
+                                  stroke={CT.blue}
+                                  fill={CT.blue}
                                   fillOpacity={0.6}
                                 />
                                 <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
                                 <RechartsTooltip
-                                  contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '12px' }}
-                                  itemStyle={{ color: '#3b82f6' }}
+                                  contentStyle={{ backgroundColor: CT.tooltipDeepBg, border: `1px solid ${CT.tooltipBorder}`, borderRadius: '12px', color: '#f1f5f9' }}
+                                  itemStyle={{ color: CT.blue }}
                                 />
                               </RadarChart>
                             </ResponsiveContainer>

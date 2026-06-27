@@ -97,7 +97,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" aria-label="메인 메뉴">
             {navItems.map((item) => (
               <Link
                 key={item.path}
@@ -195,7 +195,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       size="sm"
                       variant="ghost"
                       onClick={declineCookies}
-                      className="text-slate-500 hover:text-slate-300 text-xs px-3"
+                      className="text-slate-500 hover:text-slate-300 text-xs px-3 h-9 min-w-[44px]"
                       aria-label="쿠키 거부"
                     >
                       거부
@@ -203,7 +203,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <Button
                       size="sm"
                       onClick={acceptCookies}
-                      className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 rounded-xl"
+                      className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 rounded-xl h-9 min-w-[44px]"
                       aria-label="쿠키 동의"
                     >
                       동의
@@ -231,10 +231,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
               {PRODUCT_FOOTER_LINE}
             </p>
             <div className="flex gap-4 text-xs font-bold text-slate-400">
-              <Link to="/about" className="hover:text-slate-400 cursor-pointer transition-colors">서비스 소개</Link>
-              <Link to="/privacy" className="hover:text-slate-400 cursor-pointer transition-colors">개인정보 처리방침</Link>
-              <Link to="/terms" className="hover:text-slate-400 cursor-pointer transition-colors">이용약관</Link>
-              <Link to="/contact" className="hover:text-slate-400 cursor-pointer transition-colors">문의하기</Link>
+              <Link to="/about" className="hover:text-white transition-colors focus-ring rounded">서비스 소개</Link>
+              <Link to="/privacy" className="hover:text-white transition-colors focus-ring rounded">개인정보 처리방침</Link>
+              <Link to="/terms" className="hover:text-white transition-colors focus-ring rounded">이용약관</Link>
+              <Link to="/contact" className="hover:text-white transition-colors focus-ring rounded">문의하기</Link>
             </div>
           </div>
         </div>

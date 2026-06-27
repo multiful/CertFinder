@@ -846,24 +846,16 @@ export function MyPage() {
 
                         {/* 내가 취득한 자격증 카드 */}
                         {(() => {
-                            const tierMeta = getTierMeta(effectiveSummary?.tier ?? null);
+                            const certCount = effectiveSummary?.cert_count ?? acquiredCerts.length;
+                            const avgDiff = acquiredCerts.length > 0
+                                ? (acquiredCerts.reduce((s, c) => s + ((c.qualification as any)?.avg_difficulty ?? 5), 0) / acquiredCerts.length).toFixed(1)
+                                : null;
                             return (
-                                <div
-                                    className="rounded-[3rem] overflow-hidden"
-                                    style={{ background: `linear-gradient(160deg, ${tierMeta.bg} 0%, rgba(15,15,25,0.95) 100%)`, border: `1px solid ${tierMeta.border}` }}
-                                >
+                                <div className="rounded-[2rem] bg-slate-900/40 border border-slate-800">
                                     <div className="p-8 space-y-5">
                                         {/* Header */}
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-2xl">{effectiveSummary ? tierMeta.gem : '🥉'}</span>
-                                                <div>
-                                                    <h3 className="text-white font-black tracking-tight text-base leading-tight">내가 취득한 자격증</h3>
-                                                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: tierMeta.color }}>
-                                                        {effectiveSummary ? `${effectiveSummary.tier} Lv.${effectiveSummary.level}` : 'Bronze Lv.1'}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                            <h3 className="text-white font-black tracking-tight text-base">내가 취득한 자격증</h3>
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
@@ -874,77 +866,59 @@ export function MyPage() {
                                             </Button>
                                         </div>
 
-                                        {/* XP 게이지 - 항상 표시 */}
-                                        {effectiveSummary ? (
-                                            <div className="space-y-1.5">
-                                                <div className="h-2 rounded-full bg-slate-800/80 overflow-hidden">
-                                                    <div
-                                                        className="h-full rounded-full transition-all duration-700"
-                                                        style={{
-                                                            width: effectiveSummary.next_level_xp == null ? '100%' :
-                                                                `${Math.min(100, ((effectiveSummary.total_xp - effectiveSummary.current_level_xp) / (effectiveSummary.next_level_xp - effectiveSummary.current_level_xp)) * 100)}%`,
-                                                            background: `linear-gradient(90deg, ${tierMeta.color}99, ${tierMeta.color})`,
-                                                            boxShadow: `0 0 8px ${tierMeta.color}88`,
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-[10px] text-slate-500 font-bold">총 {Math.round(effectiveSummary.total_xp)} XP, {effectiveSummary.cert_count}개</span>
-                                                    <span className="text-[10px] font-bold" style={{ color: tierMeta.color }}>
-                                                        {effectiveSummary.next_level_xp == null ? 'MAX LEVEL' : `다음 Lv: ${effectiveSummary.next_level_xp} XP`}
-                                                    </span>
-                                                </div>
+                                        {/* Data stats */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/60">
+                                                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.08em] mb-1">취득 종목</p>
+                                                <p className="text-2xl font-black text-white tabular-nums leading-none">
+                                                    {certCount}<span className="text-sm font-bold text-slate-500 ml-1">개</span>
+                                                </p>
                                             </div>
-                                        ) : (
-                                            <div className="h-2 rounded-full bg-slate-800/80" />
-                                        )}
+                                            <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/60">
+                                                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.08em] mb-1">평균 난이도</p>
+                                                <p className="text-2xl font-black text-white tabular-nums leading-none">
+                                                    {avgDiff ?? '—'}<span className="text-sm font-bold text-slate-500 ml-1">{avgDiff ? '/10' : ''}</span>
+                                                </p>
+                                            </div>
+                                        </div>
 
                                         {/* 취득 자격증 목록 */}
                                         <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
                                             {dataLoading ? (
                                                 [1, 2].map((i) => (
-                                                    <div key={i} className="h-12 rounded-2xl bg-white/[0.03] border border-white/5 animate-pulse" />
+                                                    <div key={i} className="h-12 rounded-2xl bg-slate-900/60 border border-slate-800/60 animate-pulse" />
                                                 ))
                                             ) : acquiredCerts.length > 0 ? (
                                                 acquiredCerts.map((cert) => {
                                                     const diff = (cert.qualification as any)?.avg_difficulty ?? null;
-                                                    // avg_difficulty가 있으면 프론트에서 직접 계산 (백엔드 미배포 폴백)
-                                                    const xp = diff != null ? calcXpFromDiff(diff) : (cert.xp && cert.xp !== 3 ? cert.xp : 3.0);
                                                     return (
                                                         <div
                                                             key={cert.acq_id}
-                                                            className="flex items-center justify-between px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all group cursor-pointer"
+                                                            className="flex items-center justify-between px-4 py-3 rounded-2xl bg-slate-900/60 border border-slate-800/60 hover:bg-slate-900 hover:border-slate-700 transition-all group cursor-pointer"
                                                             onClick={() => router.navigate(`/certs/${cert.qual_id}`)}
                                                         >
                                                             <div className="flex items-center gap-3 min-w-0">
-                                                                <Award className="w-4 h-4 flex-shrink-0" style={{ color: tierMeta.color }} />
+                                                                <Award className="w-4 h-4 flex-shrink-0 text-emerald-500" />
                                                                 <span className="text-sm font-bold text-slate-200 truncate group-hover:text-white transition-colors">
                                                                     {cert.qualification?.qual_name ?? `자격증 #${cert.qual_id}`}
                                                                 </span>
                                                             </div>
-                                                            <div className="flex items-center gap-2 flex-shrink-0">
-                                                                {diff != null && (
-                                                                    <span className="text-[9px] font-bold text-slate-600 hidden sm:block">난이도 {diff}</span>
-                                                                )}
-                                                                <span
-                                                                    className="text-[10px] font-black px-2 py-0.5 rounded-full"
-                                                                    style={{ background: `${tierMeta.color}20`, color: tierMeta.color, border: `1px solid ${tierMeta.color}40` }}
-                                                                >
-                                                                    +{xp} XP
+                                                            {diff != null && (
+                                                                <span className="text-[10px] font-bold text-slate-600 tabular-nums shrink-0">
+                                                                    난이도 {diff}
                                                                 </span>
-                                                            </div>
+                                                            )}
                                                         </div>
                                                     );
                                                 })
                                             ) : (
                                                 <div className="py-8 flex flex-col items-center gap-3 text-center">
-                                                    <span className="text-3xl opacity-30">🏆</span>
+                                                    <Award className="w-8 h-8 text-slate-800" />
                                                     <p className="text-slate-500 text-xs font-bold">아직 취득한 자격증이 없습니다.</p>
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className="text-xs font-bold"
-                                                        style={{ color: tierMeta.color }}
+                                                        className="text-xs font-bold text-emerald-500 hover:text-emerald-400"
                                                         onClick={() => setIsAcquiredDialogOpen(true)}
                                                     >
                                                         + 자격증 추가하기

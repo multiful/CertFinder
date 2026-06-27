@@ -450,7 +450,7 @@ export function AiRecommendationPage() {
                             <Button
                                 onClick={handleRecommend}
                                 disabled={loading}
-                                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-900/40"
+                                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-900/30"
                             >
                                 {loading ? <Skeleton className="w-5 h-5 bg-white/30 rounded-full animate-pulse" /> : "AI 분석"}
                             </Button>
@@ -851,7 +851,7 @@ export function AiRecommendationPage() {
                                         <div className="flex items-center gap-3 pt-1">
                                             <Button
                                                 onClick={handleFillFromPreview}
-                                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-sm h-10 px-5"
+                                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm h-10 px-5"
                                             >
                                                 <GraduationCap className="w-4 h-4 mr-2" />
                                                 {selectedPreviewMajor} 전공으로 상세 분석하기

@@ -315,7 +315,7 @@ async def hybrid_recommendation(
 
     # Redis: v1은 tier=guest|user 만 구분해 로그인 사용자끼리 캐시를 공유 → 취득 제외·개인화가 깨질 수 있음. v2는 user(또는 guest) 단위.
     cache_key = redis_client.make_cache_key(
-        "ai:hybrid:v3",  # v2→v3: Cohere 추천 적용 + skip_expansion 캐시 무효화
+        "ai:hybrid:v4",  # v3→v4: NCS 도메인 패널티 적용 캐시 무효화
         major=major,
         interest=interest or "",
         user=user_id or "guest",
@@ -916,6 +916,33 @@ async def hybrid_recommendation(
             diff_lookup[qid] = s.get("avg_difficulty")
             pass_rate_lookup[qid] = s.get("latest_pass_rate")
 
+    # NCS 도메인 페널티: major_qualification_map 결과(전공 맞춤 자격증)의 ncs_large 집합을
+    # 기대 도메인으로 삼고, 그 외 도메인의 후보(예: 간호학 쿼리에서 변호사)에 점수 패널티 적용.
+    ncs_large_lookup: Dict[int, Optional[str]] = {}
+    major_result_ids: set[int] = set()
+    for r in major_results:
+        if r.qual_id is not None:
+            try:
+                major_result_ids.add(int(r.qual_id))
+            except (TypeError, ValueError):
+                pass
+    if candidate_ids:
+        try:
+            ncs_rows = db.execute(
+                text("SELECT qual_id, ncs_large FROM qualification WHERE qual_id = ANY(:ids)"),
+                {"ids": candidate_ids},
+            ).fetchall()
+            ncs_large_lookup = {
+                r.qual_id: (r.ncs_large or "").strip() or None for r in ncs_rows
+            }
+        except Exception:
+            pass
+    expected_ncs_domains: set[str] = set()
+    for qid in major_result_ids:
+        ncs = ncs_large_lookup.get(qid)
+        if ncs:
+            expected_ncs_domains.add(ncs)
+
     # --- 5) RRF (Reciprocal Rank Fusion) 점수 계산 ---------------------------
     # 세 가지 순위 리스트를 RRF로 융합: major_score / semantic_similarity / major_sim
     n = len(candidate_map)
@@ -994,6 +1021,13 @@ async def hybrid_recommendation(
 
         pr_factor = _pass_rate_factor(pass_rate_lookup.get(cid))
 
+        # NCS 도메인 페널티 — 전공 맞춤 자격증 집합의 NCS 대분류 외 후보에 적용
+        ncs_penalty = 1.0
+        if expected_ncs_domains:
+            cand_ncs = ncs_large_lookup.get(cid)
+            if cand_ncs and cand_ncs not in expected_ncs_domains:
+                ncs_penalty = 0.72
+
         # 0~1 범위로 정규화된 major / semantic (UI 전공 연관성·관심도 일치 바용). 표시가 100% 초과하지 않도록 엄격히 클램핑.
         if major_span > 0:
             major_norm = (c["major_score"] - min_major) / major_span
@@ -1012,8 +1046,8 @@ async def hybrid_recommendation(
             base_match = 0.5 * major_norm + 0.5 * sem_norm
         base_match = max(0.0, min(1.0, base_match))
 
-        # 최종 하이브리드 = (전공/관심사 매칭) × 난이도 보정 × 합격률 보정. 보정 곱이 1 초과할 수 있으므로 반드시 0~1 클램핑.
-        h_score = base_match * difficulty_factor * pr_factor
+        # 최종 하이브리드 = (전공/관심사 매칭) × 난이도 보정 × 합격률 보정 × NCS 도메인 보정. 보정 곱이 1 초과할 수 있으므로 반드시 0~1 클램핑.
+        h_score = base_match * difficulty_factor * pr_factor * ncs_penalty
         c["hybrid_score"] = max(0.0, min(1.0, h_score))
         c["pass_rate"] = pass_rate_lookup.get(cid)
         final_results.append(c)

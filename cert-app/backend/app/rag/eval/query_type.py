@@ -46,18 +46,33 @@ def classify_query_type(query: str, from_golden: Optional[str] = None) -> str:
 
     def is_natural_clause(text: str) -> bool:
         """동사/희망 표현이 포함된 자연어 문장인지 판단."""
-        # 대표적인 희망/동사 표현들
+        # 희망·의지 표현
         if re.search(
             r"(가고\s*싶어|되고\s*싶어|일\s*하고\s*싶어|취업하고\s*싶어|하고\s*싶어|준비하려고|추천해줘|알고\s*싶어|궁금해|도움되는)",
             text,
         ):
             return True
-        # "하고 싶어요/싶습니다" 존댓말 변형
-        if re.search(r"(싶어요|싶습니다|하고\s*싶습니다)", text):
+        # 존댓말 변형
+        if re.search(r"(싶어요|싶습니다|하고\s*싶습니다|추천해\s*주세요|알려\s*주세요|알려줘)", text):
+            return True
+        # 질문형 종결 — "뭐가 좋아", "뭐 따야 해", "어떤 게 좋을까" 등
+        if re.search(
+            r"(뭐가\s*좋|뭐\s*따야|뭐\s*해야|어떤\s*게\s*좋|좋을까|좋아요|할\s*수\s*있어|딸\s*수\s*있어|있을까|있나요|할까요|뭐가\s*있|뭐\s*있어|뭐\s*배워|배워야)",
+            text,
+        ):
+            return True
+        # "인데" + 의문사: "대학생인데 뭐", "직장인인데 어떤" 등 상황 설명 후 질문
+        if re.search(r"(인데|는데)\s*(뭐|어떤|어떻게|무엇|어디)", text):
+            return True
+        # "준비 중인데", "준비하는데" 뒤에 명사형으로 끝나도 자연어 맥락
+        if re.search(r"준비\s*(중인데|하는데|하려는데|중이에요|했는데)", text):
+            return True
+        # 개인 상황 서술 ("~학생", "~직장인", "~졸업", "~취업 준비") + 문장 길이
+        tokens = text.split()
+        if len(tokens) >= 5 and re.search(r"(학생|직장인|졸업|취준|취업\s*준비|대학원|비전공)", text):
             return True
         # 문장 길이가 충분히 길고 종결 어미 느낌이 있으면 자연어로 본다.
-        tokens = text.split()
-        if len(tokens) >= 6 and re.search(r"(하다|되는|있다|있을까|일까|했으면)", text):
+        if len(tokens) >= 6 and re.search(r"(하다|되는|있다|있을까|일까|했으면|하면\s*돼|하면\s*될까)", text):
             return True
         return False
 
@@ -67,19 +82,20 @@ def classify_query_type(query: str, from_golden: Optional[str] = None) -> str:
             return False
         tokens = text.split()
         # 너무 길면 키워드로 보지 않음
-        if len(tokens) > 6:
+        if len(tokens) > 5:
+            return False
+        # 개인 맥락 마커가 있으면 키워드 아님
+        if re.search(r"(인데|는데|준비|학생|직장인|취준)", text):
             return False
         # 명사성 키워드에 자주 등장하는 토큰들
         keyword_hints = [
-            "전공", "관련", "직무", "자격증", "추천", "로드맵", "위주", "중심",
-            "쪽", "분야", "리스트", "정리", "만", "만!", "만요",
+            "전공", "관련", "직무", "자격증", "로드맵", "위주", "중심",
+            "분야", "리스트", "정리", "만", "만!", "만요",
         ]
-        # 동사/조동사 흔적이 거의 없고, 키워드 힌트가 섞여 있으면 키워드형으로 본다.
         if re.search(r"(가고\s*싶어|싶어|싶어요|싶습니다|하고\s*싶어)", text):
             return False
         if any(h in text for h in keyword_hints):
             return True
-        # 공백이 거의 없고 한 단어로 끝나는 경우 (예: "전공관련직무")
         if len(tokens) == 1:
             return True
         return False

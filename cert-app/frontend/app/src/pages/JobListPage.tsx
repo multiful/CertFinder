@@ -30,6 +30,14 @@ import {
     PolarRadiusAxis
 } from 'recharts';
 
+const CT = {
+  grid:          '#1e293b',
+  axisLabel:     '#64748b',
+  blue:          '#3b82f6',
+  tooltipBg:     '#0f172a',
+  tooltipBorder: '#1e293b',
+} as const;
+
 export function JobListPage() {
     const router = useRouter();
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -313,22 +321,22 @@ export function JobListPage() {
                                                 <div className="w-full aspect-square relative py-4">
                                                     <ResponsiveContainer width="100%" height="100%">
                                                         <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                                                            <PolarGrid stroke="#1e293b" strokeDasharray="3 3" />
+                                                            <PolarGrid stroke={CT.grid} strokeDasharray="3 3" />
                                                             <PolarAngleAxis
                                                                 dataKey="subject"
-                                                                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                                                                tick={{ fill: CT.axisLabel, fontSize: 10, fontWeight: 700 }}
                                                             />
                                                             <Radar
                                                                 name="평가 점수"
                                                                 dataKey="A"
-                                                                stroke="#3b82f6"
-                                                                fill="#3b82f6"
+                                                                stroke={CT.blue}
+                                                                fill={CT.blue}
                                                                 fillOpacity={0.6}
                                                             />
                                                             <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
                                                             <RechartsTooltip
-                                                                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
-                                                                itemStyle={{ color: '#3b82f6' }}
+                                                                contentStyle={{ backgroundColor: CT.tooltipBg, border: `1px solid ${CT.tooltipBorder}`, borderRadius: '8px', color: '#f1f5f9' }}
+                                                                itemStyle={{ color: CT.blue }}
                                                             />
                                                         </RadarChart>
                                                     </ResponsiveContainer>

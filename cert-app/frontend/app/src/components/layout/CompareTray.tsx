@@ -58,7 +58,7 @@ export function CompareTray() {
                 navigate(`/certs/compare?ids=${ids}`);
               }}
               disabled={items.length < 2}
-              className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl disabled:opacity-40 transition-colors"
+              className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl disabled:opacity-40 transition-colors"
             >
               비교하기
             </Button>
