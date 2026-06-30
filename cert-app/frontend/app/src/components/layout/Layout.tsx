@@ -230,11 +230,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <p className="text-slate-500 text-sm font-medium text-center sm:text-left max-w-md leading-snug">
               {PRODUCT_FOOTER_LINE}
             </p>
-            <div className="flex gap-4 text-xs font-bold text-slate-400">
-              <Link to="/about" className="hover:text-white transition-colors focus-ring rounded">서비스 소개</Link>
-              <Link to="/privacy" className="hover:text-white transition-colors focus-ring rounded">개인정보 처리방침</Link>
-              <Link to="/terms" className="hover:text-white transition-colors focus-ring rounded">이용약관</Link>
-              <Link to="/contact" className="hover:text-white transition-colors focus-ring rounded">문의하기</Link>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-slate-400">
+              <Link to="/about" className="py-2 hover:text-white transition-colors focus-ring rounded">서비스 소개</Link>
+              <Link to="/privacy" className="py-2 hover:text-white transition-colors focus-ring rounded">개인정보 처리방침</Link>
+              <Link to="/terms" className="py-2 hover:text-white transition-colors focus-ring rounded">이용약관</Link>
+              <Link to="/contact" className="py-2 hover:text-white transition-colors focus-ring rounded">문의하기</Link>
             </div>
           </div>
         </div>

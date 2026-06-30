@@ -375,7 +375,7 @@ export function CertListPage() {
       </div>
 
       {/* Filter Section */}
-      <div className="bg-slate-900/40 border border-slate-800 rounded-3xl backdrop-blur-sm overflow-hidden">
+      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl overflow-hidden">
         {/* Mobile filter toggle — hidden on md+ */}
         <button
           type="button"
@@ -868,16 +868,11 @@ export function CertListPage() {
             {filteredItems.map((cert: any) => (
               <li key={cert.qual_id} className={viewMode === 'list' ? '' : 'contents'}>
               <Card
-                aria-label={cert.qual_name}
                 onClick={() => router.navigate(`/certs/${cert.qual_id}`)}
-                onKeyDown={(e) => e.key === 'Enter' && router.navigate(`/certs/${cert.qual_id}`)}
-                role="button"
-                tabIndex={0}
-                className={`group cursor-pointer bg-slate-900 border-slate-800 hover:border-blue-500/40 transition-colors duration-300 overflow-hidden focus-ring ${viewMode === 'list' ? 'flex flex-row items-center py-2' : 'flex flex-col cert-card'}`}
+                className={`group cursor-pointer bg-slate-900 border-slate-800 hover:border-blue-500/40 transition-colors duration-300 overflow-hidden ${viewMode === 'list' ? 'flex flex-row items-center py-2' : 'flex flex-col cert-card'}`}
               >
                 {viewMode === 'grid' ? (
                   <>
-                    <div className="h-1.5 w-full bg-slate-800 group-hover:bg-blue-600 transition-colors" />
                     <CardContent className="p-8 space-y-6">
                       <div className="flex justify-between items-start">
                         <Badge className="bg-slate-950 text-slate-400 border-slate-800 px-2 py-0.5 text-xs">{cert.qual_type}</Badge>
@@ -928,9 +923,16 @@ export function CertListPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2 min-h-[56px]">
-                          {cert.qual_name}
-                        </h3>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); router.navigate(`/certs/${cert.qual_id}`); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); router.navigate(`/certs/${cert.qual_id}`); } }}
+                          className="text-left w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded"
+                        >
+                          <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2 min-h-[56px]">
+                            {cert.qual_name}
+                          </h3>
+                        </button>
                         <p className="text-xs text-slate-500 font-medium tracking-tight">
                           {cert.managing_body || "관리기관 정보 없음"}
                         </p>
@@ -938,7 +940,7 @@ export function CertListPage() {
 
                       <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-800/50">
                         <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-slate-600">합격률</p>
+                          <p className="text-[10px] font-bold text-slate-400">합격률</p>
                           {(() => {
                             const r = cert.latest_pass_rate;
                             const c = r == null ? 'text-slate-500' : r > 70 ? 'text-emerald-400' : r >= 30 ? 'text-amber-400' : 'text-rose-500';
@@ -952,7 +954,7 @@ export function CertListPage() {
                           })()}
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-slate-600">난이도</p>
+                          <p className="text-[10px] font-bold text-slate-400">난이도</p>
                           <p className="text-sm font-bold text-slate-300 flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />
                             {(cert.avg_difficulty !== null && cert.avg_difficulty !== undefined) ? `${cert.avg_difficulty}/10` : '정보 없음'}
@@ -968,9 +970,16 @@ export function CertListPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors truncate">
-                          {cert.qual_name}
-                        </h3>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); router.navigate(`/certs/${cert.qual_id}`); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); router.navigate(`/certs/${cert.qual_id}`); } }}
+                          className="text-left min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded"
+                        >
+                          <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors truncate">
+                            {cert.qual_name}
+                          </h3>
+                        </button>
                         {acquiredIds.includes(cert.qual_id) && (
                           <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">
                             <CheckCircle2 className="w-3 h-3" />
@@ -982,13 +991,13 @@ export function CertListPage() {
                     </div>
                     <div className="flex gap-6 items-center">
                       <div className="text-right hidden sm:block">
-                        <p className="text-[10px] font-bold text-slate-600 mb-0.5">최신 합격률</p>
+                        <p className="text-[10px] font-bold text-slate-400 mb-0.5">최신 합격률</p>
                         <p className={`text-base font-bold ${cert.latest_pass_rate == null ? 'text-slate-500' : cert.latest_pass_rate > 70 ? 'text-emerald-400' : cert.latest_pass_rate >= 30 ? 'text-amber-400' : 'text-rose-500'}`}>
                           {cert.latest_pass_rate != null ? `${cert.latest_pass_rate}%` : "정보 없음"}
                         </p>
                       </div>
                       <div className="text-right hidden sm:block">
-                        <p className="text-[10px] uppercase font-bold text-slate-600 mb-0.5">평균 난이도</p>
+                        <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">평균 난이도</p>
                         <p className="text-base font-bold text-slate-300">{(cert.avg_difficulty !== null && cert.avg_difficulty !== undefined) ? `${cert.avg_difficulty}` : "정보 없음"}</p>
                       </div>
                       <button

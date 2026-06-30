@@ -46,17 +46,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { checkFavorite, addFavorite, removeFavorite, getExamSchedule, getQualInfo } from '@/lib/api';
 import type { ExamScheduleResponse, QualInfoResponse } from '@/lib/api';
 
-const CT = {
-  grid:    '#1e293b',
-  axis:    '#475569',
-  axisLabel: '#64748b',
-  blue:    '#3b82f6',
-  green:   '#10b981',
-  amber:   '#f59e0b',
-  tooltipBg:     '#0f172a',
-  tooltipBorder: '#1e293b',
-  tooltipDeepBg: '#020617',
-} as const;
+import { CT } from '@/lib/chartTokens';
 
 export function CertDetailPage({ id }: { id: string }) {
   const router = useRouter();

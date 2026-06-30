@@ -532,13 +532,9 @@ export function AiRecommendationPage() {
                             <Card
                                 key={res.qual_id}
                                 onClick={() => navigateToCert(res.qual_id)}
-                                onKeyDown={(e) => e.key === 'Enter' && navigateToCert(res.qual_id)}
-                                role="button"
-                                tabIndex={0}
                                 style={{ animationDelay: `${idx * 40}ms` }}
-                                className="bg-slate-900/40 border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 transition-colors cursor-pointer group rounded-2xl overflow-hidden shadow-sm hover:shadow-blue-500/10 animate-in fade-in slide-in-from-bottom-3 duration-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none"
+                                className="bg-slate-900/40 border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 transition-colors cursor-pointer group rounded-2xl overflow-hidden shadow-sm hover:shadow-blue-500/10 animate-in fade-in slide-in-from-bottom-3 duration-500"
                             >
-                                <div className="h-2 bg-blue-600/20 group-hover:bg-blue-600 transition-colors" />
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-2">
@@ -552,7 +548,7 @@ export function AiRecommendationPage() {
                                             )}
                                         </div>
                                         <div className="text-right shrink-0" title="전공 연관성과 커리어 목표 일치도를 결합한 하이브리드 점수">
-                                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.1em] leading-none mb-1">AI 점수</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] leading-none mb-1">AI 점수</p>
                                             <p className="text-2xl font-black tabular-nums text-white leading-none">
                                                 {Math.min(100, Math.round((res.hybrid_score ?? 0) * 100))}<span className="text-sm text-slate-500 font-bold ml-0.5">%</span>
                                             </p>
@@ -662,7 +658,13 @@ export function AiRecommendationPage() {
                                     </div>
 
                                     <div className="pt-2 flex justify-end">
-                                        <Button variant="ghost" size="sm" className="text-blue-400 group-hover:translate-x-1 transition-transform p-0 hover:bg-transparent">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => { e.stopPropagation(); navigateToCert(res.qual_id); }}
+                                            aria-label={`${res.qual_name} 상세보기`}
+                                            className="text-blue-400 group-hover:translate-x-1 transition-transform p-0 hover:bg-transparent focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none rounded"
+                                        >
                                             상세보기 <ChevronRight className="w-4 h-4" />
                                         </Button>
                                     </div>
@@ -791,7 +793,7 @@ export function AiRecommendationPage() {
                                                 <div
                                                     key={res.qual_id}
                                                     onClick={() => navigate(`/certs/${res.qual_id}`)}
-                                                    onKeyDown={(e) => e.key === 'Enter' && navigate(`/certs/${res.qual_id}`)}
+                                                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate(`/certs/${res.qual_id}`)}
                                                     role="button"
                                                     tabIndex={0}
                                                     className="group bg-slate-900/40 border border-slate-800 hover:border-blue-500/40 hover:bg-slate-900 rounded-2xl p-5 cursor-pointer transition-colors space-y-3 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none"

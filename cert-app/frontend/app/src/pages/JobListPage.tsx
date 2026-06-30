@@ -30,13 +30,7 @@ import {
     PolarRadiusAxis
 } from 'recharts';
 
-const CT = {
-  grid:          '#1e293b',
-  axisLabel:     '#64748b',
-  blue:          '#3b82f6',
-  tooltipBg:     '#0f172a',
-  tooltipBorder: '#1e293b',
-} as const;
+import { CT } from '@/lib/chartTokens';
 
 export function JobListPage() {
     const router = useRouter();
@@ -280,12 +274,11 @@ export function JobListPage() {
                                 <article key={job.job_id} aria-label={job.job_name} className="contents">
                                 <Card
                                     onClick={() => router.navigate(`/jobs/${job.job_id}`)}
-                                    onKeyDown={(e) => e.key === 'Enter' && router.navigate(`/jobs/${job.job_id}`)}
+                                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && router.navigate(`/jobs/${job.job_id}`)}
                                     role="button"
                                     tabIndex={0}
                                     className="bg-slate-900/50 border-slate-800 hover:border-blue-500/50 hover:bg-slate-900/80 transition-colors shadow-2xl group overflow-hidden rounded-[2rem] cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none"
                                 >
-                                    <div className="h-1.5 bg-slate-800 group-hover:bg-blue-600 transition-colors" />
                                     <CardContent className="p-0">
                                         <div className="grid lg:grid-cols-12">
                                             {/* Left Profile Section */}
@@ -345,7 +338,7 @@ export function JobListPage() {
                                                     </div>
                                                 </div>
 
-                                                <p className="text-center text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em] border-t border-slate-900 pt-4 w-full">
+                                                <p className="text-center text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] border-t border-slate-900 pt-4 w-full">
                                                     Fixed Scale Analytics (0-100)
                                                 </p>
                                             </div>

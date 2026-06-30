@@ -148,7 +148,7 @@ export function HomePage() {
                   <span className="flex items-center gap-1 text-sm text-slate-400 group-hover:text-blue-400 font-medium transition-colors">
                     전공 추천 <ChevronRight className="w-3.5 h-3.5" />
                   </span>
-                  <span className="block text-[11px] text-slate-600 group-hover:text-slate-500 transition-colors leading-tight mt-0.5">학과별 자격증 DB 매핑</span>
+                  <span className="block text-[11px] text-slate-500 group-hover:text-slate-400 transition-colors leading-tight mt-0.5">학과별 자격증 DB 매핑</span>
                 </button>
                 <button
                   type="button"
@@ -158,7 +158,7 @@ export function HomePage() {
                   <span className="flex items-center gap-1 text-sm text-blue-400 group-hover:text-blue-300 font-semibold transition-colors">
                     AI 추천 <ChevronRight className="w-3.5 h-3.5" />
                   </span>
-                  <span className="block text-[11px] text-slate-600 group-hover:text-slate-500 transition-colors leading-tight mt-0.5">커리어 목표 기반 로드맵</span>
+                  <span className="block text-[11px] text-slate-500 group-hover:text-slate-400 transition-colors leading-tight mt-0.5">커리어 목표 기반 로드맵</span>
                 </button>
               </div>
             </div>
@@ -175,13 +175,10 @@ export function HomePage() {
 
           <div className="relative hidden lg:block">
             <div className="relative z-10 bg-slate-950 rounded-2xl border border-slate-800/60 overflow-hidden">
-              {/* DB 규모 헤더 */}
-              <div className="px-8 pt-8 pb-6 border-b border-slate-800/40">
-                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.12em] mb-2">총 분석 종목</p>
-                <p className="text-5xl font-black text-white tabular-nums tracking-tight leading-none">
-                  {certCatalogTotal.toLocaleString('ko-KR')}
-                </p>
-                <p className="text-sm text-slate-500 font-medium mt-2">개 국가기술자격</p>
+              {/* 컴팩트 헤더: 레이블 + 종목 수 */}
+              <div className="px-8 pt-5 pb-4 border-b border-slate-800/40 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.12em]">실제 데이터 예시</span>
+                <span className="text-[10px] font-bold text-slate-500 tabular-nums">{certCatalogTotal.toLocaleString('ko-KR')}종 분석</span>
               </div>
 
               {/* 샘플 자격증 행 — 실제 데이터 형태 미리보기 */}
@@ -190,10 +187,10 @@ export function HomePage() {
                 { name: '컴퓨터활용능력 1급', type: '국가기술자격', passRate: 20.2, diff: 8.7 },
                 { name: '빅데이터분석기사', type: '기사', passRate: 54.9, diff: 5.5 },
               ] as const).map((cert, i, arr) => (
-                <div key={cert.name} className={`flex items-center gap-4 px-8 py-4 ${i < arr.length - 1 ? 'border-b border-slate-800/40' : ''}`}>
+                <div key={cert.name} className={`flex items-center gap-4 px-8 py-5 ${i < arr.length - 1 ? 'border-b border-slate-800/40' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-white truncate">{cert.name}</p>
-                    <p className="text-[11px] text-slate-600 mt-0.5 font-medium">{cert.type}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 font-medium">{cert.type}</p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className={`text-sm font-bold tabular-nums ${cert.passRate > 70 ? 'text-emerald-400' : cert.passRate >= 30 ? 'text-amber-400' : 'text-rose-400'}`}>
@@ -208,8 +205,8 @@ export function HomePage() {
 
               {/* 푸터 */}
               <div className="px-8 py-3 bg-slate-900/30 border-t border-slate-800/40 flex items-center justify-between">
-                <span className="text-[11px] text-slate-600">450+ 직무 · 최근 3개년 합격률 데이터</span>
-                <span className="text-[11px] text-slate-500 font-medium">실제 데이터 예시</span>
+                <span className="text-[11px] text-slate-500">450+ 직무 · 최근 3개년 합격률 데이터</span>
+                <span className="text-[11px] text-slate-500 font-medium">HRDK 공공 API</span>
               </div>
             </div>
           </div>
@@ -271,7 +268,7 @@ export function HomePage() {
                     <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors duration-200 leading-tight">
                       {f.title}
                     </h3>
-                    <span className="text-[10px] font-bold text-slate-600 border border-slate-800 group-hover:border-slate-700 px-2 py-0.5 rounded-full tracking-wide transition-colors duration-200">
+                    <span className="text-[10px] font-bold text-slate-500 border border-slate-800 group-hover:border-slate-700 px-2 py-0.5 rounded-full tracking-wide transition-colors duration-200">
                       {f.tag}
                     </span>
                   </div>
@@ -349,7 +346,7 @@ export function HomePage() {
                     <div className="flex items-center gap-2 mt-1">
                       <Badge className="bg-slate-800/80 text-slate-400 border-none text-[10px] px-1.5 py-0 h-4">{cert.qual_type}</Badge>
                       {cert.main_field && (
-                        <span className="text-[11px] text-slate-600 font-medium truncate">{cert.main_field}</span>
+                        <span className="text-[11px] text-slate-500 font-medium truncate">{cert.main_field}</span>
                       )}
                     </div>
                   </div>

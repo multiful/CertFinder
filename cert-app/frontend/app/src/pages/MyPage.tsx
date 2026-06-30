@@ -502,15 +502,15 @@ export function MyPage() {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-                                <div className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-md flex flex-col gap-1 group/item hover:bg-white/[0.05] hover:border-blue-500/30 transition-all duration-500">
-                                    <p className="text-[10px] text-slate-500 font-black">전공</p>
+                                <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col gap-1 group/item hover:border-blue-500/30 transition-colors">
+                                    <p className="text-[11px] text-slate-400 font-bold">전공</p>
                                     <div className="flex items-center gap-3">
                                         <School className="w-5 h-5 text-blue-400" />
                                         <p className="text-lg font-bold text-slate-200">{profile?.detail_major || user.user_metadata?.detail_major || '미설정'}</p>
                                     </div>
                                 </div>
-                                <div className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-md flex flex-col gap-1 group/item hover:bg-white/[0.05] hover:border-blue-500/30 transition-all duration-500">
-                                    <p className="text-[10px] text-slate-500 font-black">학년</p>
+                                <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col gap-1 group/item hover:border-blue-500/30 transition-colors">
+                                    <p className="text-[11px] text-slate-400 font-bold">학년</p>
                                     <div className="flex items-center gap-3">
                                         <Award className="w-5 h-5 text-blue-400" />
                                         <p className="text-lg font-bold text-slate-200">
@@ -522,10 +522,14 @@ export function MyPage() {
                                     </div>
                                 </div>
                                 <div
-                                    className="p-5 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-md flex flex-col gap-1 group/item hover:bg-white/[0.05] hover:border-emerald-500/30 transition-all duration-500 cursor-pointer"
+                                    className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col gap-1 group/item hover:border-emerald-500/30 transition-colors cursor-pointer"
                                     onClick={() => router.navigate('/certs?filter=bookmarks')}
+                                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && router.navigate('/certs?filter=bookmarks')}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label="저장된 자격증 보기"
                                 >
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Saved Certs</p>
+                                    <p className="text-[11px] text-slate-400 font-bold">관심 자격증</p>
                                     <div className="flex items-center gap-3">
                                         <Bookmark className="w-5 h-5 text-emerald-400" />
                                         <p className="text-lg font-bold text-slate-200">{favorites.length}개</p>
@@ -866,13 +870,13 @@ export function MyPage() {
                                         {/* Data stats */}
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/60">
-                                                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.08em] mb-1">취득 종목</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.08em] mb-1">취득 종목</p>
                                                 <p className="text-2xl font-black text-white tabular-nums leading-none">
                                                     {certCount}<span className="text-sm font-bold text-slate-500 ml-1">개</span>
                                                 </p>
                                             </div>
                                             <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/60">
-                                                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.08em] mb-1">평균 난이도</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.08em] mb-1">평균 난이도</p>
                                                 <p className="text-2xl font-black text-white tabular-nums leading-none">
                                                     {avgDiff ?? '—'}<span className="text-sm font-bold text-slate-500 ml-1">{avgDiff ? '/10' : ''}</span>
                                                 </p>
@@ -901,7 +905,7 @@ export function MyPage() {
                                                                 </span>
                                                             </div>
                                                             {diff != null && (
-                                                                <span className="text-[10px] font-bold text-slate-600 tabular-nums shrink-0">
+                                                                <span className="text-[10px] font-bold text-slate-400 tabular-nums shrink-0">
                                                                     난이도 {diff}
                                                                 </span>
                                                             )}
